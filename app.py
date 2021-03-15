@@ -35,6 +35,14 @@ def menu():
     # the base template needs only one filler
     return render_template('menu.html',date='Tuesday, March 9', type='dinner')
 
+@app.route('/feed/')
+def feed():
+    return render_template('feed.html')
+
+@app.route('/profile/')
+def profile():
+    return render_template('profile.html')
+
 # @app.route('/')
 # def index():
 #     return render_template('main.html',title='Hello')

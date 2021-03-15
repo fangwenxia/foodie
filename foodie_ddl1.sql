@@ -6,7 +6,7 @@ drop table if exists food;
 drop table if exists DHstaff;
 drop table if exists diningHall;
 
-use sclark4_db;
+use foodie_db;
 
 create table diningHall(
      did int not null, -- dining hall id

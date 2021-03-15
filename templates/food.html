@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- name = name of food 
+    labels = list of labels food contains
+    description = list of ingredients/etc
+    rating = rating
+
+-->
+<h1>{{name}} ({{type}})</h1> 
+<h2>{{rating}}</h2> 
+<!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
+<p>{{description}}</p>
+<ol>
+    <li> {{preference}} </li>
+    <p>Contains:</p>
+{%for label in labels %}
+    <li> {{label}} </li>
+    {%endfor%}
+</ol>
+
+<h3>Comments</h3>
+<ul>
+{%for comment in comments %}
+    <li> {{comment}} </li>
+    {%endfor%}
+</ul>
+<a alt = "Back to Menu" href="{{ url_for('menu')}}">Return to Menu</a>
+{% endblock %}
+
+{% block footer %}
+<p>daily menu provided by students like you. thank you!</p>
+{% endblock %}
