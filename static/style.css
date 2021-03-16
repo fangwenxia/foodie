@@ -32,6 +32,10 @@ font-style: italic;
 text-align: center;
 margin-top: -.5em;
 }
+li.label {
+    color:rgb(236, 110, 65);
+    font-family: Montserrat;
+}
 p {
     font-family: Montserrat;
     color: #427c61;
@@ -56,6 +60,18 @@ footer {
     font-size: 16px;
     font-family: Nunito;
 }
+.comment {
+    padding: 15px 32px;
+    border-radius: .6em;
+    border-color: #5CB88D;
+    border-width: 1em;
+    border-style: solid;
+}
+h3 {
+    font-family: Nunito;
+    color: rgb(236, 110, 65);
+}
+
 
 
 /* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);

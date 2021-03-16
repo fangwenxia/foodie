@@ -5,27 +5,33 @@
     labels = list of labels food contains
     description = list of ingredients/etc
     rating = rating
+    preference 
 
 -->
-<h1>{{name}} ({{type}})</h1> 
-<h2>{{rating}}</h2> 
+<h1>{{name}}</h1> 
+<div class="d-flex flex-md-column align-items-center">
+<h2>{{rating}} Stars</h2> 
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
-<p>{{description}}</p>
-<ol>
-    <li> {{preference}} </li>
-    <p>Contains:</p>
-{%for label in labels %}
-    <li> {{label}} </li>
-    {%endfor%}
-</ol>
-
-<h3>Comments</h3>
-<ul>
-{%for comment in comments %}
-    <li> {{comment}} </li>
+<p>Description: {{description}}</p>
+<p>When {{name}} is usually served: {{type}}</p>
+<p>Preference: {{preference}}</p>
+<p>Contains:     
+    <ul> {%for label in labels %}
+    <li class = "label"> {{label}} </li>
     {%endfor%}
 </ul>
+</p>
+<div class = "comment">
+<h3>Comments</h3>
+<p>{%for comment in comments %}
+    <p> {{comment}} </p>
+    <p>____________________________________________ @sclark4____________________________________________   </p>
+    {%endfor%}</p>
+</div>
+<!--  -->
+<a alt = "Update Food Item" href="{{ url_for('updateFood', fid = fid)}}">Update this Description</a>
 <a alt = "Back to Menu" href="{{ url_for('menu')}}">Return to Menu</a>
+</div>
 {% endblock %}
 
 {% block footer %}

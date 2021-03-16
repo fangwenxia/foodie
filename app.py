@@ -44,17 +44,39 @@ def form():
 def menu():
     if request.method == 'GET':
         menu = menuUp.lookupMenuList(today())
-        return render_template('menu.html',date=today(), menu = menu)
+        return render_template('menu.html',date=today(), menu = menu, title ="Menu")
     else:
         dh = request.form["dh-filter"]
         mealtype = request.form["type-filter"]
         label = ""
-        menu = menuUp.filterMenuList(dh, mealtype,label)
-        return render_template('menu.html',date=today(), type='mealtype', menu = menu)
+        if dh and mealtype: #if given a dining hall request and mealtype
+            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
+                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
+                menu = menuUp.filterMenuList(None, mealtype,None)
+            else:
+                menu = menuUp.filterMenuList(dh, mealtype,None)
+        elif dh: #if given dining hall but not meal type
+            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
+                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
+                menu = menuUp.lookupMenuList(today())
+                # menu = menuUp.filterMenuList(None, None ,None)
+            else:
+                menu = menuUp.filterMenuList(dh, None,None)
+        elif mealtype: #if given meal type but not dining hall
+            menu = menuUp.filterMenuList(None, mealtype,None)
+        else:#if not given a dining hall request or a mealtype request
+            menu = menuUp.lookupMenuList(today())
+        return render_template('menu.html',date=today(), type=mealtype, menu = menu, title ="Menu")
 
+@app.route('/food/<int:fid>', methods=["GET", "POST"])
+# name, type, rating, description, preference, label
+def food(fid):
+    if request.method == 'GET':
+        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
+        return render_template('food.html', name = item["name"], type = item["type"], 
+        rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
+        preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
 
-    # the base template needs only one filler
-    
 @app.route('/feed/')
 def feed():
     return render_template('feed.html')

@@ -36,7 +36,7 @@
 </div>
 <ol>
     {%for item in menu %}
-        <li> {{item['name']}}, Rating: {{item['rating']}} stars</li>
+        <li> <a class="menuList" href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['rating']}} stars</a></li>
     {%endfor%}
     </ol>
     
