@@ -2,6 +2,45 @@
 
 {% block content %}
 <h1>{{type}} menu for {{date}}</h1>
+
+<h2>Filter By</h1>
+    <div class="d-flex flex-md-column align-items-center">
+<form method = "POST" action = "">
+    <select name = "dh-filter">
+        <option value = "">Location</option>
+             <option value = 1> Bates </option>
+             <option value = 2> Lulu </option>
+             <option value = 3> Pom </option>
+             <option value = 4> Stone-D </option>
+             <option value = 5> Tower </option>
+    </select>
+
+    <select name = "type-filter">
+        <option value = "">Time of Day</option>
+             <option value = "breakfast"> Breakfast </option>
+             <option value = "lunch"> Lunch </option>
+             <option value = "dinner"> Dinner </option>
+             <option value = "all day"> All Day </option>
+    </select>
+    <br>
+        <input type="checkbox" id="vegan" name="vegan" value="vegan">
+        <label for="vegan"> Vegan</label>
+        <input type="checkbox" id="vegetarian" name="vegetarian"value="vegetarian">
+        <label for="vegetarian"> Vegetarian </label>
+        <input type="checkbox" id="kosher" name="kosher" value="kosher">
+        <label for="kosher"> Kosher </label>
+        <input type="checkbox" id="halal" name="halal" value="halal">
+        <label for="halal"> Halal </label>
+    <br><input type = "submit" name = "filter" value = "filter">
+ </form>
+</div>
+<ol>
+    {%for item in menu %}
+        <li> {{item['name']}}, Rating: {{item['rating']}} stars</li>
+    {%endfor%}
+    </ol>
+    
+<div class="d-flex flex-md-column align-items-center">
 <h2>Hours of Operation Lulu & Bates & Tower</h2>
 <p> Monday - Friday <br/>
     Continental Breakfast: 7:00 AM - 7:30 AM <br/>
@@ -23,14 +62,8 @@
 
 <h2>Stone-D and Pom are closed until further notice</h3>
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
-<ol>
-    <li> Food name: Dining Hall: </li>
-{%for item in menu%}
-
-    <li> item.get('name'), item.get('dh'), item.get('rating') </li>
-</ol>
-{%endfor%}
-
+ 
+</div>
 {% endblock %}
 
 {% block footer %}

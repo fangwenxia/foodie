@@ -3,13 +3,13 @@ from flask import (Flask, render_template, make_response, url_for, request,
 from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
-# one or the other of these. Defaults to MySQL (PyMySQL)
-# change comment characters to switch to SQLite
 
 import cs304dbi as dbi
-# import cs304dbi_sqlite3 as dbi
-
+import menuUpdates as menuUp #module to update foodie database from the menu page
 import random
+import sys
+
+from datetime import date
 
 app.secret_key = 'your secret here'
 # replace that with a random key
@@ -21,6 +21,16 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
+def today():
+    """Returns a string for the current day and time.
+
+    The output is in something close to Internet format. It's not really
+    Internet format because it neither converts to UTC nor
+    appends the time zone.  However, it will work nicely for MySQL.
+    """
+    now = date.today()
+    return now.strftime("%Y-%m-%d")
+
 @app.route('/')
 def home():
     # the base template needs only one filler
@@ -30,11 +40,21 @@ def home():
 def form():
     return render_template('form.html')
 
-@app.route('/menu/')
+@app.route('/menu/', methods=["GET", "POST"])
 def menu():
-    # the base template needs only one filler
-    return render_template('menu.html',date='Tuesday, March 9', type='dinner')
+    if request.method == 'GET':
+        menu = menuUp.lookupMenuList(today())
+        return render_template('menu.html',date=today(), menu = menu)
+    else:
+        dh = request.form["dh-filter"]
+        mealtype = request.form["type-filter"]
+        label = ""
+        menu = menuUp.filterMenuList(dh, mealtype,label)
+        return render_template('menu.html',date=today(), type='mealtype', menu = menu)
 
+
+    # the base template needs only one filler
+    
 @app.route('/feed/')
 def feed():
     return render_template('feed.html')
@@ -42,6 +62,8 @@ def feed():
 @app.route('/profile/')
 def profile():
     return render_template('profile.html')
+
+
 
 # @app.route('/')
 # def index():
@@ -86,7 +108,7 @@ def profile():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    dbi.use('sclark4_db') # or whatever db
+    dbi.use('foodie_db') # or whatever db
 
 if __name__ == '__main__':
     import sys, os
