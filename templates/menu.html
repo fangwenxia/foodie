@@ -2,9 +2,9 @@
 
 {% block content %}
 <h1>{{type}} menu for {{date}}</h1>
-
+<div class="d-flex flex-md-column align-items-center">
 <h2>Filter By</h1>
-    <div class="d-flex flex-md-column align-items-center">
+    
 <form method = "POST" action = "">
     <select name = "dh-filter">
         <option value = "">Location</option>
@@ -31,14 +31,16 @@
         <label for="kosher"> Kosher </label>
         <input type="checkbox" id="halal" name="halal" value="halal">
         <label for="halal"> Halal </label>
-    <br><input type = "submit" name = "filter" value = "filter">
+    <br><input class = "button" type = "submit" name = "filter" value = "filter">
  </form>
 </div>
+<div class="d-flex flex-md-column align-items-center menuList">
 <ol>
     {%for item in menu %}
-        <li> <a class="menuList" href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['rating']}} stars</a></li>
+        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['rating']}} stars</a></li>
     {%endfor%}
     </ol>
+</div>
     
 <div class="d-flex flex-md-column align-items-center">
 <h2>Hours of Operation Lulu & Bates & Tower</h2>

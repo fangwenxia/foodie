@@ -45,3 +45,13 @@ def lookupFoodItem(fid):
     curs.execute("select name, rating, ingredients, preference, allergen, comment, type from food,feedback,labels where food.fid = %s;", [fid])
     #---------------------------UPDATE to include DH info AND current date --------------------------
     return curs.fetchone()
+def updateFoodItem(fid, ingredients):
+    '''
+        edit food item and commit changes
+    '''
+    conn = dbi.connect()
+    curs = dbi.dict_cursor(conn)
+    curs.execute("update labels set ingredients = %s where fid = %s;", [ingredients, fid])
+    conn.commit()  
+
+    #---------------------------UPDATE to include DH info AND current date --------------------------

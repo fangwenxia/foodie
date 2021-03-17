@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- name = name of food 
+    labels = list of labels food contains
+    description = list of ingredients/etc
+    rating = rating
+    preference 
+
+-->
+<h1>{{name}}</h1> 
+<div class="d-flex flex-md-column align-items-center">
+<h2>{{rating}} Stars</h2> 
+<!-- fid, name, ingredients, rating -->
+<section id="form">
+    <form id="update" method ="POST" action="{{url_for('updateFood', fid = fid)}}">
+        <label>Ingredients:
+        <textarea name="ingredients" value = {{description}} rows=5 cols=50>{{description}}</textarea></label>
+        <p><input type="submit" value="update" class = "button"></p>
+    </form>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}

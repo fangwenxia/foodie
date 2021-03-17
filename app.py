@@ -22,14 +22,15 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
 def today():
-    """Returns a string for the current day and time.
+    """Returns a tuple with the string for the current day and time (SQL format)
+    and a string for the day/time for display purposes
 
     The output is in something close to Internet format. It's not really
     Internet format because it neither converts to UTC nor
     appends the time zone.  However, it will work nicely for MySQL.
     """
     now = date.today()
-    return now.strftime("%Y-%m-%d")
+    return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
 
 @app.route('/')
 def home():
@@ -43,8 +44,8 @@ def form():
 @app.route('/menu/', methods=["GET", "POST"])
 def menu():
     if request.method == 'GET':
-        menu = menuUp.lookupMenuList(today())
-        return render_template('menu.html',date=today(), menu = menu, title ="Menu")
+        menu = menuUp.lookupMenuList(today()[0])
+        return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
     else:
         dh = request.form["dh-filter"]
         mealtype = request.form["type-filter"]
@@ -58,15 +59,15 @@ def menu():
         elif dh: #if given dining hall but not meal type
             if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
                 flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
-                menu = menuUp.lookupMenuList(today())
+                menu = menuUp.lookupMenuList(today()[0])
                 # menu = menuUp.filterMenuList(None, None ,None)
             else:
                 menu = menuUp.filterMenuList(dh, None,None)
         elif mealtype: #if given meal type but not dining hall
             menu = menuUp.filterMenuList(None, mealtype,None)
         else:#if not given a dining hall request or a mealtype request
-            menu = menuUp.lookupMenuList(today())
-        return render_template('menu.html',date=today(), type=mealtype, menu = menu, title ="Menu")
+            menu = menuUp.lookupMenuList(today()[0])
+        return render_template('menu.html',date=today()[1], type=mealtype, menu = menu, title ="Menu")
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
 # name, type, rating, description, preference, label
@@ -76,6 +77,28 @@ def food(fid):
         return render_template('food.html', name = item["name"], type = item["type"], 
         rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
         preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+    else:
+        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
+        return render_template('food.html', name = item["name"], type = item["type"], 
+        rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
+        preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+
+@app.route('/updateFood/<int:fid>', methods=["GET","POST"])
+# name, type, rating, description, preference, label
+def updateFood(fid):
+    if request.method == "GET":
+        item = menuUp.lookupFoodItem(fid)
+        return render_template('foodUpdate.html', name = item["name"],
+            rating = item["rating"], description = item["ingredients"], title = item["name"], fid = fid)
+    else:
+        ingredients = request.form["ingredients"]
+        menuUp.updateFoodItem(fid, ingredients)
+        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
+        flash("Thank you for updating {}, we really appeciate it!".format(item["name"]))
+        return render_template('food.html', name = item["name"], type = item["type"], 
+            rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
+            preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+
 
 @app.route('/feed/')
 def feed():
