@@ -37,7 +37,7 @@
 <div class="d-flex flex-md-column align-items-center menuList">
 <ol>
     {%for item in menu %}
-        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['rating']}} stars</a></li>
+        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['avg(rating)']}} stars</a></li>
     {%endfor%}
     </ol>
 </div>

@@ -8,7 +8,7 @@ def lookupMenuList(now):
     '''
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select fid, name, rating from food inner join feedback using (fid) order by rating DESC;") # where lateServed= %s [now];
+    curs.execute("select food.fid, name, avg(rating) from food inner join feedback using (fid) group by feedback.fid order by avg(rating) DESC;") # where lateServed= %s [now];
     #---------------------------UPDATE to include DH info AND current date --------------------------
     return curs.fetchall()
 
@@ -19,21 +19,20 @@ def filterMenuList(dh, mealtype, label):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     if dh and mealtype: #if the values are both not null
-        sql = ("select fid, name, rating from food inner join feedback using (fid) where did = %s and type = %s" + 
-        "order by rating DESC;")
+        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where did = %s and type = %s" + 
+        "group by feedback.fid order by avg(rating) DESC;")
         values = [dh, mealtype]
     elif dh: #if the value for mealtype is null
-        sql = ("select fid, name, rating from food inner join feedback using (fid) where did = %s" + 
-        "order by rating DESC;")
+        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where did = %s" + 
+        "group by feedback.fid order by avg(rating) DESC;")
         values = [dh]
     elif mealtype: #if the value for mealtype is null
-        sql = ("select fid, name, rating from food inner join feedback using (fid) where type = %s" + 
-        "order by rating DESC;")
+        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where type = %s" + 
+        "group by feedback.fid order by avg(rating) DESC;")
         values = [mealtype]
     else: #if the value for mealtype and dh is null
-        sql = ("select fid, name, rating from food inner join feedback using (fid) order by rating DESC;")
+        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) group by feedback.fid order by avg(rating) DESC;")
     curs.execute(sql, values) # where lateServed= %s [now];
-    #---------------------------UPDATE to include DH info AND current date --------------------------
     return curs.fetchall()
 
 def lookupFoodItem(fid):
@@ -58,7 +57,7 @@ def avgRating(fid):
     '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
     conn = dbi.connect()
     curs = dbi.cursor(conn)
-    curs.execute("select rating from feedback fid = %s;", [fid])
+    curs.execute("select rating from feedback where fid = %s;", [fid])
     ratingsList = curs.fetchall()
     ratingSum, numRatings = 0, 0
     for rating in ratingsList:
