@@ -70,34 +70,45 @@ def menu():
         return render_template('menu.html',date=today()[1], type=mealtype, menu = menu, title ="Menu")
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
-# name, type, rating, description, preference, label
 def food(fid):
     if request.method == 'GET':
-        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
+        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
+        avgRating, totalRatings = 3, 5#menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
+        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+        rating = avgRating, comments = comments, description = item["ingredients"], 
+        preference = item["preference"], labels = (item["allergen"]).split(","), 
+        title = item["name"], fid = fid, dh = dh)
     else:
-        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
+        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
+        avgRating, totalRatings = 3, 5#menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
+        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+        rating = avgRating, comments = comments, description = item["ingredients"], 
+        preference = item["preference"], labels = (item["allergen"]).split(","), 
+        title = item["name"], fid = fid, dh = dh)
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
 def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(fid)
-        return render_template('foodUpdate.html', name = item["name"],
-            rating = item["rating"], description = item["ingredients"], title = item["name"], fid = fid)
+        dh, lastServedDate = menuUp.lookupLastServed(fid)
+        return render_template('foodUpdate.html', name = item["name"], dh = dh, lastServed = lastServedDate, description = item["ingredients"], title = item["name"], fid = fid)
     else:
         ingredients = request.form["ingredients"]
         menuUp.updateFoodItem(fid, ingredients)
-        item = menuUp.lookupFoodItem(fid) #return dictionary of a food's name, type, rating, description, preference, label given an id
-        flash("Thank you for updating {}, we really appeciate it!".format(item["name"]))
+        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
+        flash("Thank you for updating {}, we really appeciate it!".format(item['name']))
+        avgRating, totalRatings = 3, 5 #menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
+        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
-            rating = item["rating"], comments = item["comment"].split(","), description = item["ingredients"], 
-            preference = item["preference"], labels = (item["allergen"]).split(","), title = item["name"], fid = fid)
+        rating = avgRating, comments = comments, description = item["ingredients"], 
+        preference = item["preference"], labels = (item["allergen"]).split(","), 
+        title = item["name"], fid = fid, dh = dh)
 
 
 @app.route('/feed/')

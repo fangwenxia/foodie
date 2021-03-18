@@ -8,7 +8,7 @@
     preference 
 
 -->
-<h1>{{name}}</h1> 
+<h1>{{name}} from {{dh}}</h1> 
 <div class="d-flex flex-md-column align-items-center">
 <h2>{{rating}} Stars</h2> 
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
@@ -24,8 +24,9 @@
 <div class = "comment">
 <h3>Comments</h3>
 <p>{%for comment in comments %}
-    <p> {{comment}} </p>
-    <p>____________________________________________ @sclark4____________________________________________   </p>
+    <p> {{comment['rating']}} Stars || {{comment['comment']}} </p>
+    <p>{{comment['username']}}</p>
+    <p>________________________________________________________________________________________   </p>
     {%endfor%}</p>
 </div>
 <h3>Add Comment</h3>

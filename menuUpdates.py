@@ -38,13 +38,45 @@ def filterMenuList(dh, mealtype, label):
 
 def lookupFoodItem(fid):
     '''
-        return dictionary of a food's name, type, rating, description, preference, label given an id
+        return dictionary of a food's name, type, description, preference, label given an id
     '''
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select name, rating, ingredients, preference, allergen, comment, type from food,feedback,labels where food.fid = %s;", [fid])
-    #---------------------------UPDATE to include DH info AND current date --------------------------
+    curs.execute("select name, ingredients, preference, allergen, type from food inner join labels using (fid) where fid = %s;", [fid])
     return curs.fetchone()
+
+def lookupLastServed(fid):
+    '''
+        return tuple of a food's last served location, date last served
+    '''
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute("select diningHall.name, lastServed from food inner join diningHall using (did) where fid = %s;", [fid])
+    return curs.fetchone()
+
+def avgRating(fid):
+    '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute("select rating from feedback fid = %s;", [fid])
+    ratingsList = curs.fetchall()
+    ratingSum, numRatings = 0, 0
+    for rating in ratingsList:
+        ratingSum += rating
+        numRatings += 1
+    avg = ratingSum/numRatings
+    return avg, numRatings
+
+
+def lookupComments(fid):
+    '''
+        return a list of dictionaries for each comment for a given food item and with the comment's rating and user
+    '''
+    conn = dbi.connect()
+    curs = dbi.dict_cursor(conn)
+    curs.execute("select username, rating, comment from feedback where fid = %s;", [fid])
+    return curs.fetchall()
+
 def updateFoodItem(fid, ingredients):
     '''
         edit food item and commit changes
@@ -52,6 +84,4 @@ def updateFoodItem(fid, ingredients):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute("update labels set ingredients = %s where fid = %s;", [ingredients, fid])
-    conn.commit()  
-
-    #---------------------------UPDATE to include DH info AND current date --------------------------
+    conn.commit()
