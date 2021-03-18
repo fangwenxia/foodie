@@ -50,6 +50,7 @@ def menu():
         dh = request.form["dh-filter"]
         mealtype = request.form["type-filter"]
         label = ""
+        search = request.form["query"]
         if dh and mealtype: #if given a dining hall request and mealtype
             if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
                 flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
@@ -65,6 +66,8 @@ def menu():
                 menu = menuUp.filterMenuList(dh, None,None)
         elif mealtype: #if given meal type but not dining hall
             menu = menuUp.filterMenuList(None, mealtype,None)
+        elif search:
+            menu = menuUp.searchMenu(search)
         else:#if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(today()[0])
         return render_template('menu.html',date=today()[1], type=mealtype, menu = menu, title ="Menu")
@@ -175,4 +178,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',port)
+    app.run('0.0.0.0',8181)
