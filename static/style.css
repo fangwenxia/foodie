@@ -1,31 +1,40 @@
 @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 @import url(https://fonts.googleapis.com/css?family=Montserrat:100,100italic,200,200italic,300,300italic,regular,italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic);
 
+:root {
+    --blue: #6495ed;
+    --white: #faf0e6;
+    --orange: #fd8953;
+    --lightorange: #ffb08c;
+    --lightgreen: #8fbc8f;
+    --green: #5CB88D;
+    /* --darkgreen: #6aa66a; */
+  }
+
 body {
     background-color:white;
 }
 h1 {
-    color: #4f9976;
-/* color: #5CB88D; */
-font-family: Nunito;
-font-weight: 800;
-font-size: 70px;
-text-align: center;
-margin-bottom: 0pt;
+    color: var(--green);
+    font-family: Nunito;
+    font-weight: 800;
+    font-size: 70px;
+    text-align: center;
+    margin-bottom: 0pt;
 }
 
-nav.navbarCustom {
+.navbarCustom {
     font-family: Nunito;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 20px;
     text-align: left;
-    color: lightsalmon;
+    background-color: var(--lightorange);
     margin-bottom: 10pt
 }
 
 h2 {
 font-family: Nunito;
-color: rgb(236, 110, 65);
+color: var(--orange);
 
 }
 #subtitle {
@@ -34,12 +43,12 @@ text-align: center;
 margin-top: -.5em;
 }
 li.label {
-    color:rgb(236, 110, 65);
+    color:var(--orange);
     font-family: Montserrat;
 }
 p {
     font-family: Montserrat;
-    color: #427c61;
+    color: var(--green);
 
 }
 #form {
@@ -47,15 +56,17 @@ p {
 }
 footer {
     font-family: Montserrat;
-    color: #5CB88D;
+    color: var(--green);
     text-align: center; 
     font-size: 10pt;
+    margin-bottom: .5em;
 }
 .button {
-    background-color: rgb(255, 153, 115);
-    color: rgb(128, 51, 23);
+    background-color: var(--lightorange);
+    border-color: var(--orange);
+    color: rgb(58, 58, 58);
     font-size: larger;
-    padding: 10px 20px;
+    padding: 8px 30px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -63,27 +74,29 @@ footer {
     border-radius: 1em;
     font-size: 16px;
     font-family: Nunito;
+    margin: 1em;
+    margin-left: 35%;
 }
 .comment {
     padding: 15px 32px;
     border-radius: .6em;
-    border-color: #5CB88D;
+    border-color: var(--green);
     border-width: 1em;
     border-style: solid;
 }
 h3 {
     font-family: Nunito;
-    color: rgb(236, 110, 65);
+    color: rvar(--orange);
 }
 
 .menuList {
-    margin-left: 10em;
-    margin-right: 10em;
-    background-color: #5cb88d77;
+    margin-left: 15em;
+    margin-right: 15em;
+    margin-bottom: 2em;
     font-family: Nunito;
     font-size:larger;
-    border-color:#4f9976;
-    border-width: .3em;
+    border-color: var(--green);
+    border-width: .4em;
     border-style: solid;
     border-radius: .6em;
 

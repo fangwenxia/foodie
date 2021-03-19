@@ -84,3 +84,14 @@ def updateFoodItem(fid, ingredients):
     curs = dbi.dict_cursor(conn)
     curs.execute("update labels set ingredients = %s where fid = %s;", [ingredients, fid])
     conn.commit()
+
+def searchMenu(search):
+    '''Returns the food items that match the query of all the entries in
+the food table, as a list of dictionaries.
+    '''
+    conn = dbi.connect()
+    curs = dbi.dict_cursor(conn)
+    curs.execute("select fid, name from food inner join labels using (fid) where name like %s;", ['%' + search + '%']) 
+
+    # curs.execute("select fid, name from food inner join labels using (fid) where name like %s or ingredients like %s;", [('%' + search + '%'),('%' + search + '%')]) 
+    return curs.fetchall()
