@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+   <!-- Displaying the most recent feedbacks-->
+   <table>
+    {% for entry in feedbacks %}
+    <tr>
+        <span><b>{{entry.username}} </b></span>
+        <span>{{entry.entered}}</span><br>
+        <span>{{entry.rating}}</span><br>
+        <span>{{entry.comment}}</span><br>
+    </tr>
+    {% endfor %}
+</table>
+
+    <!-- Displaying the top rated food items not showing up for some reason-->
+    <ol>
+        {% for dish in ranking %}
+        <li>
+            <span>{{dish.name}}</span>
+            <span>Rating:{{dish.avg(rating)}}</span>
+        </li>
+        {% endfor %}
+    </ol>
+
+{% endblock %}
