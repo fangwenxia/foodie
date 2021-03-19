@@ -140,7 +140,9 @@ def review():
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
-    return render_template('reviews.html',feedbacks=feedbacks,rating=top_rated)
+    for item in top_rated:
+        item['avg']=str(item['avg'])
+    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
     
 @app.before_first_request
 def init_db():
