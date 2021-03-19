@@ -33,14 +33,14 @@
         <input type="checkbox" id="halal" name="halal" value="halal">
         <label for="halal"> Halal </label>-->
     <br><p><label>Search:
-        <input required type="text" name="query" size="50" placeholder="Graham Central"></label></p>
+        <input type="text" name="query" size="50" placeholder="Graham Central"></label></p>
         <br><input class = "button" type = "submit" name = "filter" value = "filter"> 
     </form>
 </div>
 <div class="d-flex flex-md-column align-items-center menuList">
 <ol>
     {%for item in menu %}
-        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['avg(rating)']}} stars</a></li>
+        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['name']}}, Rating: {{item['rating']}} stars</a></li>
     {%endfor%}
     </ol>
 </div>
