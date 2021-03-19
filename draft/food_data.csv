@@ -1,6 +1,6 @@
 fid,Name,Date,Meal type (breakfast/lunch/dinner/all-day),did
-1001,Ham Egg & Cheese Croissant,2021-03-10,breakfast,1
+1001,"Ham, Egg, & Cheese Croissant",2021-03-10,breakfast,1
 1002,Caprese Wrap,2021-03-16,lunch,2
 1003,Miso-Glazed Salmon,2021-03-12,dinner,5
-1004,Bacon Egg & Cheese on English Muffin,2021-03-14,breakfast,5
-1005,Vegan Cheese Tomato & Basil Pizza,2021-03-16,lunch,5
+1004,"Bacon, Egg, & Cheese on English Muffin",2021-03-14,breakfast,5
+1005,"Vegan Cheese, Tomato, & Basil Pizza",2021-03-16,lunch,5
