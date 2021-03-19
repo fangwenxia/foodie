@@ -7,6 +7,7 @@ import cs304dbi as dbi
 import menuUpdates as menuUp #module to update foodie database from the menu page
 import random
 import sys
+import feed_queries
 
 from datetime import date,datetime
 
