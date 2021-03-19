@@ -2,15 +2,36 @@
 
 import cs304dbi as dbi
 
+def avgRating(fid):
+    '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute("select rating from feedback where fid = %s;", [fid])
+    ratingsList = curs.fetchall()
+    if ratingsList:
+        ratingSum, numRatings = 0, 0
+        for rating in ratingsList:
+            ratingSum += int(rating[0])
+            numRatings += 1
+        avg = ratingSum/numRatings
+        return avg, numRatings
+    else:
+        return 0,0
+
 def lookupMenuList(now):
     '''
         return list of dictionaries of food name, dining hall, fid, ranking for all food matching 
     '''
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select food.fid, name, avg(rating) from food inner join feedback using (fid) group by feedback.fid order by avg(rating) DESC;") # where lateServed= %s [now];
+    curs.execute("select food.fid, name from food;") # where lateServed= %s [now];
     #---------------------------UPDATE to include DH info AND current date --------------------------
-    return curs.fetchall()
+    
+    menu = curs.fetchall()
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(fid)
+    return menu
 
 def filterMenuList(dh, mealtype, label):
     '''
@@ -19,21 +40,22 @@ def filterMenuList(dh, mealtype, label):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     if dh and mealtype: #if the values are both not null
-        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where did = %s and type = %s" + 
-        "group by feedback.fid order by avg(rating) DESC;")
+        sql = ("select food.fid, name from food where did = %s and type = %s;")
         values = [dh, mealtype]
     elif dh: #if the value for mealtype is null
-        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where did = %s" + 
-        "group by feedback.fid order by avg(rating) DESC;")
+        sql = ("select food.fid, name from food where did = %s;")
         values = [dh]
     elif mealtype: #if the value for mealtype is null
-        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) where type = %s" + 
-        "group by feedback.fid order by avg(rating) DESC;")
+        sql = ("select food.fid, name from food where type = %s;")
         values = [mealtype]
     else: #if the value for mealtype and dh is null
-        sql = ("select food.fid, name, avg(rating) from food inner join feedback using (fid) group by feedback.fid order by avg(rating) DESC;")
+        sql = ("select food.fid, name from food;")
     curs.execute(sql, values) # where lateServed= %s [now];
-    return curs.fetchall()
+    menu = curs.fetchall()
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(fid)
+    return menu
 
 def lookupFoodItem(fid):
     '''
@@ -52,20 +74,6 @@ def lookupLastServed(fid):
     curs = dbi.cursor(conn)
     curs.execute("select diningHall.name, lastServed from food inner join diningHall using (did) where fid = %s;", [fid])
     return curs.fetchone()
-
-def avgRating(fid):
-    '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
-    conn = dbi.connect()
-    curs = dbi.cursor(conn)
-    curs.execute("select rating from feedback where fid = %s;", [fid])
-    ratingsList = curs.fetchall()
-    ratingSum, numRatings = 0, 0
-    for rating in ratingsList:
-        ratingSum += rating
-        numRatings += 1
-    avg = ratingSum/numRatings
-    return avg, numRatings
-
 
 def lookupComments(fid):
     '''
@@ -91,7 +99,10 @@ the food table, as a list of dictionaries.
     '''
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select fid, name from food inner join labels using (fid) where name like %s;", ['%' + search + '%']) 
-
+    curs.execute("select fid, name from food inner join labels using (fid) where (lower(name) like %s) or (lower(ingredients) like %s);", ['%' + search + '%', '%' + search + '%']) 
     # curs.execute("select fid, name from food inner join labels using (fid) where name like %s or ingredients like %s;", [('%' + search + '%'),('%' + search + '%')]) 
-    return curs.fetchall()
+    menu = curs.fetchall()
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(fid)
+    return menu

@@ -3,7 +3,6 @@ from flask import (Flask, render_template, make_response, url_for, request,
 from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
-
 import cs304dbi as dbi
 import menuUpdates as menuUp #module to update foodie database from the menu page
 import random
@@ -76,7 +75,7 @@ def menu():
 def food(fid):
     if request.method == 'GET':
         item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = 3, 5#menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
         dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
         comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
@@ -85,7 +84,7 @@ def food(fid):
         title = item["name"], fid = fid, dh = dh)
     else:
         item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = 3, 5#menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
         dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
         comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
@@ -105,7 +104,7 @@ def updateFood(fid):
         menuUp.updateFoodItem(fid, ingredients)
         item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
         flash("Thank you for updating {}, we really appeciate it!".format(item['name']))
-        avgRating, totalRatings = 3, 5 #menuUp.avgRating(fid) #average rating and number of ratings given to a food item
+        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
         dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
         comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
         return render_template('food.html', name = item["name"], type = item["type"], 
