@@ -19,13 +19,13 @@ def recent_feedback(conn):
 def top_rated(conn):
     curs=dbi.dict_cursor(conn)
     # how can I order by week in the time column?
-    curs.execute('select name,avg(rating) from feedback inner join food using fid group by fid order by time DESC, rating limit 5')
+    curs.execute('select name,(avg(rating))as avg from feedback inner join food using fid group by fid order by time DESC, rating limit 5')
     # sort by month and select by month
     return curs.fetchall()
 
 def food_rating(conn):
     curs=dbi.dict_cursor(conn)
-    curs.execute('select name,avg(rating) from food inner join (feedback) using (fid) group by fid order by rating DESC')
+    curs.execute('select name,round(avg(rating),2) as avg from food inner join (feedback) using (fid) group by fid order by rating DESC')
     return curs.fetchall()
 
 '''

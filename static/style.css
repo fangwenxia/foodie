@@ -109,6 +109,20 @@ h3 {
     text-align: center;
 }
 
+.reviews {
+    padding: 15px 32px;
+    border-radius: .6em;
+    border-color: var(--green);
+    border-width: 2px;
+    border-style: solid;
+}
+
+.top_rated{
+    width:20%;
+    float:right;
+}
+
+
 /* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 
 #foodie {
