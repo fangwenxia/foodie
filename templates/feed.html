@@ -1,8 +1,39 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>food feed</h1>
-<p>whatever content fangwen's heart desires</p>
+<!--The form from Sara and Gigi's work-->
+<form id="feedback-form" method ="post" action="/feed/">
+    <!-- Fix action!! -->
+    <table>
+        <tr><td><label for="username">Your Username</label></td>
+            <td><input id="username" name="user" required></td>
+        </tr>
+        <!-- Search the food item function here -->
+        <tr><td><label for="food">Name of Food Item</label></td>
+            <td><input id="food" name="food" required></td>
+        </tr>
+        <tr>
+            <td><label for="diningHall">Dining Hall</label></td>
+            <td><select id="diningHall" name ="diningHall" required> 
+                <!-- Numbers correspond to id for dining halls in our database -->
+                <option value= ""> select</option>
+                <option value= 1> Bates</option>
+                <option value= 2> Lulu</option>
+                <option value= 3> Pom</option>
+                <option value= 4> Stone-D</option>
+                <option value= 5> Tower</option>
+            </select></td>
+        </tr>
+        <tr>
+        <td><label for="rating">How much did you like this item?</label></td>
+        <td><input type="range" min="1" max="5" value="3" name="rating" id="rating"></td>
+        <!-- Modified from W3 schools tutorial -->
+         </tr>
+        </table>
+         <label>Any comments?
+             <textarea name="comment" rows=5 cols=50></textarea></label>
+         <p><input type="submit" value="Send Feedback" class = "button"></p>
+    </form>
 
 {% endblock %}
 

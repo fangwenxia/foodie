@@ -9,7 +9,7 @@ import menuUpdates as menuUp #module to update foodie database from the menu pag
 import random
 import sys
 
-from datetime import date
+from datetime import date,datetime
 
 app.secret_key = 'your secret here'
 # replace that with a random key
@@ -161,6 +161,33 @@ def profile():
 # def testform():
 #     # these forms go to the formecho route
 #     return render_template('testform.html')
+
+@app.route('/feed/',methods=['POST','GET'])
+def feed():
+    conn=dbi.connect()
+    if request.method=='GET':
+        #feedbacks=feed_queries.recent_feedback(conn)
+        #dishes=feed_queries.top_rated(conn)
+        return render_template('feed.html')
+    else:
+        # get the input form values from the submitted form
+        username=request.form['user']
+        name=request.form['food']
+        rating=request.form['rating']
+        comment=request.form['comment']
+        time=datetime.now()
+        # stored form info into the database here
+        feed_queries.feedback(conn,username,name,rating,comment,time)
+        return redirect(url_for('review'))
+
+@app.route('/reviews/')     
+def review():
+    conn=dbi.connect()
+    feedbacks= feed_queries.recent_feedback(conn)
+    top_rated=feed_queries.food_rating(conn)
+    return render_template('reviews.html',feedbacks=feedbacks,rating=top_rated)
+    
+
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
