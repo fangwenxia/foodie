@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+   <!-- Displaying the most recent feedbacks-->
+   <section>
+   <h1>Trending Reviews</h1>
+    {% for entry in feedbacks %}
+    <div class="reviews">
+        <span><b>{{entry.username}} </b></span>
+        <span>@ {{entry.entered}}</span><br>
+        <span>rated the dish{{entry.rating}}</span><br>
+        <span>and said "{{entry.comment}}"</span><br>
+    </div>
+    {% endfor %}
+    </section>
+    <!-- Displaying the top rated food items not showing up for some reason-->
+    <section class="top_rated">
+    <h2>Most Popular Dishes Voted By <b>You!</b></h2>
+    <ol>
+        {% for dish in ranking %}
+        <li>
+            <span><b>{{dish.name}}</b></span>
+            <span>Rating:{{dish.avg}}</span><!--change a key- python syntax-->
+        </li>
+        {% endfor %}
+    </ol>
+    </section>
+{% endblock %}

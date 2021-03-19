@@ -7,8 +7,9 @@ import cs304dbi as dbi
 import menuUpdates as menuUp #module to update foodie database from the menu page
 import random
 import sys
+import feed_queries
 
-from datetime import date
+from datetime import date,datetime
 
 app.secret_key = 'your secret here'
 # replace that with a random key
@@ -112,57 +113,37 @@ def updateFood(fid):
         preference = item["preference"], labels = (item["allergen"]).split(","), 
         title = item["name"], fid = fid, dh = dh)
 
-
-@app.route('/feed/')
-def feed():
-    return render_template('feed.html')
-
 @app.route('/profile/')
 def profile():
     return render_template('profile.html')
 
+@app.route('/feed/',methods=['POST','GET'])
+def feed():
+    conn=dbi.connect()
+    if request.method=='GET':
+        #feedbacks=feed_queries.recent_feedback(conn)
+        #dishes=feed_queries.top_rated(conn)
+        return render_template('feed.html')
+    else:
+        # get the input form values from the submitted form
+        username=request.form['user']
+        name=request.form['food']
+        rating=request.form['rating']
+        comment=request.form['comment']
+        time=datetime.now()
+        # stored form info into the database here
+        feed_queries.feedback(conn,username,name,rating,comment,time)
+        return redirect(url_for('review'))
 
-
-# @app.route('/')
-# def index():
-#     return render_template('main.html',title='Hello')
-
-# @app.route('/greet/', methods=["GET", "POST"])
-# def greet():
-#     if request.method == 'GET':
-#         return render_template('greet.html', title='Customized Greeting')
-#     else:
-#         try:
-#             username = request.form['username'] # throws error if there's trouble
-#             flash('form submission successful')
-#             return render_template('greet.html',
-#                                    title='Welcome '+username,
-#                                    name=username)
-
-#         except Exception as err:
-#             flash('form submission error'+str(err))
-#             return redirect( url_for('index') )
-
-# @app.route('/formecho/', methods=['GET','POST'])
-# def formecho():
-#     if request.method == 'GET':
-#         return render_template('form_data.html',
-#                                method=request.method,
-#                                form_data=request.args)
-#     elif request.method == 'POST':
-#         return render_template('form_data.html',
-#                                method=request.method,
-#                                form_data=request.form)
-#     else:
-#         # maybe PUT?
-#         return render_template('form_data.html',
-#                                method=request.method,
-#                                form_data={})
-
-# @app.route('/testform/')
-# def testform():
-#     # these forms go to the formecho route
-#     return render_template('testform.html')
+@app.route('/reviews/')     
+def review():
+    conn=dbi.connect()
+    feedbacks= feed_queries.recent_feedback(conn)
+    top_rated=feed_queries.food_rating(conn)
+    for item in top_rated:
+        item['avg']=str(item['avg'])
+    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
+    
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
@@ -177,4 +158,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',8181)
+    app.run('0.0.0.0',port)
