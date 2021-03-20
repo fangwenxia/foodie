@@ -117,8 +117,13 @@ def updateFood(fid):
 def profile():
     return render_template('profile.html')
 
+<<<<<<< HEAD
 @app.route('/reviews/',methods=['POST','GET'])
 def reviews():
+=======
+@app.route('/addreview/',methods=['POST','GET'])
+def feed(): #rename feed() to add review
+>>>>>>> origin/main
     conn=dbi.connect()
     if request.method=='GET':
         return render_template('feed.html')
@@ -150,13 +155,60 @@ def reviews():
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
+<<<<<<< HEAD
 def feed():
+=======
+def review(): #rename review() to feed
+>>>>>>> origin/main
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
     for item in top_rated:
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
+
+    # LEAH's STUFF
+
+def handleErrors(name,date,category,hall,id): 
+    if food_name is None: 
+        message = "missing input: Food name is missing."
+    elif food_date is None: 
+        message = "missing input: Food date is missing."
+    elif food_category is None: 
+        message = "missing input: Food category is missing."
+    elif food_dhall is None:
+        message = "missing input: Food dining hall is missing."
+    elif food_id is None:
+        message = "missing input: Food ID is missing."
+    return message
+
+@app.route('/addfood/', methods=["GET", "POST"])
+def insert():
+    if request.method == 'GET':
+        return render_template('dataentry.html', action=url_for('insert'))
+    elif request.method == 'POST':
+        food_name = request.form.get('food-name') 
+        food_date = request.form.get('food-date')
+        food_category = request.form.get('food-type')
+        food_dhall = request.form.get('food-hall')
+        food_id = request.form.get('food-id')
+        error_messages = []
+        message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
+        error_messages.append(message)
+        if len(error_messages) > 0:
+            return render_template('dataentry.html', action=url_for('insert'))
+        flash('form submission successful')
+        #insert stuff into database
+        connect = dbi.connect()
+        curs = dbi.cursor(connect)
+        sql = '''insert food(fid,name,lastServed,type,did) 
+                  values (%s,%s,%s,%s,%s);'''
+        vals = [food_id,food_name,food_date,food_category,food_dhall]
+        curs.execute(sql,vals)
+        connect.commit()
+        success_message = "Food {fname} inserted".format(fname=food_name)
+        print(success_message)
+        return redirect(url_for('insert',messages=success_message))
     
 @app.before_first_request
 def init_db():

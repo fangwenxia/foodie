@@ -2,6 +2,7 @@
 
 {% block content %}
 <!--The form from Sara and Gigi's work-->
+<div class="d-flex flex-md-column align-items-center">
 <h1>Tell us what you think!</h1>
 <form id="feedback-form" method ="post" action="/feed/">
     <table>
@@ -16,7 +17,7 @@
             <td><label for="diningHall">Dining Hall</label></td>
             <td><select id="diningHall" name ="diningHall" required> 
                 <!-- Numbers correspond to id for dining halls in our database -->
-                <option value= ""> select</option>
+                <option value= "">select</option>
                 <option value= 1> Bates</option>
                 <option value= 2> Lulu</option>
                 <option value= 3> Pom</option>
@@ -34,7 +35,7 @@
              <textarea name="comment" rows=5 cols=50></textarea></label>
          <p><input type="submit" value="Send Feedback" class = "button"></p>
     </form>
-
+</div>
 {% endblock %}
 
 {% block footer %}
