@@ -23,6 +23,10 @@ h1 {
     margin-bottom: 0pt;
 }
 
+#create_form {
+    display: inline-block;
+}
+
 .navbarCustom {
     font-family: Nunito;
     font-weight: 700;
