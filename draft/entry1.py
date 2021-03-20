@@ -1,3 +1,5 @@
+# Questions: should I include labels as part of this? it's possible, but could save for alpha
+# 
 from flask import (Flask, render_template, make_response, url_for, request,
                    redirect, flash, session, send_from_directory, jsonify)
 from werkzeug.utils import secure_filename
@@ -21,14 +23,20 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
-# might need to change this. Basically, the user should be redirected to entry.html.
-# but I think they started there?  
-# app.route('/')
-# def home():
-#     # the base template needs only one filler
-#     return render_template('dataentry.html',action=url_for('entry'))
+def handleErrors(name,date,category,hall,id): 
+    if food_name is None: 
+        message = "missing input: Food name is missing."
+    elif food_date is None: 
+        message = "missing input: Food date is missing."
+    elif food_category is None: 
+        message = "missing input: Food category is missing."
+    elif food_dhall is None:
+        message = "missing input: Food dining hall is missing."
+    elif food_id is None:
+        message = "missing input: Food ID is missing."
+    return message
 
-# based on insert CRUD code. 
+
 @app.route('/', methods=["GET", "POST"])
 def insert():
     if request.method == 'GET':
@@ -39,45 +47,19 @@ def insert():
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
         food_id = request.form.get('food-id')
-        print(food_id)
-        error_messages=[]
-        if food_name is None: 
-            message = "missing input: Food name is missing."
-            error_messages.append(message)
-        if food_date is None: 
-            message = "missing input: Food date is missing."
-            error_messages.append(message)
-        if food_category is None: 
-            message = "missing input: Food category is missing."
-            error_messages.append(message)
-        if food_dhall is None:
-            message = "missing input: Food dining hall is missing."
-        if food_id is None:
-            message = "missing input: Food ID is missing."
+        error_messages = []
+        message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
+        error_messages.append(message)
         if len(error_messages) > 0: 
             render_template('insert.html',messages=error_messages,  title='Add Food!')
         flash('form submission successful')
+
         #insert stuff into database
         connect = dbi.connect()
         curs = dbi.cursor(connect)
         sql = '''insert food(fid,name,lastServed,type,did) 
                   values (%s,%s,%s,%s,%s);'''
-        vals = [food_id,food_name,food_date,food_category]
-        #determining dhall: 
-        fid=None
-        # if food_dhall == "Bates": 
-        #     fid = 1
-        # elif food_dhall == "Lulu":
-        #     fid = 2
-        # elif food_dhall == "Pom":
-        #     fid = 3
-        # elif food_dhall == "Stone-D":
-        #     fid = 4
-        # elif food_dhall == "Tower":
-        #     fid = 5
-        # implement else case. 
-        
-        vals.append(food_dhall)
+        vals = [food_id,food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()
         success_message = "Food {fname} inserted".format(fname=food_name)
