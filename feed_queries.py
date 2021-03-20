@@ -1,4 +1,19 @@
 import cs304dbi as dbi
+def temp_food(conn):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select name from food')
+    return curs.fetchall()
+
+def temp_user(conn):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select name from student')
+    return curs.fetchall()
+
+def search_user(conn,username):
+    curs= dbi.dict_cursor(conn)
+    curs.execute('select username from student where username = %s',[username])
+    return curs.fetchall()
+
 def search_food(conn,food):
     curs= dbi.dict_cursor(conn)
     food="%"+food+"%"
@@ -16,6 +31,7 @@ def recent_feedback(conn):
     curs.execute('select username,entered,rating,comment from feedback order by entered limit 10')
     return curs.fetchall()
 
+# don't use this yet- not fully planned out 
 def top_rated(conn):
     curs=dbi.dict_cursor(conn)
     # how can I order by week in the time column?
