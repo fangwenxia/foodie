@@ -150,11 +150,7 @@ def reviews():
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
-<<<<<<< HEAD
 def feed():
-=======
-def review(): #rename review() to feed
->>>>>>> origin/main
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
