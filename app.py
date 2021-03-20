@@ -160,10 +160,9 @@ def login():
             curs = dbi.dict_cursor(conn)
 
             # query finds password saved in database to compare with user input
-            curs.execute ('''select student.username, password 
-                            from student, passwords
-                            where student.username = passwords.username 
-                            and student.username = %s''',  [username])
+            curs.execute ('''select username, password 
+                            from student
+                            where username = %s''',  [username])
             user = curs.fetchone()
             
             # checks if user input matches password on file
