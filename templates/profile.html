@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h1>Welcome, {{name}}!</h1>
-<p>whatever content gigi's heart desires!!!</p>
-<p>Gigi Gabeau</p>
-<p>Class of 2021</p>
-
+{% block head_stuff %}   
+ <title>Profile</title>
 {% endblock %}
 
-{% block footer %}
-idk a footer here i  guess
+{% block content %}
+
+<h1>Your Profile</h1>
+<body>
+    <!-- will include option to upload image -->
+<h2>{{info.name}}</h2>
+<p>Username: {{info.username}}</p>
+<p>Class: {{info.classYear}}</p>
+<p>Favorite Dining Hall: {{info.favoriteDH}}</p>
+<p>Favorite Food: {{info.favoriteFood}}</p>
+<p>Restrictions:</p>
+</body>
+<form id="update_profile" method=post action="{{url_for('update', username=username)}}"> <!--FIX THIS URL-->
+    <p> <input class='button' type='submit' value='Update Profile'> </p>
+</form>
+
+
 {% endblock %}

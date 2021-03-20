@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block head_stuff %}   
+    <title>Update Profile</title>
+{% endblock %}
+
+{% block content %}
+
+<h1>Complete Profile!</h1>
+
+<h2>Current Details</h2>
+<p>Name: {{info.name}}</p>
+<p>Class Year: {{info.classYear}}</p>
+<p>Favorite Dining Hall: {{info.favoriteDH}}</p>
+<p>Favorite Food: {{info.favoriteFood}}</p>
+
+<h2>Change Details</h2>
+
+<form method=POST action="" autocomplete="on">
+    <table>
+      <tr>
+        <td><label for="name">Name</label></td>
+        <td><input name='name' value="{{info.name}}"></td> 
+      </tr>
+      <tr>
+        <td><label for="username">Username</label></td>
+        <td><input name='username' value="{{username}}"></td>
+      </tr>
+      <tr>
+        <td><label for="year">Class Year</label></td>
+        <td><select id="year" name ="year" required> 
+            <!-- Numbers correspond to id for dining halls in our database -->
+            <option value= ""> select</option>
+            <option value= 1> 2021</option>
+            <option value= 2> 2022</option>
+            <option value= 3> 2023</option>
+            <option value= 4> 2024</option>
+            <option value= 5> Davis Scholar</option>
+        </select></td>
+    </tr>
+      <tr>
+        <td><label for="diningHall">Dining Hall</label></td>
+        <td><select id="diningHall" name ="diningHall" required> 
+            <!-- Numbers correspond to id for dining halls in our database -->
+            <option value= ""> select</option>
+            <option value= 1> Bates</option>
+            <option value= 2> Lulu</option>
+            <option value= 3> Pom</option>
+            <option value= 4> Stone-D</option>
+            <option value= 5> Tower</option>
+        </select></td>
+    </tr>
+    <tr>
+        <td>Allergens</td>
+        <td><fieldset><legend>Check All Known Allergens</legend>
+            <label>
+                <input type="checkbox" name="allergen" value="peanuts">
+                peanuts
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="eggs">
+                eggs
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="fish">
+                fish
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="milk">
+                milk
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="shellfish">
+                shellfish
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="soy">
+                soy
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="tree nut">
+                tree nut
+            </label>
+            <label>
+                <input type="checkbox" name="allergen" value="wheat">
+                wheat
+            </label>
+            </fieldset>
+        </td>
+    </tr>
+    </table>
+    <input class= "button" type="submit" name="submit" value="update">
+  </form>
+
+{% endblock %}

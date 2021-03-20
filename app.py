@@ -8,6 +8,7 @@ import menuUpdates as menuUp #module to update foodie database from the menu pag
 import random
 import sys
 import feed_queries
+import query
 
 from datetime import date,datetime
 
@@ -35,7 +36,7 @@ def today():
 @app.route('/')
 def home():
     # the base template needs only one filler
-    return render_template('base.html',title='foodie.')
+    return render_template('home.html',title='foodie.')
 
 @app.route('/form/')
 def form():
@@ -113,10 +114,119 @@ def updateFood(fid):
         preference = item["preference"], labels = (item["allergen"]).split(","), 
         title = item["name"], fid = fid, dh = dh)
 
-@app.route('/profile/')
-def profile():
-    return render_template('profile.html')
+# Gigi's Stuff!!
+@app.route('/create/', methods=["GET", "POST"]) 
+def create():   
+    if request.method == 'GET':
+        return render_template(
+            'create.html', 
+            )
+    else:
+        # next three lines takes user input from form and stores in variables
+        name = request.form['name'] 
+        username = request.form['username'] 
+        password = request.form['password'] 
+        favoriteDH = request.form['diningHall'] 
+        classYear = request.form['year'] 
 
+        conn = dbi.connect()
+
+        # next helper function checks to see if username is already in database and prompts user to log in instead 
+        if query.username_exists(conn, username): 
+            flash('This username already exists. If this is you, please log in. \
+                If not, please enter your Wellesley email username.')
+            return redirect(url_for('login')) 
+        
+        # if username doesn't exist, user is added to database and can now log in
+        else: 
+            query.add_username(conn, name, username, password, favoriteDH, classYear) # used to be add_username, tt, title,  release
+            flash('Profile was created successfully! You can now log in')
+            return redirect(url_for('login')) 
+
+# allows user to log in
+@app.route('/login/', methods=["GET", "POST"])
+def login():
+    if request.method == 'GET':
+        return render_template(
+            'create.html'
+            )
+    # form gets user inputs and stores into variables
+    else:
+        username = request.form['username'] 
+        password = request.form['password'] 
+        conn = dbi.connect()
+        # helper function checks to make sure username exists in database
+        if query.username_exists(conn, username): 
+            curs = dbi.dict_cursor(conn)
+
+            # query finds password saved in database to compare with user input
+            curs.execute ('''select student.username, password 
+                            from student, passwords
+                            where student.username = passwords.username 
+                            and student.username = %s''',  [username])
+            user = curs.fetchone()
+            
+            # checks if user input matches password on file
+            check_pass = user['password']
+            if check_pass  == password:
+                flash('Successfully logged in.')
+                print(check_pass, password)
+                return redirect(url_for('profile', username=username))
+            else:
+                flash('Incorrect login. Please try again.')
+                return redirect(url_for('login'))
+
+        # if username doesn't exist in database, user is let known
+        else: 
+            flash('This username does not exist. Please create an account.')
+            return redirect(url_for('create')) 
+
+# allows user to see their profile
+# how to get actual text instead of values for DH and Classyear 
+@app.route('/profile/<username>', methods=['GET','POST'])
+def profile(username):
+    if request.method == 'GET':
+        conn = dbi.connect()
+        info = query.get_user_info(conn,username)
+        return render_template('profile.html',  
+                                info=info,
+                                username=username)
+    else:
+        return render_template('home.html')
+        
+# should allow user to update profile information. doesn't work yet. ?!?!
+@app.route('/update/<username>', methods = ["GET", "POST"])
+def update(username):
+    conn = dbi.connect()
+    info = query.get_user_info(conn, username)
+    if request.method == "GET":
+        # flash('Profile was updated successfully!')
+        return render_template('update.html', 
+                                username=username, 
+                                info=info)
+    else:
+        query.update_profile(conn, username, info)
+        flash("Successfully updated your profile!")
+        return render_template('update.html', 
+                                conn=conn,
+                                username=username, 
+                                info=info)
+
+# temporary solution for catching broken link error
+# better way of doing this ?!?!
+@app.route('/profile/', methods = ["GET", "POST"])
+def profile_error():
+    flash("Please log in to see your profile.")
+    return render_template('create.html')
+
+# temporary solution for catching broken link error
+# better way of doing this ?!?!
+@app.route('/update/', methods = ["GET", "POST"])
+def username_error():
+    flash("Please log in to update your profile.")
+    return render_template('create.html')
+
+#FANGWEN's STUFF
 @app.route('/addreview/',methods=['POST','GET'])
 def feed(): #rename feed() to add review
     conn=dbi.connect()
