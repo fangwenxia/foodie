@@ -22,7 +22,7 @@ create table diningHall(
     ENGINE = InnoDB;
 
 create table food(
-     fid int not null, -- food id
+     fid int not null auto_increment, -- food id
      name varchar(50), -- some of the food titles from WellesleyFresh are really long
      lastServed date,
      type set('breakfast', 'lunch', 'dinner', 'all day'),
@@ -65,8 +65,8 @@ create table feedback(
     )
     ENGINE = InnoDB;
 
-create table labels(
-    lid int not null, -- label id
+create table labels( 
+    lid int not null auto_increment, -- label id
     -- from wellesley fresh website
     allergen set('none','eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree nut', 'wheat'),
     preference set('none','gluten sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'),
@@ -90,22 +90,23 @@ create table labels(
     insert into diningHall (did, name, hours, waitTime)
     values (5, 'Tower', '7:30am to 7:30pm', 15);
 
-    insert into food (fid, name, lastServed, type, did)
-    values (1, 'Taco Bowl', '2021-03-02', 'lunch', '2');
+    insert into food (name, lastServed, type, did)
+    values ('Taco Bowl', '2021-03-02', 'lunch', '2');
 
-    insert into food (fid, name, lastServed, type, did)
-    values (2, 'Egg Sandwich', '2021-03-02', 'breakfast', '5');
+    insert into food (name, lastServed, type, did)
+    values ('Egg Sandwich', '2021-03-02', 'breakfast', '5');
 
-    insert into food (fid, name, lastServed, type, did)
-    values (3, 'Beef Stroganoff', '2020-04-18', 'lunch', '5');
-    insert into labels (lid, allergen, preference, ingredients, fid)
-    values (3, 'wheat, milk', 'none', 'egg noodles', 3);
-
-    insert into labels (lid, allergen, preference, ingredients, fid)
-    values (1, 'eggs,milk,wheat', 'english muffin', 'none', 2);
+    insert into food (name, lastServed, type, did)
+    values ('Beef Stroganoff', '2020-04-18', 'lunch', '5');
+    
+    insert into labels (allergen, preference, ingredients, fid)
+    values ('wheat, milk', 'none', 'egg noodles', 3);
 
     insert into labels (lid, allergen, preference, ingredients, fid)
-    values (2, 'none', 'vegan', 'avocado', 1);
+    values ('eggs,milk,wheat', 'english muffin', 'none', 2);
+
+    insert into labels (lid, allergen, preference, ingredients, fid)
+    values ('none', 'vegan', 'avocado', 1);
 
     insert into student(username, name, favoriteDH, favoriteFood)
     values ('sclark4', 'Sara Clark', 2, 1);
