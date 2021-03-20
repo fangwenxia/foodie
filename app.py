@@ -117,13 +117,8 @@ def updateFood(fid):
 def profile():
     return render_template('profile.html')
 
-<<<<<<< HEAD
 @app.route('/reviews/',methods=['POST','GET'])
 def reviews():
-=======
-@app.route('/addreview/',methods=['POST','GET'])
-def feed(): #rename feed() to add review
->>>>>>> origin/main
     conn=dbi.connect()
     if request.method=='GET':
         return render_template('feed.html')
