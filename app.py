@@ -226,13 +226,10 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-#FANGWEN's STUFF
-@app.route('/addreview/',methods=['POST','GET'])
-def feed(): #rename feed() to add review
+@app.route('/reviews/',methods=['POST','GET'])
+def reviews():
     conn=dbi.connect()
     if request.method=='GET':
-        #feedbacks=feed_queries.recent_feedback(conn)
-        #dishes=feed_queries.top_rated(conn)
         return render_template('feed.html')
     else:
         # get the input form values from the submitted form
@@ -262,7 +259,7 @@ def feed(): #rename feed() to add review
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
-def review(): #rename review() to feed
+def feed():
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
