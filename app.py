@@ -213,10 +213,10 @@ def update(username):
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!
-@app.route('/profile/', methods = ["GET", "POST"])
-def profile_error():
-    flash("Please log in to see your profile.")
-    return render_template('create.html')
+# @app.route('/profile/', methods = ["GET", "POST"])
+# def profile_error():
+#     flash("Please log in to see your profile.")
+#     return render_template('create.html')
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!

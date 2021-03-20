@@ -19,9 +19,11 @@ def username_exists(conn, username):
 def get_user_info(conn, username):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute('select name, username, classYear, favoriteDH, favoriteFood \
-                    from student \
-                    where username = %s;', [username])
+    curs.execute('select student.name, username, classYear, diningHall.name as "favoriteDH", food.name as "favoriteFood" \
+                    from student, diningHall, food \
+                    where student.favoriteDH = diningHall.did \
+                    and student.favoriteFood = food.fid \
+                    and username = %s;', [username])
     # print (curs.fetchone())
     return curs.fetchone()
 
