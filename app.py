@@ -127,12 +127,28 @@ def feed():
     else:
         # get the input form values from the submitted form
         username=request.form['user']
+        if len(feed_queries.search_user(conn,username))==0:
+            temp=[]
+            for item in feed_queries.temp_user(conn):
+                temp.append(item['name'])
+            flash('Username Under Construction:only enter below for usernames:' )
+            flash(temp)
+            return render_template('feed.html')
         name=request.form['food']
+        if len(feed_queries.search_food(conn,name))==0:
+            temp=[]
+            for item in feed_queries.temp_food(conn):
+                temp.append(item['name'])
+            flash('Food Item Under Constuction: only enter below for food item:')
+            flash(temp)
+            return render_template('feed.html')
+        else: 
+            fid=feed_queries.search_food(conn,name)[0]['fid']
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
         # stored form info into the database here
-        feed_queries.feedback(conn,username,name,rating,comment,time)
+        feed_queries.feedback(conn,username,fid,rating,comment,time)
         return redirect(url_for('review'))
 
 @app.route('/reviews/')     
@@ -140,7 +156,9 @@ def review():
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
-    return render_template('reviews.html',feedbacks=feedbacks,rating=top_rated)
+    for item in top_rated:
+        item['avg']=str(item['avg'])
+    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
     
 @app.before_first_request
 def init_db():
