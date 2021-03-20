@@ -117,12 +117,10 @@ def updateFood(fid):
 def profile():
     return render_template('profile.html')
 
-@app.route('/feed/',methods=['POST','GET'])
-def feed():
+@app.route('/reviews/',methods=['POST','GET'])
+def reviews():
     conn=dbi.connect()
     if request.method=='GET':
-        #feedbacks=feed_queries.recent_feedback(conn)
-        #dishes=feed_queries.top_rated(conn)
         return render_template('feed.html')
     else:
         # get the input form values from the submitted form
@@ -151,8 +149,8 @@ def feed():
         feed_queries.feedback(conn,username,fid,rating,comment,time)
         return redirect(url_for('review'))
 
-@app.route('/reviews/')     
-def review():
+@app.route('/feed/')     
+def feed():
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
