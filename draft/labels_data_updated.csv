@@ -1,11 +1,11 @@
-lid ,allergen,preference,ingredients,fid
-398,eggs,,pork,1001
-399,milk,vegetarian,cheese,1002
-400,fish,gluten sensitive,soy,1003
-401,eggs,,wheat,1004
-402,wheat,vegan,tomato,1005
-403,milk,vegetarian,,1006
-404,soy,vegan,tofu,1007
-405,,gluten sensetive,rice,1008
-406,milk,gluten sensitive,strawberries,1009
+allergen,preference,ingredients,fid
+eggs,none,pork,1001
+milk,vegetarian,cheese,1002
+fish,gluten sensitive,soy,1003
+eggs,none,wheat,1004
+wheat,vegan,tomato,1005
+milk,vegetarian,,1006
+soy,vegan,tofu,1007
+none,gluten sensitive,rice,1008
+milk,gluten sensitive,strawberries,1009
 407,eggs,vegetarian,eggs,1010
