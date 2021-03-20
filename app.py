@@ -160,10 +160,9 @@ def login():
             curs = dbi.dict_cursor(conn)
 
             # query finds password saved in database to compare with user input
-            curs.execute ('''select student.username, password 
-                            from student, passwords
-                            where student.username = passwords.username 
-                            and student.username = %s''',  [username])
+            curs.execute ('''select username, password 
+                            from student
+                            where username = %s''',  [username])
             user = curs.fetchone()
             
             # checks if user input matches password on file
@@ -214,10 +213,10 @@ def update(username):
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!
-@app.route('/profile/', methods = ["GET", "POST"])
-def profile_error():
-    flash("Please log in to see your profile.")
-    return render_template('create.html')
+# @app.route('/profile/', methods = ["GET", "POST"])
+# def profile_error():
+#     flash("Please log in to see your profile.")
+#     return render_template('create.html')
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!
@@ -226,13 +225,10 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-#FANGWEN's STUFF
-@app.route('/addreview/',methods=['POST','GET'])
-def feed(): #rename feed() to add review
+@app.route('/reviews/',methods=['POST','GET'])
+def reviews():
     conn=dbi.connect()
     if request.method=='GET':
-        #feedbacks=feed_queries.recent_feedback(conn)
-        #dishes=feed_queries.top_rated(conn)
         return render_template('feed.html')
     else:
         # get the input form values from the submitted form
@@ -262,7 +258,7 @@ def feed(): #rename feed() to add review
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
-def review(): #rename review() to feed
+def feed():
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)

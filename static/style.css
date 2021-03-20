@@ -23,6 +23,10 @@ h1 {
     margin-bottom: 0pt;
 }
 
+#create_form {
+    display: inline-block;
+}
+
 .navbarCustom {
     font-family: Nunito;
     font-weight: 700;
@@ -30,6 +34,23 @@ h1 {
     text-align: left;
     background-color: var(--lightorange);
     margin-bottom: 10pt
+}
+
+nav {
+    font-family: Nunito;
+    color: var(--orange);
+    }
+    
+legend {
+font-family: Montserrat;
+    color: var(--orange);
+    font-style: italic;
+    margin-top: -.5em;  
+}        
+    
+label {
+    font-family: Montserrat;
+    color: var(--green);
 }
 
 h2 {

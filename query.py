@@ -4,10 +4,8 @@ import cs304dbi as dbi
 def add_username(conn, name, username, password, favoriteDH, classYear): 
     curs = dbi.dict_cursor(conn)
     curs2 = dbi.dict_cursor(conn)
-    curs.execute('INSERT INTO student(username, name, favoriteDH, classYear) \
-                VALUES (%s, %s, %s, %s);', [username, name, favoriteDH, classYear])
-    curs2.execute('INSERT INTO passwords(username, password) \
-                VALUES (%s, %s);', [username, password])        
+    curs.execute('INSERT INTO student(username, name, favoriteDH, classYear, password) \
+                VALUES (%s, %s, %s, %s, %s);', [username, name, favoriteDH, classYear, password])
     conn.commit()
 
 # helper function to check if username already exists in database
@@ -21,9 +19,11 @@ def username_exists(conn, username):
 def get_user_info(conn, username):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute('select name, username, classYear, favoriteDH, favoriteFood \
-                    from student \
-                    where username = %s;', [username])
+    curs.execute('select student.name, username, classYear, diningHall.name as "favoriteDH", food.name as "favoriteFood" \
+                    from student, diningHall, food \
+                    where student.favoriteDH = diningHall.did \
+                    and student.favoriteFood = food.fid \
+                    and username = %s;', [username])
     # print (curs.fetchone())
     return curs.fetchone()
 
