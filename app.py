@@ -288,9 +288,12 @@ def addfood():
         food_preferences = request.form.get('food-preferences')
         food_allergens = request.form.get('food-allergens')
         food_ingredients = request.form.get('food-ingredients')
-        print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
-        error_messages = []
-        #message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
+        
+    
+
+        # error handling is buggy 
+        # error_messages = []
+        # message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
         # message = ""
         # if food_name is None: 
         #     message = "missing input: Food name is missing."
@@ -309,9 +312,9 @@ def addfood():
         #     return render_template('dataentry.html', action=url_for('addfood'), messages=error_messages)
         # print("form submission successful.")
 
-        #insert stuff into database
+        #inserts food into food table 
         connect = dbi.connect()
-        print("connected!")
+
         curs = dbi.cursor(connect)
         sql = '''insert into food(name,lastServed,type,did) 
                   values (%s,%s,%s,%s);'''
@@ -319,32 +322,33 @@ def addfood():
         vals = [food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()
-        print("success!")
-        success_message = "Food {fname} inserted".format(fname=food_name)
-        print(success_message)
 
+        #gets and saves the auto-generated id of the food 
         curs1 = dbi.cursor(connect)
         sql = '''select fid from food where name=%s'''
         curs1.execute(sql,food_name)
         food_id = curs1.fetchone()[0]
         print(food_id)
 
+        #using the fid from above, creates a label for the food and adds it to the labels table
         curs2 = dbi.cursor(connect)
         sql2 = '''insert into labels(allergen,preference,ingredients,fid) 
                   values (%s,%s,%s,%s);'''
         labelvals = [food_allergens,food_preferences,food_ingredients,food_id]
-        print(labelvals)
         curs2.execute(sql2,labelvals)
         connect.commit()
 
         print("label inserted")
+        success_message = "Food {fname} inserted".format(fname=food_name)
 
-        return redirect(url_for('addfood',messages=success_message,action='addfood'))
+        # redirects to addfood html page. The success message isn't showing up (buggy)
+        flash(success_message)
+        return redirect(url_for('addfood',action='addfood'))
     
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    dbi.use('foodie_db') # or whatever db
+    dbi.use('foodie_db')  
 
 if __name__ == '__main__':
     import sys, os

@@ -1,17 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-{% if messages %}
+<!-- tried to add success message to webpage, did not work. -->
 <div id="messages">
-    {% for msg in messages %}
     <p>{{msg}}</p>
-    {% endfor %}
 </div>
-{% endif %}
+
 
 <h1>Add Food to Database</h1>
-<p>At the moment: please *don't* add commas in your input.</p>
+
 
 <form method=post action="">
 
