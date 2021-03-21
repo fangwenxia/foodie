@@ -6,7 +6,7 @@ def temp_food(conn):
 
 def temp_user(conn):
     curs=dbi.dict_cursor(conn)
-    curs.execute('select name from student')
+    curs.execute('select username from student')
     return curs.fetchall()
 
 def search_user(conn,username):

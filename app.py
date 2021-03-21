@@ -230,8 +230,7 @@ def username_error():
 def reviews():
     conn=dbi.connect()
     if request.method=='GET':
-        #feedbacks=feed_queries.recent_feedback(conn)
-        #dishes=feed_queries.top_rated(conn)
+        # get the form to display 
         return render_template('feed.html')
     else:
         # get the input form values from the submitted form
@@ -239,7 +238,7 @@ def reviews():
         if len(feed_queries.search_user(conn,username))==0:
             temp=[]
             for item in feed_queries.temp_user(conn):
-                temp.append(item['name'])
+                temp.append(item['username'])
             flash('Username Under Construction:only enter below for usernames:' )
             flash(temp)
             return render_template('feed.html')
@@ -258,7 +257,7 @@ def reviews():
         time=datetime.now()
         # stored form info into the database here
         feed_queries.feedback(conn,username,fid,rating,comment,time)
-        return redirect(url_for('review'))
+        return redirect(url_for('feed'))
 
 @app.route('/feed/')     
 def feed(): #rename review() to feed
