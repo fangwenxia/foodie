@@ -7,6 +7,7 @@ import cs304dbi as dbi
 import menuUpdates as menuUp #module to update foodie database from the menu page
 import random
 import sys
+import pymysql
 import feed_queries
 import query
 
@@ -160,17 +161,16 @@ def login():
             curs = dbi.dict_cursor(conn)
 
             # query finds password saved in database to compare with user input
-            curs.execute ('''select student.username, password 
-                            from student, passwords
-                            where student.username = passwords.username 
-                            and student.username = %s''',  [username])
+            curs.execute ('''select username, password 
+                            from student
+                            where username = %s''', [username])
             user = curs.fetchone()
             
             # checks if user input matches password on file
             check_pass = user['password']
             if check_pass  == password:
                 flash('Successfully logged in.')
-                print(check_pass, password)
+                # print(check_pass, password)
                 return redirect(url_for('profile', username=username))
             else:
                 flash('Incorrect login. Please try again.')
@@ -230,6 +230,8 @@ def username_error():
 def reviews():
     conn=dbi.connect()
     if request.method=='GET':
+        #feedbacks=feed_queries.recent_feedback(conn)
+        #dishes=feed_queries.top_rated(conn)
         return render_template('feed.html')
     else:
         # get the input form values from the submitted form
@@ -259,7 +261,7 @@ def reviews():
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
-def feed():
+def feed(): #rename review() to feed
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
@@ -268,47 +270,74 @@ def feed():
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
     # LEAH's STUFF
-
-def handleErrors(name,date,category,hall,id): 
-    if food_name is None: 
-        message = "missing input: Food name is missing."
-    elif food_date is None: 
-        message = "missing input: Food date is missing."
-    elif food_category is None: 
-        message = "missing input: Food category is missing."
-    elif food_dhall is None:
-        message = "missing input: Food dining hall is missing."
-    elif food_id is None:
-        message = "missing input: Food ID is missing."
+'''
+def handleErrors(name,category,hall,preferences,allergens,ingredients): 
+    message="hello"
     return message
-
+'''
 @app.route('/addfood/', methods=["GET", "POST"])
-def insert():
+def addfood():
     if request.method == 'GET':
-        return render_template('dataentry.html', action=url_for('insert'))
+        return render_template('dataentry.html', action=url_for('addfood'))
     elif request.method == 'POST':
         food_name = request.form.get('food-name') 
-        food_date = request.form.get('food-date')
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
-        food_id = request.form.get('food-id')
+        food_preferences = request.form.get('food-preferences')
+        food_allergens = request.form.get('food-allergens')
+        food_ingredients = request.form.get('food-ingredients')
+        print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
         error_messages = []
-        message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
-        error_messages.append(message)
-        if len(error_messages) > 0:
-            return render_template('dataentry.html', action=url_for('insert'))
-        flash('form submission successful')
+        #message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
+        # message = ""
+        # if food_name is None: 
+        #     message = "missing input: Food name is missing."
+        # elif food_category is None: 
+        #     message = "missing input: Food category is missing."
+        # elif food_dhall is None:
+        #     message = "missing input: Food dining hall is missing."
+        # elif food_preferences is None:
+        #     message = "missing input: Food preferences is missing."
+        # elif food_allergens is None: 
+        #     message = "missing input: Food allergens is missing."
+        # elif food_ingredients is None: 
+        #     message = "missing ingredients: Food ingredients are missing."
+        # error_messages.append(message)
+        # if len(error_messages) > 0:
+        #     return render_template('dataentry.html', action=url_for('addfood'), messages=error_messages)
+        # print("form submission successful.")
+
         #insert stuff into database
         connect = dbi.connect()
+        print("connected!")
         curs = dbi.cursor(connect)
-        sql = '''insert food(fid,name,lastServed,type,did) 
-                  values (%s,%s,%s,%s,%s);'''
-        vals = [food_id,food_name,food_date,food_category,food_dhall]
+        sql = '''insert into food(name,lastServed,type,did) 
+                  values (%s,%s,%s,%s);'''
+        food_date = "2021-03-19"
+        vals = [food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()
+        print("success!")
         success_message = "Food {fname} inserted".format(fname=food_name)
         print(success_message)
-        return redirect(url_for('insert',messages=success_message))
+
+        curs1 = dbi.cursor(connect)
+        sql = '''select fid from food where name=%s'''
+        curs1.execute(sql,food_name)
+        food_id = curs1.fetchone()[0]
+        print(food_id)
+
+        curs2 = dbi.cursor(connect)
+        sql2 = '''insert into labels(allergen,preference,ingredients,fid) 
+                  values (%s,%s,%s,%s);'''
+        labelvals = [food_allergens,food_preferences,food_ingredients,food_id]
+        print(labelvals)
+        curs2.execute(sql2,labelvals)
+        connect.commit()
+
+        print("label inserted")
+
+        return redirect(url_for('addfood',messages=success_message,action='addfood'))
     
 @app.before_first_request
 def init_db():
@@ -323,5 +352,6 @@ if __name__ == '__main__':
         assert(port>1024)
     else:
         port = os.getuid()
+        # port = 7739
     app.debug = True
     app.run('0.0.0.0',port)
