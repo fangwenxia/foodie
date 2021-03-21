@@ -161,16 +161,9 @@ def login():
             curs = dbi.dict_cursor(conn)
 
             # query finds password saved in database to compare with user input
-<<<<<<< HEAD
             curs.execute ('''select username, password 
                             from student
                             where username = %s''', [username])
-=======
-            curs.execute ('''select student.username, password 
-                            from student, passwords
-                            where student.username = passwords.username 
-                            and student.username = %s''',  [username])
->>>>>>> d2a28e5f37819092a319557868854e14ab8d9309
             user = curs.fetchone()
             
             # checks if user input matches password on file
@@ -233,16 +226,8 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-<<<<<<< HEAD
-
-
 @app.route('/reviews/',methods=['POST','GET'])
 def reviews():
-=======
-#FANGWEN's STUFF
-@app.route('/addreview/',methods=['POST','GET'])
-def feed(): #rename feed() to add review
->>>>>>> d2a28e5f37819092a319557868854e14ab8d9309
     conn=dbi.connect()
     if request.method=='GET':
         #feedbacks=feed_queries.recent_feedback(conn)
@@ -276,7 +261,7 @@ def feed(): #rename feed() to add review
         return redirect(url_for('review'))
 
 @app.route('/feed/')     
-def review(): #rename review() to feed
+def feed(): #rename review() to feed
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
@@ -285,11 +270,11 @@ def review(): #rename review() to feed
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
     # LEAH's STUFF
-
+'''
 def handleErrors(name,category,hall,preferences,allergens,ingredients): 
     message="hello"
     return message
-
+'''
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     if request.method == 'GET':
@@ -303,13 +288,6 @@ def addfood():
         food_ingredients = request.form.get('food-ingredients')
         print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
         error_messages = []
-<<<<<<< HEAD
-        message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
-        error_messages.append(message)
-        if len(error_messages) > 0:
-            return render_template('dataentry.html', action=url_for('addfood'))
-        flash('form submission successful')
-=======
         #message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
         # message = ""
         # if food_name is None: 
@@ -329,7 +307,6 @@ def addfood():
         #     return render_template('dataentry.html', action=url_for('addfood'), messages=error_messages)
         # print("form submission successful.")
 
->>>>>>> d2a28e5f37819092a319557868854e14ab8d9309
         #insert stuff into database
         connect = dbi.connect()
         print("connected!")
