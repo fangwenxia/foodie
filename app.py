@@ -162,14 +162,14 @@ def login():
             # query finds password saved in database to compare with user input
             curs.execute ('''select username, password 
                             from student
-                            where username = %s''',  [username])
+                            where username = %s''', [username])
             user = curs.fetchone()
             
             # checks if user input matches password on file
             check_pass = user['password']
             if check_pass  == password:
                 flash('Successfully logged in.')
-                print(check_pass, password)
+                # print(check_pass, password)
                 return redirect(url_for('profile', username=username))
             else:
                 flash('Incorrect login. Please try again.')
@@ -224,6 +224,8 @@ def profile_error():
 def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
+
+
 
 @app.route('/reviews/',methods=['POST','GET'])
 def reviews():
@@ -282,9 +284,9 @@ def handleErrors(name,date,category,hall,id):
     return message
 
 @app.route('/addfood/', methods=["GET", "POST"])
-def insert():
+def addfood():
     if request.method == 'GET':
-        return render_template('dataentry.html', action=url_for('insert'))
+        return render_template('dataentry.html', action=url_for('addfood'))
     elif request.method == 'POST':
         food_name = request.form.get('food-name') 
         food_date = request.form.get('food-date')
@@ -295,7 +297,7 @@ def insert():
         message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
         error_messages.append(message)
         if len(error_messages) > 0:
-            return render_template('dataentry.html', action=url_for('insert'))
+            return render_template('dataentry.html', action=url_for('addfood'))
         flash('form submission successful')
         #insert stuff into database
         connect = dbi.connect()
