@@ -335,8 +335,12 @@ def addfood():
         connect.commit()
 
         print("label inserted")
+        
+        # added successful flashing functionality from most recent version of app.py
+        flash(success_message)
 
-        return redirect(url_for('addfood',messages=success_message,action='addfood'))
+        return redirect(url_for('addfood',msg=success_message,action='addfood'))
+        
     
 @app.before_first_request
 def init_db():
