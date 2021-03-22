@@ -2,13 +2,9 @@
 
 {% block content %}
 
-{% if messages %}
 <div id="messages">
-  {% for msg in messages %}
-  <p>{{msg}}</p>
-  {% endfor %}
+    <p>{{msg}}</p>
 </div>
-{% endif %}
 
 <h1>Add Food to Database</h1>
 <p>At the moment: please *don't* add commas in your input.</p>
@@ -16,34 +12,66 @@
 <form method=post action="">
 
     <fieldset>
-    <legend>Food Information:</legend>
-    <table>
-    <tr><td><label for="food-id">Food ID:</label></td>
-        <td><input type="food-id" name="food-id" id="food-id"></td></tr>
-    <tr><td><label for="food-name">Name:</label></td>
-        <td><input type="text" name="food-name" id="food-name"></td></tr>
-    <tr><td><label for="food-date">Date served:</label></td> <!--Add calendar picker-->
-        <td><input type="text" name="food-date" id="food-date"></td></tr>
-    <tr><td><label for="food-type">Food type:</label></td>
-        <td><select id="food-type" name="food-type" required>
-            <option value="">select</option>
+        <legend>Food Information:</legend>
+        <table>
+            <tr>
+                <td><label for="food-name">Name:</label></td>
+                <td><input type="text" name="food-name" id="food-name"></td>
+            </tr>
+
+            <tr>
+                <td><label for="food-type">Food type:</label></td>
+                <td><select id="food-type" name="food-type" required>
+                        <option value="">select</option>
                         <option value="breakfast">Breakfast</option>
                         <option value="lunch">Lunch</option>
                         <option value="dinner">Dinner</option>
-                        <option value="all-day">All-day</option>
-            </select></td></tr>
-    <tr><td><label for="food-hall">Dining hall:</label></td>
-        <td><select id="food-hall" name="food-hall" required>
-            <option value="">select</option>
+                        <option value="all day">All-day</option>
+                    </select></td>
+            </tr>
+            <tr>
+                <td><label for="food-hall">Dining hall:</label></td>
+                <td><select id="food-hall" name="food-hall" required>
+                        <option value="">select</option>
                         <option value="1">Bates</option>
                         <option value="2">Lulu</option>
                         <option value="3">Pom</option>
                         <option value="4">Stone-D</option>
                         <option value="5">Tower</option>
-                    </select></td></tr>
-    </table>
+                    </select></td>
+            </tr>
+            <tr>
+                <td><label for="food-ingredients">Food Ingredients:</label></td>
+                <td><input type="text" name="food-ingredients" id="food-ingredients"></td>
+            </tr>
+            <tr>
+                <td><label for="food-preferences">Food Preferences</label></td>
+                <td><select id="food-preferences" name="food-preferences" required>
+                        <option value="">select</option>
+                        <option value="none">none</option>
+                        <option value="gluten sensitive">gluten sensitive</option>
+                        <option value="vegan">vegan</option>
+                        <option value="vegetarian">vegetarian</option>
+                        <option value="kosher">kosher</option>
+                        <option value="halal">halal</option>
+                    </select></td>
+            </tr>
+            <tr>
+                <td><label for="food-allergens">Allergens</label></td>
+                <td><select id="food-allergens" name="food-allergens" required>
+                        <option value="none">none</option>
+                        <option value="eggs">eggs</option>
+                        <option value="fish">fish</option>
+                        <option value="milk">milk</option>
+                        <option value="peanuts">peanuts</option>
+                        <option value="shellfish">shellfish</option>
+                        <option value="soy">soy</option>
+                        <option value="tree nut">tree nut</option>
+                        <option value="wheat">wheat</option>
+                    </select></td>
+            </tr>
+        </table>
     </fieldset>
-
     <p> <input type='submit' value='Add New Meal'> </p>
 
 </form>
