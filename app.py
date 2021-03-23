@@ -76,41 +76,25 @@ def food(fid):
     conn = dbi.connect()
     if request.method == 'GET':
         # dictionary containing a food's name, ingredients, preference, allergen, type
-        item = menuUp.lookupFoodItem(conn, fid) 
+        item = menuUp.lookupFoodItem(conn, fid)
         #average rating and number of ratings given to a food item
-        # avgRating, totalRatings = menuUp.avgRating(fid) 
-        #the date the food item was most recently served and the dining hall it was served at
-        # dh, lastServedDate = menuUp.lookupLastServed(fid) 
+        avgRating, totalRatings = menuUp.avgRating(conn, fid) 
         # list of dictionaries for each comment for a given food item and with the comment's rating and user
         comments = menuUp.lookupComments(conn, fid) 
-        return render_template('food.html', food = item, comments = comments)
-        # name = item["name"], type = item["type"], 
-        # rating = avgRating, comments = comments, description = item["ingredients"], 
-        # preference = item["preference"], labels = (item["allergen"]).split(","), 
-        # title = item["name"], fid = fid, dh = dh)
-    else:
-        # dictionary containing a food's name, ingredients, preference, allergen, type
-        item = menuUp.lookupFoodItem(conn, fid) 
-        avgRating, totalRatings = menuUp.avgRating(fid) 
-        dh, lastServedDate = menuUp.lookupLastServed(fid) 
-        comments = menuUp.lookupComments(fid)
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
 def updateFood(fid):
+    conn = dbi.connect()
     if request.method == "GET":
-        item = menuUp.lookupFoodItem(fid)
-        dh, lastServedDate = menuUp.lookupLastServed(conn, fid)
-        return render_template('foodUpdate.html', name = item["name"], dh = dh, lastServed = lastServedDate, description = item["ingredients"], title = item["name"], fid = fid)
+        item = menuUp.lookupFoodItem(conn, fid)
+        return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
     else:
         ingredients = request.form["ingredients"]
         menuUp.updateFoodItem(fid, ingredients)
         item = menuUp.lookupFoodItem(fid)
-        flash("Thank you for updating {}, we really appeciate it!".format(item['name']))
+        flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
         avgRating, totalRatings = menuUp.avgRating(fid)
         dh, lastServedDate = menuUp.lookupLastServed(fid) 
         comments = menuUp.lookupComments(fid)

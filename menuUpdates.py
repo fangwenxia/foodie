@@ -2,9 +2,8 @@
 
 import cs304dbi as dbi
 
-def avgRating(fid):
+def avgRating(conn, fid):
     '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
-    conn = dbi.connect()
     curs = dbi.cursor(conn)
     curs.execute("select rating from feedback where fid = %s;", [fid])
     ratingsList = curs.fetchall()
@@ -32,7 +31,7 @@ def lookupMenuList(conn, now):
     menu = curs.fetchall()
     for item in menu:
         fid = item["fid"]
-        item['rating'], item['sumRankings'] = avgRating(fid)
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu
 
 def filterMenuList(conn, dh, mealtype, label):
@@ -64,12 +63,19 @@ def lookupFoodItem(conn, fid):
     '''
     curs = dbi.dict_cursor(conn)
     sql = '''select fid, food.name, ingredients, preference, allergen, 
-    lastServed, type, avg(rating) as avgRating, count(rating) as countRating, diningHall.name as dh
+    lastServed, type, diningHall.name as dh
      from food inner join labels using (fid)
      inner join diningHall using (did)
-     inner join feedback using (fid)
-     where food.fid = %s
-     group by (feedback.fid);'''
+     where food.fid = %s'''
+    #  the following code only renders results for food items in the feedback table
+    #  '''select fid, food.name, ingredients, preference, allergen, 
+    # lastServed, type, avg(rating) as avgRating, count(rating) as countRating, diningHall.name as dh
+    #  from food inner join labels using (fid)
+    #  inner join diningHall using (did)
+    #  inner join feedback using (fid)
+    #  where food.fid = %s
+    #  group by (feedback.fid);'''
+
     curs.execute(sql, [fid])
     # curs.execute("select name, ingredients, preference, allergen, lastServed type from food inner join labels using (fid) where fid = %s;", [fid])
     return curs.fetchone()

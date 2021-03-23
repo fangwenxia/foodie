@@ -10,7 +10,7 @@
 -->
 <h1>{{food.name}} from {{food.dh}}</h1> 
 <div class="d-flex flex-md-column align-items-center">
-<h2>{{food.avgRating}} Stars</h2> 
+<h2>{{rating}} Stars</h2> 
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
 <p>Description: {{food.ingredients}}</p>
 <p>{{food.name}} is usually served during {{food.type}}</p>
@@ -35,7 +35,7 @@
 </div>
 <h3><a alt = "Add Comment" href="{{ url_for('feed')}}">Add Comment</a></h3>
 <!-- Connect to page fangwen writes?? -->
-<a alt = "Update Food Item" href="{{ url_for('updateFood', fid = food.fid)}}">Update this Description</a>
+<a alt = "Update Food Item" href="{{ url_for('updateFood', fid = fid)}}">Update this Description</a>
 <a alt = "Back to Menu" href="{{ url_for('menu')}}">Return to Menu</a>
 </div>
 {% endblock %}

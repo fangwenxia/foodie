@@ -8,14 +8,14 @@
     preference 
 
 -->
-<h1>{{name}}</h1> 
+<h1>{{food.name}}</h1> 
 <div class="d-flex flex-md-column align-items-center">
-<h2>Last Served at {{dh}} on {{lastServed}}</h2> 
+<h2>Last Served at {{food.dh}} on {{food.lastServed}}</h2> 
 <!-- fid, name, ingredients, rating -->
 <section id="form">
-    <form id="update" method ="POST" action="{{url_for('updateFood', fid = fid)}}">
+    <form id="update" method ="POST" action="{{url_for('updateFood', fid = food.fid)}}">
         <label>Ingredients:
-        <textarea name="ingredients" value = {{description}} rows=5 cols=50>{{description}}</textarea></label>
+        <textarea name="ingredients" value = {{food.ingredients}} rows=5 cols=50>{{food.ingredients}}</textarea></label>
         <p><input type="submit" value="update" class = "button"></p>
     </form>
 </div>
