@@ -54,7 +54,7 @@ def filterMenuList(conn, dh, mealtype, label):
     menu = curs.fetchall()
     for item in menu:
         fid = item["fid"]
-        item['rating'], item['sumRankings'] = avgRating(fid)
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu
 
 def lookupFoodItem(conn, fid):
@@ -80,15 +80,6 @@ def lookupFoodItem(conn, fid):
     # curs.execute("select name, ingredients, preference, allergen, lastServed type from food inner join labels using (fid) where fid = %s;", [fid])
     return curs.fetchone()
 
-def lookupLastServed(fid):
-    '''
-        return tuple of a food's last served location, date last served
-    '''
-    conn = dbi.connect()
-    curs = dbi.cursor(conn)
-    curs.execute("select diningHall.name, lastServed from food inner join diningHall using (did) where fid = %s;", [fid])
-    return curs.fetchone()
-
 def lookupComments(conn, fid):
     '''
         return a list of dictionaries for each comment for a given food item and with the comment's rating and user
@@ -99,31 +90,29 @@ def lookupComments(conn, fid):
 
 def lookupDH(conn, did):
     '''
-        return a list of dictionaries for each comment for a given food item and with the comment's rating and user
+        return name of dining hall based of off did
     '''
     curs = dbi.cursor(conn)
     curs.execute("select name from diningHall where did = %s;", [did])
     return curs.fetchone()
 
-def updateFoodItem(fid, ingredients):
+def updateFoodItem(conn, fid, ingredients):
     '''
         edit food item and commit changes
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute("update labels set ingredients = %s where fid = %s;", [ingredients, fid])
     conn.commit()
 
-def searchMenu(search):
+def searchMenu(conn, search):
     '''Returns the food items that match the query of all the entries in
 the food table, as a list of dictionaries.
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute("select fid, name from food inner join labels using (fid) where (lower(name) like %s) or (lower(ingredients) like %s);", ['%' + search + '%', '%' + search + '%']) 
     # curs.execute("select fid, name from food inner join labels using (fid) where name like %s or ingredients like %s;", [('%' + search + '%'),('%' + search + '%')]) 
     menu = curs.fetchall()
     for item in menu:
         fid = item["fid"]
-        item['rating'], item['sumRankings'] = avgRating(fid)
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu

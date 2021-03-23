@@ -65,7 +65,7 @@ def menu():
         if dh or mealtype: #if given a dining hall request and mealtype
             menu = menuUp.filterMenuList(conn, dh, mealtype,None)
         elif search:
-            menu = menuUp.searchMenu(search)
+            menu = menuUp.searchMenu(conn, search)
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu")
@@ -81,7 +81,7 @@ def food(fid):
         avgRating, totalRatings = menuUp.avgRating(conn, fid) 
         # list of dictionaries for each comment for a given food item and with the comment's rating and user
         comments = menuUp.lookupComments(conn, fid) 
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"])
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
@@ -92,16 +92,12 @@ def updateFood(fid):
         return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
     else:
         ingredients = request.form["ingredients"]
-        menuUp.updateFoodItem(fid, ingredients)
-        item = menuUp.lookupFoodItem(fid)
+        menuUp.updateFoodItem(conn, fid, ingredients)
+        item = menuUp.lookupFoodItem(conn, fid)
         flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
-        avgRating, totalRatings = menuUp.avgRating(fid)
-        dh, lastServedDate = menuUp.lookupLastServed(fid) 
-        comments = menuUp.lookupComments(fid)
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        avgRating, totalRatings = menuUp.avgRating(conn, fid)
+        comments = menuUp.lookupComments(conn,fid)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
 
 # Gigi's Stuff!!
 @app.route('/create/', methods=["GET", "POST"]) 
@@ -214,8 +210,8 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-@app.route('/reviews/',methods=['POST','GET'])
-def reviews():
+@app.route('/reviews/',methods=['POST','GET']) #add: <fid>
+def reviews(): #add: fid
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
