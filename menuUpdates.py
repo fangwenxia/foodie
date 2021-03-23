@@ -18,13 +18,15 @@ def avgRating(fid):
     else:
         return 0,0
 
-def lookupMenuList(now):
+def lookupMenuList(conn, now):
     '''
         return list of dictionaries of food name, dining hall, fid, ranking for all food matching 
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select food.fid, name from food;") # where lateServed= %s [now];
+    curs.execute("select fid, food.name, diningHall.name as dh from food inner join diningHall using (did);")
+    # curs.execute("select food.fid, name, avg(rating) as rating from food inner join feedback using (fid) group by feedback.fid;")
+    # ^^ The above code was removed because it then only displays menu items that have a rating
+     # where lateServed= %s [now];
     #---------------------------UPDATE to include DH info AND current date --------------------------
     
     menu = curs.fetchall()
@@ -33,11 +35,10 @@ def lookupMenuList(now):
         item['rating'], item['sumRankings'] = avgRating(fid)
     return menu
 
-def filterMenuList(dh, mealtype, label):
+def filterMenuList(conn, dh, mealtype, label):
     '''
         return list of dictionaries of food name, dining hall, fid, ranking for food
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     if dh and mealtype: #if the values are both not null
         sql = ("select food.fid, name from food where did = %s and type = %s;")
@@ -57,13 +58,20 @@ def filterMenuList(dh, mealtype, label):
         item['rating'], item['sumRankings'] = avgRating(fid)
     return menu
 
-def lookupFoodItem(fid):
+def lookupFoodItem(conn, fid):
     '''
         return dictionary of a food's name, type, description, preference, label given an id
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute("select name, ingredients, preference, allergen, type from food inner join labels using (fid) where fid = %s;", [fid])
+    sql = '''select fid, food.name, ingredients, preference, allergen, 
+    lastServed, type, avg(rating) as avgRating, count(rating) as countRating, diningHall.name as dh
+     from food inner join labels using (fid)
+     inner join diningHall using (did)
+     inner join feedback using (fid)
+     where food.fid = %s
+     group by (feedback.fid);'''
+    curs.execute(sql, [fid])
+    # curs.execute("select name, ingredients, preference, allergen, lastServed type from food inner join labels using (fid) where fid = %s;", [fid])
     return curs.fetchone()
 
 def lookupLastServed(fid):
@@ -75,14 +83,21 @@ def lookupLastServed(fid):
     curs.execute("select diningHall.name, lastServed from food inner join diningHall using (did) where fid = %s;", [fid])
     return curs.fetchone()
 
-def lookupComments(fid):
+def lookupComments(conn, fid):
     '''
         return a list of dictionaries for each comment for a given food item and with the comment's rating and user
     '''
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute("select username, rating, comment from feedback where fid = %s;", [fid])
     return curs.fetchall()
+
+def lookupDH(conn, did):
+    '''
+        return a list of dictionaries for each comment for a given food item and with the comment's rating and user
+    '''
+    curs = dbi.cursor(conn)
+    curs.execute("select name from diningHall where did = %s;", [did])
+    return curs.fetchone()
 
 def updateFoodItem(fid, ingredients):
     '''

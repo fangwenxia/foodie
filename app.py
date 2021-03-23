@@ -25,11 +25,8 @@ app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
 def today():
     """Returns a tuple with the string for the current day and time (SQL format)
-    and a string for the day/time for display purposes
-
-    The output is in something close to Internet format. It's not really
-    Internet format because it neither converts to UTC nor
-    appends the time zone.  However, it will work nicely for MySQL.
+    and a string for the day/time for display purposes. This is used to primarily to query the database according
+    to the lastServed date for a given food item.
     """
     now = date.today()
     return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
@@ -42,54 +39,61 @@ def home():
 @app.route('/form/')
 def form():
     return render_template('form.html')
+@app.route('/mainmenu/')
+def mainmenu():
+    '''Page with menu and form without any filters'''
+    conn = dbi.connect()
+    menu = menuUp.lookupMenuList(conn, today()[0])
+    return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
 
 @app.route('/menu/', methods=["GET", "POST"])
 def menu():
+    conn = dbi.connect()
     if request.method == 'GET':
-        menu = menuUp.lookupMenuList(today()[0])
-        return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
-    else:
-        dh = request.form["dh-filter"]
-        mealtype = request.form["type-filter"]
-        label = ""
-        search = request.form["query"]
-        if dh and mealtype: #if given a dining hall request and mealtype
-            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
-                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
-                menu = menuUp.filterMenuList(None, mealtype,None)
-            else:
-                menu = menuUp.filterMenuList(dh, mealtype,None)
-        elif dh: #if given dining hall but not meal type
-            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
-                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
-                menu = menuUp.lookupMenuList(today()[0])
-                # menu = menuUp.filterMenuList(None, None ,None)
-            else:
-                menu = menuUp.filterMenuList(dh, None,None)
-        elif mealtype: #if given meal type but not dining hall
-            menu = menuUp.filterMenuList(None, mealtype,None)
+        # mealtype = ""
+        dh = request.args.get('dh-filter', "")
+        mealtype = request.args.get("type-filter", "")
+        if dh:
+            dhName = menuUp.lookupDH(conn, dh)[0]
+        else:
+            dhName = ""
+        # IMPLEMENT SEARCH BY LABEL label = ""
+        search = request.args["query"]
+        # the variable date = today()[] generates the current date to display on the menu page
+        if dh == '3' or dh == '4':
+            flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
+        if dh or mealtype: #if given a dining hall request and mealtype
+            menu = menuUp.filterMenuList(conn, dh, mealtype,None)
         elif search:
             menu = menuUp.searchMenu(search)
-        else:#if not given a dining hall request or a mealtype request
-            menu = menuUp.lookupMenuList(today()[0])
-        return render_template('menu.html',date=today()[1], type=mealtype, menu = menu, title ="Menu")
+        else: #if not given a dining hall request or a mealtype request
+            menu = menuUp.lookupMenuList(conn, today()[0])
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu")
+    # else: if we decide to add a post method to our menu
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
 def food(fid):
+    conn = dbi.connect()
     if request.method == 'GET':
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        # dictionary containing a food's name, ingredients, preference, allergen, type
+        item = menuUp.lookupFoodItem(conn, fid) 
+        #average rating and number of ratings given to a food item
+        # avgRating, totalRatings = menuUp.avgRating(fid) 
+        #the date the food item was most recently served and the dining hall it was served at
+        # dh, lastServedDate = menuUp.lookupLastServed(fid) 
+        # list of dictionaries for each comment for a given food item and with the comment's rating and user
+        comments = menuUp.lookupComments(conn, fid) 
+        return render_template('food.html', food = item, comments = comments)
+        # name = item["name"], type = item["type"], 
+        # rating = avgRating, comments = comments, description = item["ingredients"], 
+        # preference = item["preference"], labels = (item["allergen"]).split(","), 
+        # title = item["name"], fid = fid, dh = dh)
     else:
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
+        # dictionary containing a food's name, ingredients, preference, allergen, type
+        item = menuUp.lookupFoodItem(conn, fid) 
+        avgRating, totalRatings = menuUp.avgRating(fid) 
+        dh, lastServedDate = menuUp.lookupLastServed(fid) 
+        comments = menuUp.lookupComments(fid)
         return render_template('food.html', name = item["name"], type = item["type"], 
         rating = avgRating, comments = comments, description = item["ingredients"], 
         preference = item["preference"], labels = (item["allergen"]).split(","), 
@@ -100,16 +104,16 @@ def food(fid):
 def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(fid)
-        dh, lastServedDate = menuUp.lookupLastServed(fid)
+        dh, lastServedDate = menuUp.lookupLastServed(conn, fid)
         return render_template('foodUpdate.html', name = item["name"], dh = dh, lastServed = lastServedDate, description = item["ingredients"], title = item["name"], fid = fid)
     else:
         ingredients = request.form["ingredients"]
         menuUp.updateFoodItem(fid, ingredients)
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
+        item = menuUp.lookupFoodItem(fid)
         flash("Thank you for updating {}, we really appeciate it!".format(item['name']))
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
+        avgRating, totalRatings = menuUp.avgRating(fid)
+        dh, lastServedDate = menuUp.lookupLastServed(fid) 
+        comments = menuUp.lookupComments(fid)
         return render_template('food.html', name = item["name"], type = item["type"], 
         rating = avgRating, comments = comments, description = item["ingredients"], 
         preference = item["preference"], labels = (item["allergen"]).split(","), 
