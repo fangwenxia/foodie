@@ -3,16 +3,17 @@
 
 :root {
     --blue: #6495ed;
-    --white: #faf0e6;
+    --white: #fdfdfc;
     --orange: #fd8953;
     --lightorange: #ffb08c;
     --lightgreen: #8fbc8f;
     --green: #5CB88D;
+    --darkgrey: rgb(58, 58, 58);
     /* --darkgreen: #6aa66a; */
   }
 
 body {
-    background-color:white;
+    background-color:var(--white);
 }
 h1 {
     color: var(--green);
@@ -96,7 +97,7 @@ footer {
     font-size: 16px;
     font-family: Nunito;
     margin: 1em;
-    margin-left: 35%;
+    /* margin-left: 35%; */
 }
 .comment {
     padding: 15px 32px;
@@ -143,6 +144,14 @@ h3 {
     float:right;
 }
 
+.foodPic{
+    color: var(--white);
+    width: 25%;
+    border-style: solid;
+    border-color: var(--darkgrey);
+    border-width: 4px;
+
+}
 
 /* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 

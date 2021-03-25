@@ -22,6 +22,9 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+# file upload content 
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
 
 def today():
     """Returns a tuple with the string for the current day and time (SQL format)
@@ -30,6 +33,16 @@ def today():
     """
     now = date.today()
     return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
+
+@app.route('/pic/<int:fid>') 
+#route to image for food photos, can later be generalized and applied to other photos too
+def pic(fid):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from foodPics where fid = %s'''
+    curs.execute(sql, [fid])
+    filename = curs.fetchone()[0]
+    return send_from_directory(app.config['UPLOADS'],filename)
 
 @app.route('/')
 def home():
@@ -90,14 +103,43 @@ def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(conn, fid)
         return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+    elif request.form["submit"] == "update":
+        try:
+            ingredients = request.form["ingredients"]
+            menuUp.updateFoodItem(conn, fid, ingredients)
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
     else:
-        ingredients = request.form["ingredients"]
-        menuUp.updateFoodItem(conn, fid, ingredients)
-        item = menuUp.lookupFoodItem(conn, fid)
-        flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
-        avgRating, totalRatings = menuUp.avgRating(conn, fid)
-        comments = menuUp.lookupComments(conn,fid)
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        try:
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            f = request.files['pic']
+            user_filename = f.filename
+            ext = user_filename.split('.')[-1]
+            filename = secure_filename('{}.{}'.format(fid,ext))
+            pathname = os.path.join(app.config['UPLOADS'],filename)
+            f.save(pathname)
+            curs = dbi.dict_cursor(conn)
+            curs.execute(
+                '''insert into foodPics(fid,filename) values (%s,%s)
+                   on duplicate key update filename = %s''',
+                [fid, filename, filename])
+            conn.commit()
+            flash('Upload successful.')
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+
 
 # Gigi's Stuff!!
 @app.route('/create/', methods=["GET", "POST"]) 
@@ -210,13 +252,8 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-<<<<<<< HEAD
-@app.route('/reviews/',methods=['POST','GET'])
-def reviews():
-=======
 @app.route('/reviews/',methods=['POST','GET']) #add: <fid>
 def reviews(): #add: fid
->>>>>>> 928e29c8ac5d4dcfc5b6465849b3ff8870bb0f8b
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
@@ -257,11 +294,7 @@ def feed(): #rename review() to feed
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
-<<<<<<< HEAD
-   # LEAH's STUFF
-=======
     # LEAH's STUFF
->>>>>>> 928e29c8ac5d4dcfc5b6465849b3ff8870bb0f8b
 '''
 def handleErrors(name,category,hall,preferences,allergens,ingredients): 
     message="hello"
