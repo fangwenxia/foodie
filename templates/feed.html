@@ -10,20 +10,8 @@
             <td><input id="username" name="user" required></td>
         </tr>
         <!-- Search the food item function here -->
-        <tr><td><label for="food">Name of Food Item</label></td>
-            <td><input id="food" name="food" required></td>
-        </tr>
-        <tr>
-            <td><label for="diningHall">Dining Hall</label></td>
-            <td><select id="diningHall" name ="diningHall" required> 
-                <!-- Numbers correspond to id for dining halls in our database -->
-                <option value= "">select</option>
-                <option value= 1> Bates</option>
-                <option value= 2> Lulu</option>
-                <option value= 3> Pom</option>
-                <option value= 4> Stone-D</option>
-                <option value= 5> Tower</option>
-            </select></td>
+        <tr><td><label for="fid">Name of Food </label></td>
+            <td>{{name}}</td>
         </tr>
         <tr>
         <td><label for="rating">How much did you like this item?</label></td>
@@ -39,5 +27,5 @@
 {% endblock %}
 
 {% block footer %}
-daily menu provided by students like you. thank you!
+Want to see changes? Tell us what your think!
 {% endblock %}

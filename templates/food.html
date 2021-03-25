@@ -29,7 +29,7 @@
     <p>________________________________________________________________________________________   </p>
     {%endfor%}</p>
 </div>
-<h3><a alt = "Add Comment" href="{{ url_for('feed')}}">Add Comment</a></h3>
+<h3><a alt = "Add Comment" href="{{ url_for('reviews',fid=fid)}}">Add Comment</a></h3>
 <!-- Connect to page fangwen writes?? -->
 <a alt = "Update Food Item" href="{{ url_for('updateFood', fid = fid)}}">Update this Description</a>
 <a alt = "Back to Menu" href="{{ url_for('menu')}}">Return to Menu</a>

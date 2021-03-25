@@ -90,10 +90,7 @@ def food(fid):
         avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
         dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
         comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        return redirect(url_for('reviews',fid=fid))
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
@@ -226,15 +223,18 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-@app.route('/reviews/',methods=['POST','GET'])
-def reviews():
+## Here's the route to entering a feedback form
+@app.route('/reviews/<int:fid>',methods=['POST','GET'])
+def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
-        return render_template('feed.html')
+        name=feed_queries.search_fid(conn,fid)['name']
+        return render_template('feed.html',name=name)
     else:
         # get the input form values from the submitted form
         username=request.form['user']
+        #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
             temp=[]
             for item in feed_queries.temp_user(conn):
@@ -242,16 +242,6 @@ def reviews():
             flash('Username Under Construction:only enter below for usernames:' )
             flash(temp)
             return render_template('feed.html')
-        name=request.form['food']
-        if len(feed_queries.search_food(conn,name))==0:
-            temp=[]
-            for item in feed_queries.temp_food(conn):
-                temp.append(item['name'])
-            flash('Food Item Under Constuction: only enter below for food item:')
-            flash(temp)
-            return render_template('feed.html')
-        else: 
-            fid=feed_queries.search_food(conn,name)[0]['fid']
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()

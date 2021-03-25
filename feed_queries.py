@@ -9,6 +9,11 @@ def temp_user(conn):
     curs.execute('select username from student')
     return curs.fetchall()
 
+def search_fid(conn,fid):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select name from food where fid = %s',[fid])
+    return curs.fetchone()
+
 def search_user(conn,username):
     curs= dbi.dict_cursor(conn)
     curs.execute('select username from student where username = %s',[username])
