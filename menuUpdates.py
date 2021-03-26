@@ -13,7 +13,7 @@ def avgRating(conn, fid):
             ratingSum += int(rating[0])
             numRatings += 1
         avg = ratingSum/numRatings
-        return avg, numRatings
+        return int(avg), numRatings
     else:
         return 0,0
 

@@ -10,8 +10,27 @@
 {% if filename %}
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('pic',fid=fid)}}" alt="{{food.name}}"></p>
 {% endif %}
+<!-- {% if rating == 4 %}
+    checked = "checked"
+{% endif %} -->
+
 <h1>{{food.name}} from {{food.dh}}</h1> 
+<!--  -->
 <div class="d-flex flex-column align-items-center">
+    <form method = "GET" action = "{{url_for('reviews', fid = fid)}}">
+        <span class="starRating">
+           <input id="rating5" type="submit" name="rating" value="5">
+            <label for="rating5">5</label>
+            <input id="rating4" type="submit" name="rating">
+            <label for="rating4">4</label>
+            <input id="rating3" type="submit" name="rating" value="3">
+            <label for="rating3">3</label>
+            <input id="rating2" type="submit" name="rating" value="2">
+            <label for="rating2">2</label>
+            <input id="rating1" type="submit" name="rating" value="1">
+            <label for="rating1">1</label>
+          </span>
+          </form>
 <h2>{{rating}} Stars</h2>
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
 <p>Description: {{food.ingredients}}</p>
