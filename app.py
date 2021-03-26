@@ -70,12 +70,12 @@ def menu():
         dh = request.args.get('dh-filter', "")
         mealtype = request.args.get("type-filter", "")
         preference = request.args.getlist("preference")
+        now = today()[0]
             
         if preference:
             preference = ",".join(preference)
         else:
             preference = ""
-        flash(preference)
         if dh:
             dhName = menuUp.lookupDH(conn, dh)[0]
             waitTime = menuUp.getWaittime(conn, int(dh))[0]
@@ -88,7 +88,7 @@ def menu():
         if dh == '3' or dh == '4':
             flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
         if dh or mealtype or preference: #if given a dining hall request and mealtype
-            menu = menuUp.filterMenuList(conn, dh, mealtype,preference)
+            menu = menuUp.filterMenuList(conn, dh, mealtype,preference,now)
         elif search:
             menu = menuUp.searchMenu(conn, search)
         else: #if not given a dining hall request or a mealtype request
@@ -344,7 +344,7 @@ def addfood():
         curs = dbi.cursor(connect)
         sql = '''insert into food(name,lastServed,type,did) 
                   values (%s,%s,%s,%s);'''
-        food_date = "2021-03-19"
+        food_date = today()[0]
         vals = [food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()

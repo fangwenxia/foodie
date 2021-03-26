@@ -113,9 +113,9 @@ h3 {
 }
 
 .menuList {
-    margin-left: 15em;
-    margin-right: 15em;
-    margin-bottom: 2em;
+    /* margin-left: 30%;
+    margin-right: 30%; */
+    /* margin-bottom: 2em; */
     font-family: Nunito;
     font-size:larger;
     border-color: var(--green);
@@ -123,8 +123,8 @@ h3 {
     border-style: double;
     border-radius: .6em;
     text-transform: uppercase;
-    padding-top: 2em;
-    padding-bottom: 2em;
+    /* padding-top: 2em; */
+    /* padding-bottom: 2em; */
 }
 
 a:link.menuItem {

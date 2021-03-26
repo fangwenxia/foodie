@@ -11,7 +11,7 @@
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('pic',fid=fid)}}" alt="{{food.name}}"></p>
 {% endif %}
 <h1>{{food.name}} from {{food.dh}}</h1> 
-<div class="d-flex flex-md-column align-items-center">
+<div class="d-flex flex-column align-items-center">
 <h2>{{rating}} Stars</h2>
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
 <p>Description: {{food.ingredients}}</p>
