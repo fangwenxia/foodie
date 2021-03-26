@@ -41,8 +41,11 @@ def pic(fid):
     curs = dbi.cursor(conn)
     sql = '''select filename from foodPics where fid = %s'''
     curs.execute(sql, [fid])
-    filename = curs.fetchone()[0]
-    return send_from_directory(app.config['UPLOADS'],filename)
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except Exception as err: #in the case when there is not yet a photo uploaded
+        return None
 
 @app.route('/')
 def home():
@@ -66,22 +69,31 @@ def menu():
         # mealtype = ""
         dh = request.args.get('dh-filter', "")
         mealtype = request.args.get("type-filter", "")
+        preference = request.args.getlist("preference")
+            
+        if preference:
+            preference = ",".join(preference)
+        else:
+            preference = ""
+        flash(preference)
         if dh:
             dhName = menuUp.lookupDH(conn, dh)[0]
+            waitTime = menuUp.getWaittime(conn, int(dh))[0]
         else:
             dhName = ""
+            waitTime = ""
         # IMPLEMENT SEARCH BY LABEL label = ""
         search = request.args["query"]
         # the variable date = today()[] generates the current date to display on the menu page
         if dh == '3' or dh == '4':
             flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
-        if dh or mealtype: #if given a dining hall request and mealtype
-            menu = menuUp.filterMenuList(conn, dh, mealtype,None)
+        if dh or mealtype or preference: #if given a dining hall request and mealtype
+            menu = menuUp.filterMenuList(conn, dh, mealtype,preference)
         elif search:
             menu = menuUp.searchMenu(conn, search)
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu")
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime)
     # else: if we decide to add a post method to our menu
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
@@ -93,8 +105,9 @@ def food(fid):
         #average rating and number of ratings given to a food item
         avgRating, totalRatings = menuUp.avgRating(conn, fid) 
         # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        comments = menuUp.lookupComments(conn, fid) 
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"])
+        comments = menuUp.lookupComments(conn, fid)
+        filename = pic(fid)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
@@ -259,7 +272,7 @@ def reviews(fid):
     if request.method=='GET':
         # get the form to display 
         name=feed_queries.search_fid(conn,fid)['name']
-        return render_template('feed.html',name=name)
+        return render_template('feed.html',name=name, fid = fid)
     else:
         # get the input form values from the submitted form
         username=request.form['user']

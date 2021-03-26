@@ -39,15 +39,31 @@ def filterMenuList(conn, dh, mealtype, label):
         return list of dictionaries of food name, dining hall, fid, ranking for food
     '''
     curs = dbi.dict_cursor(conn)
-    if dh and mealtype: #if the values are both not null
-        sql = ("select food.fid, name from food where did = %s and type = %s;")
-        values = [dh, mealtype]
-    elif dh: #if the value for mealtype is null
-        sql = ("select food.fid, name from food where did = %s;")
-        values = [dh]
-    elif mealtype: #if the value for mealtype is null
-        sql = ("select food.fid, name from food where type = %s;")
-        values = [mealtype]
+    preference = ["%" + label + "%"]
+    if label:
+        if dh and mealtype: #if the values are both not null
+            sql = '''select food.fid, name from food inner join labels using (fid)
+             where did = %s and type = %s and preference like %s;'''
+            values = [dh, mealtype, preference]
+        elif dh: #if the value for mealtype is null
+            sql = ("select food.fid, name from food inner join labels using (fid) where did = %s and preference like %s;")
+            values = [dh, preference]
+        elif mealtype: #if the value for mealtype is null
+            sql = ("select food.fid, name from food inner join labels using (fid) where type = %s and preference like %s;")
+            values = [mealtype, preference]
+        else:
+            sql = ("select food.fid, name from food inner join labels using (fid) where preference like %s;")
+            values = [preference]
+    elif not label:
+        if dh and mealtype: #if the values are both not null
+            sql = ("select food.fid, name from food where did = %s and type = %s and preference like %s;")
+            values = [dh, mealtype, preference]
+        elif dh: #if the value for mealtype is null
+            sql = ("select food.fid, name from food where did = %s;")
+            values = [dh]
+        elif mealtype: #if the value for mealtype is null
+            sql = ("select food.fid, name from food where type = %s;")
+            values = [mealtype]
     else: #if the value for mealtype and dh is null
         sql = ("select food.fid, name from food;")
     curs.execute(sql, values) # where lateServed= %s [now];
@@ -116,3 +132,8 @@ the food table, as a list of dictionaries.
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu
+
+def getWaittime(conn, did):
+    curs = dbi.cursor(conn)
+    curs.execute("select waitTime from diningHall where did = %s", [did])
+    return curs.fetchone()

@@ -5,21 +5,8 @@
 <div class="d-flex flex-md-column align-items-center">
 {% if location%} 
 <!-- if the page is given a location -->
-<h2>Wait Time at {{location}}: {{waitTime}} minutes </h2>
+<h2>Wait Time at {{location}}: </h2>
 {% endif %}
-
-<span class="starRating">
-    <input id="rating5" type="radio" name="rating" value="5">
-    <label for="rating5">5</label>
-    <input id="rating4" type="radio" name="rating" value="4">
-    <label for="rating4">4</label>
-    <input id="rating3" type="radio" name="rating" value="3">
-    <label for="rating3">3</label>
-    <input id="rating2" type="radio" name="rating" value="2">
-    <label for="rating2">2</label>
-    <input id="rating1" type="radio" name="rating" value="1">
-    <label for="rating1">1</label>
-  </span>
     
 <form method = "GET" action = "{{url_for('menu')}}">
     <select name = "dh-filter">
@@ -59,9 +46,11 @@
     </form>
 </div>
 <div class="d-flex flex-md-column align-items-center menuList">
+<ol>
     {%for item in menu %}
-        <p><a class = "menuItem"href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}, Rating: {{item['rating']}} stars</a></p> 
+        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['dh']}} {{item['name']}}, Rating: {{item['rating']}} stars</a></li>
     {%endfor%}
+    </ol>
 </div>
     
 <div class="d-flex flex-md-column align-items-center">
