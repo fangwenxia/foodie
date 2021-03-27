@@ -107,6 +107,7 @@ def menu():
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime)
     # else: if we decide to add a post method to our menu
 
+#for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
 def autocomplete():
     conn = dbi.connect()
@@ -301,9 +302,9 @@ def reviews(fid):
         username=request.form['user']
         #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
-            temp=[]
-            for item in feed_queries.temp_user(conn):
-                temp.append(item['username'])
+            # Because the username is not complete, temp is used for flashing tempoararily 
+            # to show available usernames you can possibly input
+            temp=[person["username"] for person in feed_queries.temp_user(conn)]
             flash('Username Under Construction:only enter below for usernames:' )
             flash(temp)
             return render_template('feed.html')
