@@ -91,10 +91,33 @@ def menu():
             menu = menuUp.filterMenuList(conn, dh, mealtype,preference)
         elif search:
             menu = menuUp.searchMenu(conn, search)
+            print(menu)
+            if len(menu)==1:
+                # if there's only one matching result, redirect directly to the food page 
+                fid=menu[0]['fid']
+                return redirect(url_for('food',fid=int(fid)))
+            elif len(menu)==0:
+                flash("The name you entered does not match any dish in the databse. \
+                    Wold you like to add a new food entry? ")
+                return redirect(url_for('addfood'))
+            else: 
+                flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime)
     # else: if we decide to add a post method to our menu
+
+@app.route('/autocomplete',methods=['GET'])
+def autocomplete():
+    conn = dbi.connect()
+    # keyword to search: q is from jQuery, looking for 'q'
+    search=request.args.get('q')
+    # returns a list of dictionary of fid and food name
+    dishes=menuUp.searchMenu(conn,search)
+    #gets only the food name list 
+    results=[entry["name"] for entry in dishes]
+    # jsonify makes the list of food names in a JavaScript format
+    return jsonify(matching_results=results)
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
 def food(fid):

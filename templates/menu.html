@@ -1,5 +1,30 @@
 {% extends "base.html" %}
 
+{% block headstuff%}
+<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet"></link>
+<script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
+<script>
+$(function(){
+    // jQuery autocomplete function
+    $("#autocomplete").autocomplete({
+        // source provides available tags to choose from 
+        source: //input a list here
+        function(request,response){
+            //request: get the appropriate food item to display
+            $.getJSON("{{url_for('autocomplete')}}",{
+                q:request.term,
+            },
+            //response: 
+            function(data){
+                response(data.matching_results);
+            });
+        },
+    })
+})
+</script>
+{% endblock %}
+
 {% block content %}
 <h1>{{location}} {{type}} menu for {{date}}</h1>
 <div class="d-flex flex-md-column align-items-center">
@@ -54,7 +79,7 @@
     <br><p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
       </svg>
-        <input type="text" name="query" size="50" placeholder="Search"></label></p>
+        <input type="text" name="query" id="autocomplete" size="50" placeholder="Search"></label></p>
         <br><input class = "button" type = "submit" name = "filter" value = "filter"> 
     </form>
 </div>
@@ -63,7 +88,7 @@
         <p><a class = "menuItem"href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}, Rating: {{item['rating']}} stars</a></p> 
     {%endfor%}
 </div>
-    
+
 <div class="d-flex flex-md-column align-items-center">
     <div class="button">
 <h2><a class="text-add" href="{{url_for('addfood')}}">add new food</a></h2>
