@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!--The form from Sara and Gigi's work-->
-<div class="d-flex flex-md-column align-items-center">
+<div class="d-flex flex-column align-items-center container-fluid">
 <h1>Review {{name}}</h1>
 <form id="feedback-form" method ="post" action="{{url_for('reviews', fid = fid)}}">
-    <table>
+    <table class ="table">
+        <tbody>
         <tr><td><label for="username">Username</label></td>
             <td><input id="username" name="user" required></td>
         </tr>
@@ -23,10 +23,12 @@
             <label for="rating2">2</label>
             <input id="rating1" type="radio" name="rating" value="1">
             <label for="rating1">1</label>
+            
           </span></td>
         <!-- <td><input type="range" min="1" max="5" value="3" name="rating" id="rating"></td> -->
         <!-- Modified from W3 schools tutorial -->
-         </tr>
+    </tbody>     
+    </tr>
         </table>
              <textarea name="comment" rows=5 cols=50 placeholder="Write your review here..."></textarea>
          <p><input type="submit" value="post" class = "button"></p>
