@@ -332,6 +332,7 @@ def addfood():
         # add a way to dynamically obtain food preferences and allergens
         return render_template('dataentry.html', action=url_for('addfood'))
     elif request.method == 'POST':
+        conn = dbi.connect()
         food_name = request.form.get('food-name') 
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
@@ -351,9 +352,11 @@ def addfood():
             return render_template('dataentry.html', action=url_for('addfood'))
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
-        
+        test_bool = entry.exists(conn,food_name)
+        if test_bool == True: 
+            flash("Food already exists in database.")
+            return redirect(url_for('mainmenu'))
         #inserts food into database
-        conn = dbi.connect()
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
         
