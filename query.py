@@ -1,11 +1,20 @@
 import cs304dbi as dbi
 
 # helper function to add new user into student and passwords database
+<<<<<<< HEAD
 def add_username(conn, name, username, passwd1, hashed): 
     curs = dbi.dict_cursor(conn)
     curs2 = dbi.dict_cursor(conn)
     curs.execute('INSERT INTO student(username, name, password, hashed) \
                 VALUES (%s, %s, %s, %s);', [username, name, passwd1, hashed])
+=======
+# temporarily hardcoded favoriteFood = 1 to make profile info appear; need to fix favoriteFood 
+def add_username(conn, name, username, password, favoriteDH, classYear): 
+    curs = dbi.dict_cursor(conn)
+    curs2 = dbi.dict_cursor(conn)
+    curs.execute('INSERT INTO student(username, name, favoriteDH, favoriteFood, classYear, password) \
+                VALUES (%s, %s, %s, %s, %s, %s);', [username, name, favoriteDH, 1, classYear, password])
+>>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
     conn.commit()
 
 # helper function to check if username already exists in database

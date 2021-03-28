@@ -4,7 +4,9 @@
    <!-- Displaying the most recent feedbacks-->
    <section>
    <h1>Trending Reviews</h1>
-   <a class="nav-link" href="{{url_for('reviews')}}">Add A New Review</a>
+   <span class="nav-link">
+       You can add your own critique for a dish by<a class="nav-link" href="{{url_for('mainmenu')}}">looking it up</a>
+    </span>
     {% for entry in feedbacks %}
     <div class="reviews">
         <span><b>{{entry.username}} </b></span>

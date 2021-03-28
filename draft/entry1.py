@@ -40,30 +40,44 @@ def handleErrors(name,date,category,hall,id):
 @app.route('/', methods=["GET", "POST"])
 def insert():
     if request.method == 'GET':
-        return render_template('dataentry1.html', action=url_for('insert'))
+        return render_template('dataentry.html', action=url_for('insert'))
     elif request.method == 'POST':
         food_name = request.form.get('food-name') 
-        food_date = request.form.get('food-date')
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
-        food_id = request.form.get('food-id')
+        food_preferences = request.form.get('food-preferences')
+        food_allergens = request.form.get('food-allergens')
+        food_ingredients = request.form.get('food-ingredients')
         error_messages = []
-        message = handleErrors(food_name,food_date,food_category,food_dhall,food_id)
+        message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
         error_messages.append(message)
-        if len(error_messages) > 0: 
-            render_template('insert.html',messages=error_messages,  title='Add Food!')
+        if len(error_messages) > 0:
+            return render_template('dataentry.html', action=url_for('insert'))
         flash('form submission successful')
 
         #insert stuff into database
         connect = dbi.connect()
         curs = dbi.cursor(connect)
-        sql = '''insert food(fid,name,lastServed,type,did) 
+        sql = '''insert food(name,lastServed,type,did) 
                   values (%s,%s,%s,%s,%s);'''
-        vals = [food_id,food_name,food_date,food_category,food_dhall]
+        food_date = servertime.now()
+        vals = [food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()
         success_message = "Food {fname} inserted".format(fname=food_name)
         print(success_message)
+
+        curs1 = dbi.cursor(connect)
+        sql = '''select fid from food where name=%s'''
+        curs1.execute(sql,food_name)
+        food_id = curse1.fetchone()
+
+        curs2 = dbi.cursor(connect)
+        sql = '''insert label(allergen,preference,ingredients,fid) 
+                  values (%s,%s,%s,%s,%s);'''
+        labelvals = [food_allergens,food_preferences,food_ingredients,food_id]
+        curse.execute(sql,labelvals)
+        print("label inserted")
         return redirect(url_for('insert',messages=success_message))
 @app.before_first_request
 def init_db():

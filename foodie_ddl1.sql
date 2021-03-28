@@ -21,7 +21,7 @@ create table diningHall(
     ENGINE = InnoDB;
 
 create table food(
-     fid int not null, -- food id
+     fid int not null auto_increment, -- food id
      name varchar(30),
      lastServed date,
      type set('breakfast', 'lunch', 'dinner', 'all day'),
@@ -63,7 +63,7 @@ create table feedback(
     ENGINE = InnoDB;
 
 create table labels(
-    lid int not null, -- label id
+    lid int not null auto_increment, -- label id
     -- from wellesley fresh website
     allergen set('no allergens','eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree nut', 'wheat'),
     preference set('none','gluten sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'),

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex flex-md-column align-items-center">
+<!-- fid, name, ingredients, rating -->
+<h1>Update {{dh}} Wait Time</h1>
+<h3>How long did it take you to get your food in {{dh}} just now?</h3>
+<section id="form">
+    <form id="update" method ="POST" action="{{url_for('updateWait', did = did)}}">
+        <label>
+            <input type="text" name="waittime" size="30" placeholder="Current wait time in minutes"></label>
+        <input name = "submit" type="submit" value="update" class = "button">
+    </form>
+</section>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}

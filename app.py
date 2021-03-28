@@ -10,8 +10,13 @@ import sys
 import pymysql
 import feed_queries
 import query
+<<<<<<< HEAD
 import bcrypt
 from flask_cas import CAS
+=======
+import entry
+
+>>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
 from datetime import date,datetime
 
 CAS(app)
@@ -33,17 +38,30 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+# file upload content 
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
 
 def today():
     """Returns a tuple with the string for the current day and time (SQL format)
-    and a string for the day/time for display purposes
-
-    The output is in something close to Internet format. It's not really
-    Internet format because it neither converts to UTC nor
-    appends the time zone.  However, it will work nicely for MySQL.
+    and a string for the day/time for display purposes. This is used to primarily to query the database according
+    to the lastServed date for a given food item.
     """
     now = date.today()
     return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
+
+@app.route('/pic/<int:fid>') 
+#route to image for food photos, can later be generalized and applied to other photos too
+def pic(fid):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from foodPics where fid = %s'''
+    curs.execute(sql, [fid])
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except Exception as err: #in the case when there is not yet a photo uploaded
+        return None
 
 @app.route('/')
 def home():
@@ -53,78 +71,144 @@ def home():
 @app.route('/form/')
 def form():
     return render_template('form.html')
+@app.route('/mainmenu/')
+def mainmenu():
+    '''Page with menu and form without any filters'''
+    conn = dbi.connect()
+    menu = menuUp.lookupMenuList(conn, today()[0])
+    return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
 
 @app.route('/menu/', methods=["GET", "POST"])
 def menu():
+    conn = dbi.connect()
     if request.method == 'GET':
-        menu = menuUp.lookupMenuList(today()[0])
-        return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
-    else:
-        dh = request.form["dh-filter"]
-        mealtype = request.form["type-filter"]
-        label = ""
-        search = request.form["query"]
-        if dh and mealtype: #if given a dining hall request and mealtype
-            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
-                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
-                menu = menuUp.filterMenuList(None, mealtype,None)
-            else:
-                menu = menuUp.filterMenuList(dh, mealtype,None)
-        elif dh: #if given dining hall but not meal type
-            if int(dh) == 3 or int(dh) == 4: #message for Pom and Stone-D, which are closed
-                flash("We're sorry. Pom and Stone-D are closed this year. Why don't you try another dining hall?")
-                menu = menuUp.lookupMenuList(today()[0])
-                # menu = menuUp.filterMenuList(None, None ,None)
-            else:
-                menu = menuUp.filterMenuList(dh, None,None)
-        elif mealtype: #if given meal type but not dining hall
-            menu = menuUp.filterMenuList(None, mealtype,None)
+        # mealtype = ""
+        dh = request.args.get('dh-filter', "")
+        mealtype = request.args.get("type-filter", "")
+        preference = request.args.getlist("preference")
+        now = today()[0]
+            
+        if preference:
+            preference = ",".join(preference)
+        else:
+            preference = ""
+        if dh:
+            dhName = menuUp.lookupDH(conn, dh)[0]
+            waitTime = menuUp.getWaittime(conn, int(dh))[0]
+        else:
+            dhName = ""
+            waitTime = ""
+        # IMPLEMENT SEARCH BY LABEL label = ""
+        search = request.args["query"]
+        # the variable date = today()[] generates the current date to display on the menu page
+        if dh == '3' or dh == '4':
+            flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
+        if dh or mealtype or preference: #if given a dining hall request and mealtype
+            menu = menuUp.filterMenuList(conn, dh, mealtype,preference,now)
         elif search:
-            menu = menuUp.searchMenu(search)
-        else:#if not given a dining hall request or a mealtype request
-            menu = menuUp.lookupMenuList(today()[0])
-        return render_template('menu.html',date=today()[1], type=mealtype, menu = menu, title ="Menu")
+            menu = menuUp.searchMenu(conn, search)
+            print(menu)
+            if len(menu)==1:
+                # if there's only one matching result, redirect directly to the food page 
+                fid=menu[0]['fid']
+                return redirect(url_for('food',fid=int(fid)))
+            elif len(menu)==0:
+                flash("The name you entered does not match any dish in the databse. \
+                    Wold you like to add a new food entry? ")
+                return redirect(url_for('addfood'))
+            else: 
+                flash("Your entry matched multiple entries. Pick from one of the below. ")
+        else: #if not given a dining hall request or a mealtype request
+            menu = menuUp.lookupMenuList(conn, today()[0])
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
+    # else: if we decide to add a post method to our menu
+
+#for beta: how do I pass in the fid for processing too? 
+@app.route('/autocomplete',methods=['GET'])
+def autocomplete():
+    conn = dbi.connect()
+    # keyword to search: q is from jQuery, looking for 'q'
+    search=request.args.get('q')
+    # returns a list of dictionary of fid and food name
+    dishes=menuUp.searchMenu(conn,search)
+    #gets only the food name list 
+    results=[entry["name"] for entry in dishes]
+    # jsonify makes the list of food names in a JavaScript format
+    return jsonify(matching_results=results)
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
 def food(fid):
+    conn = dbi.connect()
     if request.method == 'GET':
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
-    else:
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        # dictionary containing a food's name, ingredients, preference, allergen, type
+        item = menuUp.lookupFoodItem(conn, fid)
+        #average rating and number of ratings given to a food item
+        avgRating, totalRatings = menuUp.avgRating(conn, fid) 
+        # list of dictionaries for each comment for a given food item and with the comment's rating and user
+        comments = menuUp.lookupComments(conn, fid)
+        filename = pic(fid)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
 def updateFood(fid):
+    conn = dbi.connect()
     if request.method == "GET":
-        item = menuUp.lookupFoodItem(fid)
-        dh, lastServedDate = menuUp.lookupLastServed(fid)
-        return render_template('foodUpdate.html', name = item["name"], dh = dh, lastServed = lastServedDate, description = item["ingredients"], title = item["name"], fid = fid)
+        item = menuUp.lookupFoodItem(conn, fid)
+        return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+    elif request.form["submit"] == "update":
+        try:
+            ingredients = request.form["ingredients"]
+            menuUp.updateFoodItem(conn, fid, ingredients)
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
     else:
-        ingredients = request.form["ingredients"]
-        menuUp.updateFoodItem(fid, ingredients)
-        item = menuUp.lookupFoodItem(fid) # dictionary containing a food's name, ingredients, preference, allergen, type
-        flash("Thank you for updating {}, we really appeciate it!".format(item['name']))
-        avgRating, totalRatings = menuUp.avgRating(fid) #average rating and number of ratings given to a food item
-        dh, lastServedDate = menuUp.lookupLastServed(fid) #the date the food item was most recently served and the dining hall it was served at
-        comments = menuUp.lookupComments(fid) # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        return render_template('food.html', name = item["name"], type = item["type"], 
-        rating = avgRating, comments = comments, description = item["ingredients"], 
-        preference = item["preference"], labels = (item["allergen"]).split(","), 
-        title = item["name"], fid = fid, dh = dh)
+        try:
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            f = request.files['pic']
+            user_filename = f.filename
+            ext = user_filename.split('.')[-1]
+            filename = secure_filename('{}.{}'.format(fid,ext))
+            pathname = os.path.join(app.config['UPLOADS'],filename)
+            f.save(pathname)
+            curs = dbi.dict_cursor(conn)
+            curs.execute(
+                '''insert into foodPics(fid,filename) values (%s,%s)
+                   on duplicate key update filename = %s''',
+                [fid, filename, filename])
+            conn.commit()
+            flash('Upload successful.')
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+
+@app.route('/updateWait/<int:did>', methods=["GET","POST"])
+def updateWait(did):
+    '''Update waiting time at a given dining hall'''
+    conn = dbi.connect()
+    dh = menuUp.lookupDH(conn, did)[0]
+    if request.method == "GET":
+        return render_template('waittimeUpdate.html',did = did, dh = dh, title = ("Update " + dh + " Wait Time"))
+    else:
+        try:
+            waittime = request.form["waittime"]
+            menuUp.updateFoodItem(conn, did, waittime)
+            flash("Thank you for updating {}'s wait time, we really appreciate it!".format(dh))
+            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('waittimeUpdate.html', dh = dh, did = did, title = ("Update " + dh + " Wait Time"))
 
 
 
@@ -194,9 +278,15 @@ def user_login():
         # helper function checks to make sure username exists in database
         if query.username_exists(conn, username): 
             # query finds password saved in database to compare with user input
+<<<<<<< HEAD
             curs.execute('select username, hashed \
                         from student \
                         where username = %s;', [username])
+=======
+            curs.execute ('''select username, password 
+                            from student
+                            where username = %s''', [username])
+>>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
             user = curs.fetchone()
             # checks if user input matches password on file
             hashed = user['hashed']
@@ -205,6 +295,7 @@ def user_login():
             hashed2_str = hashed2.decode('utf-8')
             if hashed2_str  == hashed:
                 flash('Successfully logged in.')
+<<<<<<< HEAD
                 
                 if '_CAS_TOKEN' in session:
                     token = session['_CAS_TOKEN']
@@ -222,6 +313,9 @@ def user_login():
                     # username = None
                 session['username'] = username
                 session['logged_in'] = True              
+=======
+                # print(check_pass, password)
+>>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
                 return redirect(url_for('profile', username=username))
             else:
                 flash('Incorrect login. Please try again.')
@@ -394,56 +488,34 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-
-
-################################################################################################
-################################################################################################
-################################################################################################
-
-
-
-
-
-
-
-
-#FANGWEN's STUFF
-@app.route('/addreview/',methods=['POST','GET'])
-def feed(): #rename feed() to add review
+## Here's the route to entering a feedback form
+@app.route('/reviews/<int:fid>',methods=['POST','GET'])
+def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
-        #feedbacks=feed_queries.recent_feedback(conn)
-        #dishes=feed_queries.top_rated(conn)
-        return render_template('feed.html')
+        # get the form to display 
+        name=feed_queries.search_fid(conn,fid)['name']
+        return render_template('feed.html',name=name, fid = fid)
     else:
         # get the input form values from the submitted form
         username=request.form['user']
+        #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
-            temp=[]
-            for item in feed_queries.temp_user(conn):
-                temp.append(item['name'])
+            # Because the username is not complete, temp is used for flashing tempoararily 
+            # to show available usernames you can possibly input
+            temp=[person["username"] for person in feed_queries.temp_user(conn)]
             flash('Username Under Construction:only enter below for usernames:' )
             flash(temp)
             return render_template('feed.html')
-        name=request.form['food']
-        if len(feed_queries.search_food(conn,name))==0:
-            temp=[]
-            for item in feed_queries.temp_food(conn):
-                temp.append(item['name'])
-            flash('Food Item Under Constuction: only enter below for food item:')
-            flash(temp)
-            return render_template('feed.html')
-        else: 
-            fid=feed_queries.search_food(conn,name)[0]['fid']
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
         # stored form info into the database here
         feed_queries.feedback(conn,username,fid,rating,comment,time)
-        return redirect(url_for('review'))
+        return redirect(url_for('feed'))
 
 @app.route('/feed/')     
-def review(): #rename review() to feed
+def feed(): #rename review() to feed
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
@@ -451,80 +523,83 @@ def review(): #rename review() to feed
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
-    # LEAH's STUFF
-
-def handleErrors(name,category,hall,preferences,allergens,ingredients): 
-    message="hello"
-    return message
 
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     if request.method == 'GET':
+        # add a way to dynamically obtain food preferences and allergens
         return render_template('dataentry.html', action=url_for('addfood'))
     elif request.method == 'POST':
+        conn = dbi.connect()
         food_name = request.form.get('food-name') 
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
-        food_preferences = request.form.get('food-preferences')
-        food_allergens = request.form.get('food-allergens')
+        food_preferences = request.form.getlist('preferences')
+        food_allergens = request.form.getlist('allergens')
         food_ingredients = request.form.get('food-ingredients')
-        print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
-        error_messages = []
-        #message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
-        # message = ""
-        # if food_name is None: 
-        #     message = "missing input: Food name is missing."
-        # elif food_category is None: 
-        #     message = "missing input: Food category is missing."
-        # elif food_dhall is None:
-        #     message = "missing input: Food dining hall is missing."
-        # elif food_preferences is None:
-        #     message = "missing input: Food preferences is missing."
-        # elif food_allergens is None: 
-        #     message = "missing input: Food allergens is missing."
-        # elif food_ingredients is None: 
-        #     message = "missing ingredients: Food ingredients are missing."
-        # error_messages.append(message)
-        # if len(error_messages) > 0:
-        #     return render_template('dataentry.html', action=url_for('addfood'), messages=error_messages)
-        # print("form submission successful.")
 
-        #insert stuff into database
-        connect = dbi.connect()
-        print("connected!")
-        curs = dbi.cursor(connect)
-        sql = '''insert into food(name,lastServed,type,did) 
-                  values (%s,%s,%s,%s);'''
-        food_date = "2021-03-19"
-        vals = [food_name,food_date,food_category,food_dhall]
-        curs.execute(sql,vals)
-        connect.commit()
-        print("success!")
+        # error-handling: if any of the form elements aren't filled out, don't submit the form
+        # code elsewhere handles the elements selected by the dropdown
+
+        if len(food_name)==0: 
+            flash("Please enter in the name of the food.")
+            return render_template('dataentry.html', action=url_for('addfood'))
+        if len(food_ingredients) == 0: 
+            flash("Please enter in the food's ingredients.")
+            return render_template('dataentry.html', action=url_for('addfood'))
+        if len(food_preferences) == 0 or len(food_allergens) == 0: 
+            flash("Please make sure that all boxes in the form are checked.")
+            return render_template('dataentry.html', action=url_for('addfood'))
+
+        # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
+        
+        test_bool = entry.exists(conn,food_name)
+        if test_bool == True: 
+            flash("Food already exists in database.")
+            return redirect(url_for('mainmenu')) # should go back to landing page, idk how to do this.
+        #inserts food into database
+        food_date = today()[0]
+        entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
+        
+        #get food id
+        food_id = entry.get_food_id(conn,food_name)
+    
+        #insert related label into food database: 
+        entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
-        print(success_message)
+        flash(success_message)
+        return redirect('/') #get rid of action here
 
-        curs1 = dbi.cursor(connect)
-        sql = '''select fid from food where name=%s'''
-        curs1.execute(sql,food_name)
-        food_id = curs1.fetchone()[0]
-        print(food_id)
+@app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
+def delete(): 
+    conn = dbi.connect()
+    if request.method == "GET": 
+        all_foods = entry.get_all_food(conn) 
+        all_students = entry.get_all_students(conn)
+        return render_template('delete.html', allfoods=all_foods, students=all_students)
+        #later, get a dynamic list of usernames
+    if request.method == "POST":
+        #flesh this out a little bit–using info that the user selected, delete food item.
+        #also, only allow delete to happen if the "right" username is selected 
+        print(request.form)
+        student_str = request.form.get('student-name') 
+        food_id = request.form.get('food-dlt') 
+        print([student_str,food_id])
+        if student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+            flash('Sorry, but you are not authorized to delete food items from the database.')
+            return redirect('/')
+        entry.delete_labels(conn,food_id)
+        entry.delete_food(conn,food_id)
+        flash('Food with {fid} was successfully deleted from the database.'.format(fid=food_id))
+        return redirect('/')
 
-        curs2 = dbi.cursor(connect)
-        sql2 = '''insert into labels(allergen,preference,ingredients,fid) 
-                  values (%s,%s,%s,%s);'''
-        labelvals = [food_allergens,food_preferences,food_ingredients,food_id]
-        print(labelvals)
-        curs2.execute(sql2,labelvals)
-        connect.commit()
 
-        print("label inserted")
 
-        return redirect(url_for('addfood',messages=success_message,action='addfood'))
     
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    dbi.use('foodie_db') # or whatever db
+    dbi.use('foodie_db')  
 
 if __name__ == '__main__':
     import sys, os
@@ -533,7 +608,7 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
         assert(port>1024)
     else:
-        port = os.getuid()
-        # port = 7739
+        # port = os.getuid()
+        port = 7739
     app.debug = True
     app.run('0.0.0.0',port)
