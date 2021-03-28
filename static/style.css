@@ -3,16 +3,18 @@
 
 :root {
     --blue: #6495ed;
-    --white: #faf0e6;
+    --white: #fdfdfc;
     --orange: #fd8953;
     --lightorange: #ffb08c;
     --lightgreen: #8fbc8f;
     --green: #5CB88D;
+    --darkgrey: rgb(58, 58, 58);
     /* --darkgreen: #6aa66a; */
   }
 
 body {
-    background-color:white;
+    background-color:var(--white);
+    padding-bottom: 70px;
 }
 h1 {
     color: var(--green);
@@ -96,7 +98,7 @@ footer {
     font-size: 16px;
     font-family: Nunito;
     margin: 1em;
-    margin-left: 35%;
+    /* margin-left: 35%; */
 }
 .comment {
     padding: 15px 32px;
@@ -111,17 +113,45 @@ h3 {
 }
 
 .menuList {
-    margin-left: 15em;
-    margin-right: 15em;
-    margin-bottom: 2em;
+    /* margin-left: 30%;
+    margin-right: 30%; */
+    /* margin-bottom: 2em; */
+    text-align: center;
     font-family: Nunito;
     font-size:larger;
     border-color: var(--green);
     border-width: .4em;
-    border-style: solid;
+    border-style: double;
     border-radius: .6em;
-
+    text-transform: uppercase;
+    width: max-content;
+    inline-size: max-content;
+    height: max-content;
+    block-size: max-content;
+    margin: 0 auto;
+    /* padding-top: 2em; */
+    /* padding-bottom: 2em; */
 }
+
+a:link.menuItem {
+    text-decoration: none;
+    color: var(--darkgrey);
+  }
+  
+a:visited.menuItem {
+    text-decoration:none;
+    color: var(--green);
+  }
+  
+a:hover.menuItem  {
+    text-decoration: none;
+    background-color: var(--lightorange);
+  }
+  
+a:active.menuItem  {
+    text-decoration: underline;
+  }
+
 .messages {
     background-color: cornsilk;
     font-family: Nunito;
@@ -143,6 +173,53 @@ h3 {
     float:right;
 }
 
+.foodPic{
+    color: var(--white);
+    width: 25%;
+    border-style: solid;
+    border-color: var(--darkgrey);
+    border-width: 4px;
+
+}
+
+.text-add{
+    color: var(--white)
+}
+
+.starRating:not(old){
+    display        : inline-block;
+    width          : 7.5em;
+    height         : 1.5em;
+    overflow       : hidden;
+    vertical-align : bottom;
+  }
+.starRating:not(old) > input{
+    margin-right : -100%;
+    opacity      : 0;
+  }
+.starRating:not(old) > label{
+    display         : block;
+    float           : right;
+    position        : relative;
+    background      : url('https://www.svgrepo.com/show/13693/star.svg');
+    background-size : contain;
+  }
+
+  .starRating:not(old) > label:before{
+    content         : '';
+    display         : block;
+    width           : 1.5em;
+    height          : 1.5em;
+    background      : url('https://www.svgrepo.com/show/161450/star-filled-fiveointed-shape.svg');
+    background-size : contain;
+    opacity         : 0;
+    transition      : opacity 0.2s linear;
+  }
+  .starRating:not(old) > label:hover:before,
+  .starRating:not(old) > label:hover ~ label:before,
+  .starRating:not(:hover) > :checked ~ label:before{
+    opacity : 1;
+  }
 
 /* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 

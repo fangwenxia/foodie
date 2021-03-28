@@ -1,43 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!--The form from Sara and Gigi's work-->
-<div class="d-flex flex-md-column align-items-center">
-<h1>Tell us what you think!</h1>
-<form id="feedback-form" method ="post" action="/reviews/">
-    <table>
-        <tr><td><label for="username">Your Username</label></td>
+<div class="d-flex flex-column align-items-center container-fluid">
+<h1>Review {{name}}</h1>
+<form id="feedback-form" method ="post" action="{{url_for('reviews', fid = fid)}}">
+    <table class ="table">
+        <tbody>
+        <tr><td><label for="username">Username</label></td>
             <td><input id="username" name="user" required></td>
         </tr>
         <!-- Search the food item function here -->
-        <tr><td><label for="food">Name of Food Item</label></td>
-            <td><input id="food" name="food" required></td>
-        </tr>
         <tr>
-            <td><label for="diningHall">Dining Hall</label></td>
-            <td><select id="diningHall" name ="diningHall" required> 
-                <!-- Numbers correspond to id for dining halls in our database -->
-                <option value= "">select</option>
-                <option value= 1> Bates</option>
-                <option value= 2> Lulu</option>
-                <option value= 3> Pom</option>
-                <option value= 4> Stone-D</option>
-                <option value= 5> Tower</option>
-            </select></td>
-        </tr>
-        <tr>
-        <td><label for="rating">How much did you like this item?</label></td>
-        <td><input type="range" min="1" max="5" value="3" name="rating" id="rating"></td>
+        <td><label for="rating">Rate {{name}}: </label></td>
+        <td><span class="starRating">
+            <input id="rating5" type="radio" name="rating" value="5">
+            <label for="rating5">5</label>
+            <input id="rating4" type="radio" name="rating" value="4">
+            <label for="rating4">4</label>
+            <input id="rating3" type="radio" name="rating" value="3">
+            <label for="rating3">3</label>
+            <input id="rating2" type="radio" name="rating" value="2">
+            <label for="rating2">2</label>
+            <input id="rating1" type="radio" name="rating" value="1">
+            <label for="rating1">1</label>
+            
+          </span></td>
+        <!-- <td><input type="range" min="1" max="5" value="3" name="rating" id="rating"></td> -->
         <!-- Modified from W3 schools tutorial -->
-         </tr>
+    </tbody>     
+    </tr>
         </table>
-         <label>Any comments?
-             <textarea name="comment" rows=5 cols=50></textarea></label>
-         <p><input type="submit" value="Send Feedback" class = "button"></p>
+             <textarea name="comment" rows=5 cols=50 placeholder="Write your review here..."></textarea>
+         <p><input type="submit" value="post" class = "button"></p>
     </form>
 </div>
 {% endblock %}
 
 {% block footer %}
-daily menu provided by students like you. thank you!
+Want to see changes? Tell us what your think!
 {% endblock %}

@@ -22,6 +22,9 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+# file upload content 
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
 
 def today():
     """Returns a tuple with the string for the current day and time (SQL format)
@@ -30,6 +33,19 @@ def today():
     """
     now = date.today()
     return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
+
+@app.route('/pic/<int:fid>') 
+#route to image for food photos, can later be generalized and applied to other photos too
+def pic(fid):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from foodPics where fid = %s'''
+    curs.execute(sql, [fid])
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except Exception as err: #in the case when there is not yet a photo uploaded
+        return None
 
 @app.route('/')
 def home():
@@ -53,23 +69,56 @@ def menu():
         # mealtype = ""
         dh = request.args.get('dh-filter', "")
         mealtype = request.args.get("type-filter", "")
+        preference = request.args.getlist("preference")
+        now = today()[0]
+            
+        if preference:
+            preference = ",".join(preference)
+        else:
+            preference = ""
         if dh:
             dhName = menuUp.lookupDH(conn, dh)[0]
+            waitTime = menuUp.getWaittime(conn, int(dh))[0]
         else:
             dhName = ""
+            waitTime = ""
         # IMPLEMENT SEARCH BY LABEL label = ""
         search = request.args["query"]
         # the variable date = today()[] generates the current date to display on the menu page
         if dh == '3' or dh == '4':
             flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
-        if dh or mealtype: #if given a dining hall request and mealtype
-            menu = menuUp.filterMenuList(conn, dh, mealtype,None)
+        if dh or mealtype or preference: #if given a dining hall request and mealtype
+            menu = menuUp.filterMenuList(conn, dh, mealtype,preference,now)
         elif search:
             menu = menuUp.searchMenu(conn, search)
+            print(menu)
+            if len(menu)==1:
+                # if there's only one matching result, redirect directly to the food page 
+                fid=menu[0]['fid']
+                return redirect(url_for('food',fid=int(fid)))
+            elif len(menu)==0:
+                flash("The name you entered does not match any dish in the databse. \
+                    Wold you like to add a new food entry? ")
+                return redirect(url_for('addfood'))
+            else: 
+                flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu")
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime)
     # else: if we decide to add a post method to our menu
+
+#for beta: how do I pass in the fid for processing too? 
+@app.route('/autocomplete',methods=['GET'])
+def autocomplete():
+    conn = dbi.connect()
+    # keyword to search: q is from jQuery, looking for 'q'
+    search=request.args.get('q')
+    # returns a list of dictionary of fid and food name
+    dishes=menuUp.searchMenu(conn,search)
+    #gets only the food name list 
+    results=[entry["name"] for entry in dishes]
+    # jsonify makes the list of food names in a JavaScript format
+    return jsonify(matching_results=results)
 
 @app.route('/food/<int:fid>', methods=["GET", "POST"])
 def food(fid):
@@ -80,8 +129,9 @@ def food(fid):
         #average rating and number of ratings given to a food item
         avgRating, totalRatings = menuUp.avgRating(conn, fid) 
         # list of dictionaries for each comment for a given food item and with the comment's rating and user
-        comments = menuUp.lookupComments(conn, fid) 
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"])
+        comments = menuUp.lookupComments(conn, fid)
+        filename = pic(fid)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
@@ -90,14 +140,43 @@ def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(conn, fid)
         return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+    elif request.form["submit"] == "update":
+        try:
+            ingredients = request.form["ingredients"]
+            menuUp.updateFoodItem(conn, fid, ingredients)
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
     else:
-        ingredients = request.form["ingredients"]
-        menuUp.updateFoodItem(conn, fid, ingredients)
-        item = menuUp.lookupFoodItem(conn, fid)
-        flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
-        avgRating, totalRatings = menuUp.avgRating(conn, fid)
-        comments = menuUp.lookupComments(conn,fid)
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        try:
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            f = request.files['pic']
+            user_filename = f.filename
+            ext = user_filename.split('.')[-1]
+            filename = secure_filename('{}.{}'.format(fid,ext))
+            pathname = os.path.join(app.config['UPLOADS'],filename)
+            f.save(pathname)
+            curs = dbi.dict_cursor(conn)
+            curs.execute(
+                '''insert into foodPics(fid,filename) values (%s,%s)
+                   on duplicate key update filename = %s''',
+                [fid, filename, filename])
+            conn.commit()
+            flash('Upload successful.')
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+
 
 # Gigi's Stuff!!
 @app.route('/create/', methods=["GET", "POST"]) 
@@ -210,32 +289,25 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-@app.route('/reviews/',methods=['POST','GET']) #add: <fid>
-def reviews(): #add: fid
+## Here's the route to entering a feedback form
+@app.route('/reviews/<int:fid>',methods=['POST','GET'])
+def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
-        return render_template('feed.html')
+        name=feed_queries.search_fid(conn,fid)['name']
+        return render_template('feed.html',name=name, fid = fid)
     else:
         # get the input form values from the submitted form
         username=request.form['user']
+        #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
-            temp=[]
-            for item in feed_queries.temp_user(conn):
-                temp.append(item['username'])
+            # Because the username is not complete, temp is used for flashing tempoararily 
+            # to show available usernames you can possibly input
+            temp=[person["username"] for person in feed_queries.temp_user(conn)]
             flash('Username Under Construction:only enter below for usernames:' )
             flash(temp)
             return render_template('feed.html')
-        name=request.form['food']
-        if len(feed_queries.search_food(conn,name))==0:
-            temp=[]
-            for item in feed_queries.temp_food(conn):
-                temp.append(item['name'])
-            flash('Food Item Under Constuction: only enter below for food item:')
-            flash(temp)
-            return render_template('feed.html')
-        else: 
-            fid=feed_queries.search_food(conn,name)[0]['fid']
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()

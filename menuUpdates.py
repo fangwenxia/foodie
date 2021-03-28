@@ -13,7 +13,7 @@ def avgRating(conn, fid):
             ratingSum += int(rating[0])
             numRatings += 1
         avg = ratingSum/numRatings
-        return avg, numRatings
+        return int(avg), numRatings
     else:
         return 0,0
 
@@ -22,7 +22,8 @@ def lookupMenuList(conn, now):
         return list of dictionaries of food name, dining hall, fid, ranking for all food matching 
     '''
     curs = dbi.dict_cursor(conn)
-    curs.execute("select fid, food.name, diningHall.name as dh from food inner join diningHall using (did);")
+    curs.execute('''select fid, food.name, diningHall.name as dh from food inner join diningHall 
+    using (did) where lastServed = %s;''', [now])
     # curs.execute("select food.fid, name, avg(rating) as rating from food inner join feedback using (fid) group by feedback.fid;")
     # ^^ The above code was removed because it then only displays menu items that have a rating
      # where lateServed= %s [now];
@@ -34,22 +35,39 @@ def lookupMenuList(conn, now):
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu
 
-def filterMenuList(conn, dh, mealtype, label):
+def filterMenuList(conn, dh, mealtype, label, now):
     '''
         return list of dictionaries of food name, dining hall, fid, ranking for food
     '''
     curs = dbi.dict_cursor(conn)
-    if dh and mealtype: #if the values are both not null
-        sql = ("select food.fid, name from food where did = %s and type = %s;")
-        values = [dh, mealtype]
-    elif dh: #if the value for mealtype is null
-        sql = ("select food.fid, name from food where did = %s;")
-        values = [dh]
-    elif mealtype: #if the value for mealtype is null
-        sql = ("select food.fid, name from food where type = %s;")
-        values = [mealtype]
+    preference = ["%" + label + "%"]
+    if label:
+        if dh and mealtype: #if the values are both not null
+            sql = '''select food.fid, name from food inner join labels using (fid)
+             where did = %s and type = %s and preference like %s and lastServed = %s;'''
+            values = [dh, mealtype, preference, now]
+        elif dh: #if the value for mealtype is null
+            sql = ("select food.fid, name from food inner join labels using (fid) where did = %s and preference like %s and lastServed = %s;")
+            values = [dh, preference, now]
+        elif mealtype: #if the value for mealtype is null
+            sql = ("select food.fid, name from food inner join labels using (fid) where type = %s and preference like %s and lastServed = %s;")
+            values = [mealtype, preference, now]
+        else:
+            sql = ("select food.fid, name from food inner join labels using (fid) where preference like %s and lastServed = %s;")
+            values = [preference, now]
+    elif not label:
+        if dh and mealtype: #if the values are both not null
+            sql = ("select food.fid, name from food where did = %s and type = %s and preference like %s and lastServed = %s;")
+            values = [dh, mealtype, preference, now]
+        elif dh: #if the value for mealtype is null
+            sql = ("select food.fid, name from food where did = %s and lastServed = %s;")
+            values = [dh, now]
+        elif mealtype: #if the value for mealtype is null
+            sql = ("select food.fid, name from food where type = %s and lastServed = %s;")
+            values = [mealtype, now]
     else: #if the value for mealtype and dh is null
-        sql = ("select food.fid, name from food;")
+        sql = ("select food.fid, name from food where lastServed = %s;")
+        values = [now]
     curs.execute(sql, values) # where lateServed= %s [now];
     menu = curs.fetchall()
     for item in menu:
@@ -116,3 +134,8 @@ the food table, as a list of dictionaries.
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
     return menu
+
+def getWaittime(conn, did):
+    curs = dbi.cursor(conn)
+    curs.execute("select waitTime from diningHall where did = %s", [did])
+    return curs.fetchone()
