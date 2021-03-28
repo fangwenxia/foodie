@@ -37,6 +37,26 @@ def exists(conn,name):
         return True
     else: 
         return False 
+def get_all_food(conn):
+    sql = '''select fid,food.name from food'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql)
+    return curs.fetchall() 
+def get_all_students(conn):
+    sql = '''select username,student.name from student'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql)
+    return curs.fetchall()
+def delete_labels(conn,fid):
+    sql = '''delete from labels where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    conn.commit()
+def delete_food(conn,fid):
+    sql = '''delete from food where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    conn.commit()
     
 
     # this function should handle all the empty values

@@ -336,14 +336,9 @@ def addfood():
         food_name = request.form.get('food-name') 
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
-        # food_preferences = request.form.get('food-preferences')
-        # food_allergens = request.form.get('food-allergens')
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
         food_ingredients = request.form.get('food-ingredients')
-        # print(food_preferences)
-        # print(food_allergens)
-
 
         # error-handling: if any of the form elements aren't filled out, don't submit the form
         # code elsewhere handles the elements selected by the dropdown
@@ -375,8 +370,33 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect(url_for('addfood',action='addfood')) #get rid of action here
-        
+        return redirect('/') #get rid of action here
+
+@app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
+def delete(): 
+    conn = dbi.connect()
+    if request.method == "GET": 
+        all_foods = entry.get_all_food(conn) 
+        all_students = entry.get_all_students(conn)
+        return render_template('delete.html', allfoods=all_foods, students=all_students)
+        #later, get a dynamic list of usernames
+    if request.method == "POST":
+        #flesh this out a little bit–using info that the user selected, delete food item.
+        #also, only allow delete to happen if the "right" username is selected 
+        print(request.form)
+        student_str = request.form.get('student-name') 
+        food_id = request.form.get('food-dlt') 
+        print([student_str,food_id])
+        if student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+            flash('Sorry, but you are not authorized to delete food items from the database.')
+            return redirect('/')
+        entry.delete_labels(conn,food_id)
+        entry.delete_food(conn,food_id)
+        flash('Food with {fid} was successfully deleted from the database.'.format(fid=food_id))
+        return redirect('/')
+
+
+
     
 @app.before_first_request
 def init_db():
