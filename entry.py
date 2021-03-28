@@ -20,8 +20,9 @@ def get_food_id(conn,name):
 def insert_label(conn,allergens,preferences,ingredients,id): 
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
-    labelvals = [allergens,preferences,ingredients,id]
-    print(labelvals)
+    prefs = ','.join(preferences)
+    allgns = ','.join(allergens)
+    labelvals = [allgns,prefs,ingredients,id]
     curs2.execute(sql2,labelvals)
     conn.commit()
 # checks to see if the name of the food already exists in the database
@@ -30,7 +31,8 @@ def exists(conn,name):
     curs = dbi.cursor(conn)
     sql = '''select * from food where name=%s'''
     curs.execute(sql,name)
-    food_name=curs.fetchone()[0]
+    food_name=curs.fetchone()
+    print(food_name)
     if food_name is not None: 
         return True
     else: 

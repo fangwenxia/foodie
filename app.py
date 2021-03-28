@@ -336,19 +336,30 @@ def addfood():
         food_name = request.form.get('food-name') 
         food_category = request.form.get('food-type')
         food_dhall = request.form.get('food-hall')
-        food_preferences = request.form.get('food-preferences')
-        food_allergens = request.form.get('food-allergens')
+        # food_preferences = request.form.get('food-preferences')
+        # food_allergens = request.form.get('food-allergens')
+        food_preferences = request.form.getlist('preferences')
+        food_allergens = request.form.getlist('allergens')
         food_ingredients = request.form.get('food-ingredients')
-        # if any of the form elements aren't filled out, don't submit the form
+        # print(food_preferences)
+        # print(food_allergens)
+
+
+        # error-handling: if any of the form elements aren't filled out, don't submit the form
         # code elsewhere handles the elements selected by the dropdown
+
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
             return render_template('dataentry.html', action=url_for('addfood'))
         if len(food_ingredients) == 0: 
             flash("Please enter in the food's ingredients.")
             return render_template('dataentry.html', action=url_for('addfood'))
+        if len(food_preferences) == 0 or len(food_allergens) == 0: 
+            flash("Please make sure that all boxes in the form are checked.")
+            return render_template('dataentry.html', action=url_for('addfood'))
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
+        
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
@@ -364,7 +375,7 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect(url_for('addfood',action='addfood'))
+        return redirect(url_for('addfood',action='addfood')) #get rid of action here
         
     
 @app.before_first_request
