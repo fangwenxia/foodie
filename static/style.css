@@ -183,7 +183,8 @@ a:active.menuItem  {
 }
 
 .text-add{
-    color: var(--white)
+    color: var(--white);
+    text-decoration: none;
 }
 
 .starRating:not(old){
