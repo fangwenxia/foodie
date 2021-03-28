@@ -210,13 +210,8 @@ def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
-<<<<<<< HEAD
-@app.route('/reviews/',methods=['POST','GET'])
-def reviews():
-=======
 @app.route('/reviews/',methods=['POST','GET']) #add: <fid>
 def reviews(): #add: fid
->>>>>>> 928e29c8ac5d4dcfc5b6465849b3ff8870bb0f8b
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
@@ -257,11 +252,7 @@ def feed(): #rename review() to feed
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
-<<<<<<< HEAD
-   # LEAH's STUFF
-=======
     # LEAH's STUFF
->>>>>>> 928e29c8ac5d4dcfc5b6465849b3ff8870bb0f8b
 '''
 def handleErrors(name,category,hall,preferences,allergens,ingredients): 
     message="hello"
@@ -305,7 +296,7 @@ def addfood():
         curs = dbi.cursor(connect)
         sql = '''insert into food(name,lastServed,type,did) 
                   values (%s,%s,%s,%s);'''
-        food_date = "2021-03-19"
+        food_date = today()[0]
         vals = [food_name,food_date,food_category,food_dhall]
         curs.execute(sql,vals)
         connect.commit()
@@ -347,7 +338,7 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
         assert(port>1024)
     else:
-        port = os.getuid()
-        # port = 7739
+        # port = os.getuid()
+        port = 7739
     app.debug = True
     app.run('0.0.0.0',port)
