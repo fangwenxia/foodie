@@ -31,7 +31,7 @@ $(function(){
 
 {% if location%} 
 <!-- if the page is given a location -->
-<h2>Wait Time at {{location}}: {{waitTime}} minutes </h2>
+<h2><a class="text-waittime" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
 {% endif %}
 </div>
 <div class="d-inline-flex flex-column align-items-center">

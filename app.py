@@ -105,7 +105,7 @@ def menu():
                 flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime)
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
     # else: if we decide to add a post method to our menu
 
 #for beta: how do I pass in the fid for processing too? 
@@ -178,6 +178,22 @@ def updateFood(fid):
             item = menuUp.lookupFoodItem(conn, fid)
             return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
 
+@app.route('/updateWait/<int:did>', methods=["GET","POST"])
+def updateWait(did):
+    '''Update waiting time at a given dining hall'''
+    conn = dbi.connect()
+    dh = menuUp.lookupDH(conn, did)[0]
+    if request.method == "GET":
+        return render_template('waittimeUpdate.html',did = did, dh = dh, title = ("Update " + dh + " Wait Time"))
+    else:
+        try:
+            waittime = request.form["waittime"]
+            menuUp.updateFoodItem(conn, did, waittime)
+            flash("Thank you for updating {}'s wait time, we really appreciate it!".format(dh))
+            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('waittimeUpdate.html', dh = dh, did = did, title = ("Update " + dh + " Wait Time"))
 
 # Gigi's Stuff!!
 @app.route('/create/', methods=["GET", "POST"]) 
