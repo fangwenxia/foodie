@@ -1,4 +1,5 @@
 import cs304dbi as dbi
+from flask import (flash, render_template,url_for)
 
 # given a connection and the properties of a meal, inserts the food into the food table. 
 def insert_food(conn,name,date,category,dhall): 
@@ -15,6 +16,7 @@ def get_food_id(conn,name):
     curs1.execute(sql,name)
     food_id = curs1.fetchone()[0]
     return food_id
+# given food information, inserts a label into the labels table
 def insert_label(conn,allergens,preferences,ingredients,id): 
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
@@ -22,3 +24,25 @@ def insert_label(conn,allergens,preferences,ingredients,id):
     print(labelvals)
     curs2.execute(sql2,labelvals)
     conn.commit()
+
+    # this function should handle all the empty values
+def handle_empty_values(name,category,dhall,preferences,allergens,ingredients): 
+    # if len(name)==0: 
+    #     flash("Please enter in the name of the food.")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    # if len(category)==0: 
+    #     flash("Please select in the category of the food (breakfast,lunch,dinner or all-day).")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    # if len(dhall)==0: 
+    #     flash("Please enter in the dining hall the meal was consumed in.")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    # if len(preferences)==0: 
+    #     flash("Please select in the food's associated preferences (i.e. vegan)")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    # if len(allergens)==0: 
+    #     flash("Please select in the food's associated allergies (i.e. peanuts)")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    # if ingredients == '': 
+    #     flash("Please enter in the food's ingredients.")
+    #     return render_template('dataentry.html', action=url_for('addfood'))
+    

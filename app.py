@@ -325,15 +325,11 @@ def feed(): #rename review() to feed
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
-    # LEAH's STUFF
-'''
-def handleErrors(name,category,hall,preferences,allergens,ingredients): 
-    message="hello"
-    return message
-'''
+
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     if request.method == 'GET':
+        # add a way to dynamically obtain food preferences and allergens
         return render_template('dataentry.html', action=url_for('addfood'))
     elif request.method == 'POST':
         food_name = request.form.get('food-name') 
@@ -343,26 +339,19 @@ def addfood():
         food_allergens = request.form.get('food-allergens')
         food_ingredients = request.form.get('food-ingredients')
         print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
-        error_messages = []
-        #message = handleErrors(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
-        # message = ""
-        # if food_name is None: 
-        #     message = "missing input: Food name is missing."
-        # elif food_category is None: 
-        #     message = "missing input: Food category is missing."
-        # elif food_dhall is None:
-        #     message = "missing input: Food dining hall is missing."
-        # elif food_preferences is None:
-        #     message = "missing input: Food preferences is missing."
-        # elif food_allergens is None: 
-        #     message = "missing input: Food allergens is missing."
-        # elif food_ingredients is None: 
-        #     message = "missing ingredients: Food ingredients are missing."
-        # error_messages.append(message)
-        # if len(error_messages) > 0:
-        #     return render_template('dataentry.html', action=url_for('addfood'), messages=error_messages)
-        # print("form submission successful.")
 
+        print([type(food_ingredients),len(food_ingredients)])
+        # if any of the form elements aren't filled out, don't submit the form
+        # code elsewhere handles the elements selected by the dropdown
+        if len(food_name)==0: 
+            flash("Please enter in the name of the food.")
+            return render_template('dataentry.html', action=url_for('addfood'))
+        if len(food_ingredients) == 0: 
+            flash("Please enter in the food's ingredients.")
+            return render_template('dataentry.html', action=url_for('addfood'))
+
+        # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
+        
         #inserts food into database
         conn = dbi.connect()
         food_date = today()[0]
