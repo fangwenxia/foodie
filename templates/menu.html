@@ -31,7 +31,7 @@ $(function(){
 
 {% if location%} 
 <!-- if the page is given a location -->
-<h2><a class="text-waittime" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
+<h2><a class="text-waittime button" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
 {% endif %}
 </div>
 <div class="d-inline-flex flex-column align-items-center">
@@ -53,8 +53,8 @@ $(function(){
              <option value = "all day"> All Day </option>
     </select>
     <!-- IMPLEMENT FILTER BY PREFERENCE IN ALPHA -->
-    <br>
-        <p>Filter by Dietary Restrictions</p>
+    
+        <p><strong>Dietary Restrictions: </strong>
         <input type="checkbox" id="vegan" name="preference" value="vegan">
         <label for="vegan"> Vegan</label>
         <input type="checkbox" id="vegetarian" name="preference"value="vegetarian">
@@ -64,8 +64,8 @@ $(function(){
         <input type="checkbox" id="halal" name="preference" value="halal">
         <label for="halal"> Halal </label>
         <input type="checkbox" id="gs" name="preference" value="gluten sensitive">
-        <label for="gs"> Gluten-sensitive </label>
-    <br><p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+        <label for="gs"> Gluten-sensitive </label> </p>
+    <p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
       </svg>
         <input type="text" name="query" id="autocomplete" size="50" placeholder="Search"></label></p>
