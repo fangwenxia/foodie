@@ -33,7 +33,7 @@ def lookupMenuList(conn, now):
     for item in menu:
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
-    return menu
+    return sorted(menu, reverse = True, key = lambda i: i['rating'])
 
 def filterMenuList(conn, dh, mealtype, label, now):
     '''
@@ -73,7 +73,7 @@ def filterMenuList(conn, dh, mealtype, label, now):
     for item in menu:
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
-    return menu
+    return sorted(menu, reverse = True, key = lambda i: i['rating'])
 
 def lookupFoodItem(conn, fid):
     '''
@@ -93,7 +93,6 @@ def lookupFoodItem(conn, fid):
     #  inner join feedback using (fid)
     #  where food.fid = %s
     #  group by (feedback.fid);'''
-
     curs.execute(sql, [fid])
     # curs.execute("select name, ingredients, preference, allergen, lastServed type from food inner join labels using (fid) where fid = %s;", [fid])
     return curs.fetchone()
