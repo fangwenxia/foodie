@@ -25,6 +25,7 @@ def insert_label(conn,allergens,preferences,ingredients,id):
     curs2.execute(sql2,labelvals)
     conn.commit()
 # checks to see if the name of the food already exists in the database
+
 def exists(conn,name):
     curs = dbi.cursor(conn)
     sql = '''select * from food where name=%s'''

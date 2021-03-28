@@ -339,9 +339,6 @@ def addfood():
         food_preferences = request.form.get('food-preferences')
         food_allergens = request.form.get('food-allergens')
         food_ingredients = request.form.get('food-ingredients')
-        print([food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients])
-
-        print([type(food_ingredients),len(food_ingredients)])
         # if any of the form elements aren't filled out, don't submit the form
         # code elsewhere handles the elements selected by the dropdown
         if len(food_name)==0: 
@@ -355,7 +352,7 @@ def addfood():
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return redirect(url_for('mainmenu'))
+            return redirect(url_for('mainmenu')) # should go back to landing page, idk how to do this.
         #inserts food into database
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
