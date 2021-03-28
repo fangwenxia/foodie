@@ -28,7 +28,7 @@
             <a class="nav-link" href="{{url_for('feed')}}">Feed</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{url_for('login')}}">Profile</a>
+            <a class="nav-link" href="{{url_for('profile_error')}}">Profile</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{url_for('addfood')}}">+</a>
@@ -59,6 +59,28 @@
 <article>foodie.</article>
 
 {% endblock %}
+
+
+{% if username %}
+
+        <form method="GET" action="{{url_for('cas.logout')}}">
+          <button>logout {{username}}</button>
+        </form>
+   <p>CAS username: {{username}}</p>
+   <p>CAS attributes:</p>
+
+   <!-- <ul>
+       {#% for key,val in cas_attributes.items() %#}
+       <li>{{key}} &rArr; {{val}}</li>
+       {#% endfor %#}
+   </ul> -->
+{% else %}
+
+   <form method="GET" action="{{url_for('cas.login')}}">
+     <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
+   </form>
+
+{% endif %} 
 
 <footer>
     {% block footer %}

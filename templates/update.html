@@ -9,37 +9,42 @@
 <h1>Complete Profile!</h1>
 
 <h2>Current Details</h2>
-<p>Name: {{info.name}}</p>
-<p>Class Year: {{info.classYear}}</p>
-<p>Favorite Dining Hall: {{info.favoriteDH}}</p>
-<p>Favorite Food: {{info.favoriteFood}}</p>
+
+<p>Name: {{info['name']}}</p>
+<p>Username: {{username}}</p>
+<p>Class Year: {{info['classYear']}}</p>
+<p>Favorite Dining Hall: {{info['favoriteDH']}}</p>
+<p>Favorite Food: {{info['favoriteFood']}}</p>
 
 <h2>Change Details</h2>
 
-<form method=POST action="" autocomplete="on">
+
+
+<form method="POST" action="" autocomplete="on">
     <table>
-      <tr>
-        <td><label for="name">Name</label></td>
-        <td><input name='name' value="{{info.name}}"></td> 
-      </tr>
       <tr>
         <td><label for="username">Username</label></td>
         <td><input name='username' value="{{username}}"></td>
       </tr>
       <tr>
+        <td><label for="name">Name</label></td>
+        <td><input name='name' value="{{info['name']}}"></td> 
+      </tr>
+      
+      <tr>
         <td><label for="year">Class Year</label></td>
         <td><select id="year" name ="year" required> 
             <!-- Numbers correspond to id for dining halls in our database -->
             <option value= ""> select</option>
-            <option value= 1> 2021</option>
-            <option value= 2> 2022</option>
-            <option value= 3> 2023</option>
-            <option value= 4> 2024</option>
-            <option value= 5> Davis Scholar</option>
+            <option value= "2021"> 2021</option>
+            <option value= "2022"> 2022</option>
+            <option value= "2023"> 2023</option>
+            <option value= "2024"> 2024</option>
+            <option value= "Davis Scholar"> Davis Scholar</option>
         </select></td>
     </tr>
       <tr>
-        <td><label for="diningHall">Dining Hall</label></td>
+        <td><label for="diningHall">Favorite Dining Hall</label></td>
         <td><select id="diningHall" name ="diningHall" required> 
             <!-- Numbers correspond to id for dining halls in our database -->
             <option value= ""> select</option>
@@ -50,6 +55,10 @@
             <option value= 5> Tower</option>
         </select></td>
     </tr>
+    <tr>
+        <td><label for="favoriteFood">Favorite Food</label></td>
+        <td><input name='favoriteFood' value="{{info['favoriteFood']}}"></td> 
+      </tr>
     <tr>
         <td>Allergens</td>
         <td><fieldset><legend>Check All Known Allergens</legend>
@@ -90,6 +99,14 @@
     </tr>
     </table>
     <input class= "button" type="submit" name="submit" value="update">
+
+<div class="d-flex flex-lg-column align-items-center">
+    <form method="post" action="{{url_for('update', username = username)}}" enctype="multipart/form-data">
+        
+            <h2>Upload Profile Picture</h2>
+        <p><input type="file" name="propic" class = "button">
+        <input name = "submit" type="submit" value="upload" class = "button"></p></div>
+    </div>
   </form>
 
 {% endblock %}
