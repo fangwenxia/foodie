@@ -242,12 +242,12 @@ def create():
         else: 
             query.add_username(conn, name, username, passwd1, hashed_str) # used to be add_username, tt, title,  release
             flash('Profile was created successfully! You can post, review and more!')
-            return redirect(url_for('menu')) 
-        curs.execute('select last_insert_id()') # whats this ?!?!
+            return redirect(url_for('profile', username=username)) 
+        curs.execute('select last_insert_id()') 
         row = curs.fetchone()
         session['username'] = username
         session['logged_in'] = True        
-        return redirect( url_for('menu') )
+        return redirect( url_for('profile', username=username ))
 
     # except Exception as err:
     #     flash('form submission error 1 '+str(err))
@@ -308,24 +308,14 @@ def user_login():
             flash("This username doesn't exist. Please try again.")
             return render_template('create.html')
 
-def login_CAS():
-    flash('successfully logged in!')
-    return redirect( url_for('home') )
 
-    # except Exception as err:
-    #     flash('This username does not exist. Please create an account.')
-    #     return redirect('create')
-
-# temporary solution for catching broken link error
-# better way of doing this ?!?!
 # add titles to all pages ?!?!?!
 @app.route('/profile/', methods = ["GET", "POST"])
 def profile_error():
     
     sessvalue = request.cookies.get('session')
     if sessvalue is None:
-        print("SHOULD GO TO LOGIN HERE")
-        return redirect(url_for('cas.login'))
+        return redirect(url_for('user_login'))
     else:
         if 'CAS_USERNAME' in session:            
             #check to see if 'CAS_USERNAME' in data base
@@ -338,19 +328,8 @@ def profile_error():
             else:
                 flash("Looks like  you don't have an account yet, let's make one first.")
                 return redirect(url_for('create'))
-        else: 
-                #need to create account
-            if request.method == 'GET':
-                if 'username' in session:
-                    username = session['username']
-                    print("ONCE AGAINNNN",username)
-                    print("AND AGAINNNN SESSION:",session)
-                    return redirect(url_for('profile', username=username))
-            elif request.method == 'POST':
-                print('POSTTTTT')
-            else:
-                print('WHATS GOING ONNNN')
-            return redirect(url_for('create'))
+        flash('Please log in.')
+        return redirect(url_for('create'))
 
 
 # allows user to see their profile
@@ -412,7 +391,6 @@ def profile(username):
             return redirect(url_for('create'))
 
         
-# should allow user to update profile information. doesn't work yet. ?!?!
 @app.route('/update/<username>', methods = ["GET", "POST"])
 def update(username):
     try:
@@ -421,7 +399,7 @@ def update(username):
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
         if 'CAS_USERNAME' in session:
-            print('CAS_USERNAME is:',username)
+            print('CAS_USERNAME is:',username, info)
             if request.method == "GET":
                 sessvalue = request.cookies.get('session')
                 user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
@@ -495,8 +473,6 @@ def propic(username):
     except Exception as err: #in the case when there is not yet a photo uploaded
         return None
 
-# temporary solution for catching broken link error
-# better way of doing this ?!?!
 @app.route('/update/', methods = ["GET", "POST"])
 def username_error():
     flash("Please log in to update your profile.")
