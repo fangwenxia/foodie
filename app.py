@@ -139,6 +139,9 @@ def food(fid):
         comments = menuUp.lookupComments(conn, fid)
         filename = pic(fid)
         return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
+    else:
+        menuUp.updateLastServed(conn, fid, today()[0])
+        return redirect(url_for('food', fid = fid))
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
