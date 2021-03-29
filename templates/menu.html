@@ -37,7 +37,7 @@ $(function(){
 <div class="d-inline-flex flex-column align-items-center">
 <form method = "GET" action = "{{url_for('menu')}}">
     <select name = "dh-filter">
-        <option value = "">Location</option>
+        <option value = "" selected disabled hidden>Location</option>
              <option value = 1> Bates </option>
              <option value = 2> Lulu </option>
              <option value = 3> Pom </option>
@@ -46,7 +46,7 @@ $(function(){
     </select>
 
     <select name = "type-filter">
-        <option value = "">Time of Day</option>
+        <option value = "" selected disabled hidden>Time of Day</option>
              <option value = "breakfast"> Breakfast </option>
              <option value = "lunch"> Lunch </option>
              <option value = "dinner"> Dinner </option>

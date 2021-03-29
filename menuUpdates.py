@@ -128,6 +128,14 @@ def updateFoodItem(conn, fid, waittime):
     curs.execute("update diningHall set waitTime = %s where did = %s;", [waittime, fid])
     conn.commit()
 
+def updateLastServed(conn, fid, now):
+    '''
+        Adding a food to today's menu by updating last served date
+    '''
+    curs = dbi.cursor(conn)
+    curs.execute("update food set lastServed = %s where fid = %s;", [now, fid])
+    conn.commit()
+
 def searchMenu(conn, search):
     '''Returns the food items that match the query of all the entries in
 the food table, as a list of dictionaries.
