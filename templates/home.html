@@ -8,7 +8,7 @@
   <form method = "GET" action = "{{url_for('menu')}}">
     What's for
     <select name = "type-filter" class = "form-control">
-      <option value = "">Meal</option>
+      <option value = "" selected disabled hidden>Meal</option>
            <option value = "breakfast"> Breakfast </option>
            <option value = "lunch"> Lunch </option>
            <option value = "dinner"> Dinner </option>
@@ -16,7 +16,7 @@
   </select>
   at
     <select name = "dh-filter" class = "form-control">
-        <option value = "">Dining Hall</option>
+        <option value = "" selected disabled hidden>Dining Hall</option>
              <option value = 1> Bates </option>
              <option value = 2> Lulu </option>
              <option value = 3> Pom </option>
@@ -26,7 +26,7 @@
     ?
 <input class = "button" type = "submit" name = "filter" value = "view menu"> 
 </div>
-<form action="{{url_for('create')}}">
+<!-- <form action="{{url_for('create')}}">
   <button class='button' type="submit">Create Account</button>
 </form>
 <form action="{{url_for('user_login')}}">
@@ -37,7 +37,7 @@
 <form method="GET" action="{{url_for('cas.logout')}}">
   <button>logout {{username}}</button>
 </form>
-{% else %}
+{% else %} -->
 
 <form method="GET" action="{{url_for('cas.login')}}">
   <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
