@@ -346,7 +346,7 @@ def feed(): #rename review() to feed
 def addfood():
     if request.method == 'GET':
         # add a way to dynamically obtain food preferences and allergens
-        return render_template('dataentry.html', action=url_for('addfood'))
+        return render_template('dataentry.html',title='Add Food')
     elif request.method == 'POST':
         conn = dbi.connect()
         food_name = request.form.get('food-name') 
@@ -361,20 +361,21 @@ def addfood():
 
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add Food')
         if len(food_ingredients) == 0: 
             flash("Please enter in the food's ingredients.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add food')
         if len(food_preferences) == 0 or len(food_allergens) == 0: 
             flash("Please make sure that all boxes in the form are checked.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add food')
+        print (['food allergens',food_allergens])
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
         
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return redirect(url_for('mainmenu')) # should go back to landing page, idk how to do this.
+            return redirect(url_for('addfood')) # should go back to landing page, idk how to do this.
         #inserts food into database
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
@@ -386,7 +387,7 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect('/') #get rid of action here
+        return redirect('/')  
 
 @app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
 def delete(): 
@@ -394,7 +395,9 @@ def delete():
     if request.method == "GET": 
         all_foods = entry.get_all_food(conn) 
         all_students = entry.get_all_students(conn)
-        return render_template('delete.html', allfoods=all_foods, students=all_students)
+        # all_comments = entry.get_all_comments(conn) #is there a way to know which user is currently logged in? 
+
+        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods, students=all_students)
         #later, get a dynamic list of usernames
     if request.method == "POST":
         #flesh this out a little bit–using info that the user selected, delete food item.
@@ -403,12 +406,18 @@ def delete():
         student_str = request.form.get('student-name') 
         food_id = request.form.get('food-dlt') 
         print([student_str,food_id])
-        if student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+        if student_str == 'none' or food_id == 'none': 
+            flash('Please make sure you have selected a username and food item to delete.')
+            return redirect(url_for('delete'), title = 'Delete Food')
+        elif student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
+        food_name = entry.get_food(conn,food_id)
+
+        entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
-        flash('Food with {fid} was successfully deleted from the database.'.format(fid=food_id))
+        flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
         return redirect('/')
 
 

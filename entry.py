@@ -9,6 +9,7 @@ def insert_food(conn,name,date,category,dhall):
     vals = [name,date,category,dhall]
     curs.execute(sql,vals)
     conn.commit()
+
 # given a connection and name, returns the given food's fid
 def get_food_id(conn,name): 
     curs1 = dbi.cursor(conn)
@@ -42,41 +43,50 @@ def get_all_food(conn):
     curs = dbi.dict_cursor(conn)
     curs.execute(sql)
     return curs.fetchall() 
+
 def get_all_students(conn):
     sql = '''select username,student.name from student'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql)
     return curs.fetchall()
+def get_all_comments(conn,student):
+    sql = '''select comment, comment.username from feedback where username = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,student)
+    return curs.fetchall()
+
 def delete_labels(conn,fid):
     sql = '''delete from labels where fid = %s'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql,fid)
     conn.commit()
+
 def delete_food(conn,fid):
     sql = '''delete from food where fid = %s'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql,fid)
     conn.commit()
+
+def get_food(conn,fid): 
+    sql = '''select food.name from food where fid=%s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    food_name = curs.fetchone()
+    food_name = food_name.get('name')
+    return food_name
+
+
+def delete_comments(conn,fid): 
+    sql = '''select * from feedback where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    comments = curs.fetchall()
+    if comments is not None: 
+        sql = '''delete from feedback where fid = %s'''
+        curs = dbi.dict_cursor(conn)
+        curs.execute(sql,fid)
+        conn.commit()
     
 
-    # this function should handle all the empty values
-# def handle_empty_values(name,category,dhall,preferences,allergens,ingredients): 
-    # if len(name)==0: 
-    #     flash("Please enter in the name of the food.")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
-    # if len(category)==0: 
-    #     flash("Please select in the category of the food (breakfast,lunch,dinner or all-day).")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
-    # if len(dhall)==0: 
-    #     flash("Please enter in the dining hall the meal was consumed in.")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
-    # if len(preferences)==0: 
-    #     flash("Please select in the food's associated preferences (i.e. vegan)")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
-    # if len(allergens)==0: 
-    #     flash("Please select in the food's associated allergies (i.e. peanuts)")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
-    # if ingredients == '': 
-    #     flash("Please enter in the food's ingredients.")
-    #     return render_template('dataentry.html', action=url_for('addfood'))
+
     
