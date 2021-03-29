@@ -34,8 +34,11 @@ h1 {
 }
 
 
-.propic\>.\<form.method\= {
-    align-items: center;
+.propic{
+    text-align: center;
+}
+
+.login_button {
     text-align: center;
 }
 
@@ -236,6 +239,22 @@ a:active.menuItem  {
   .starRating:not(:hover) > :checked ~ label:before{
     opacity : 1;
   }
+
+.homePage {
+    font-family: Nunito;
+    color: var(--orange);
+    font-size: x-large;
+}
+
+.homePage select {
+    width:max-content; /*hide original SELECT element: */
+    display: inline;
+  }
+
+.homePage select,option{
+    font-family: Montserrat;
+  }
+
 
 /* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 

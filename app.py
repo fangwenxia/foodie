@@ -93,7 +93,7 @@ def menu():
             dhName = ""
             waitTime = ""
         # IMPLEMENT SEARCH BY LABEL label = ""
-        search = request.args["query"]
+        search = request.args.get("query", "")
         # the variable date = today()[] generates the current date to display on the menu page
         if dh == '3' or dh == '4':
             flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
@@ -139,6 +139,9 @@ def food(fid):
         comments = menuUp.lookupComments(conn, fid)
         filename = pic(fid)
         return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
+    else:
+        menuUp.updateLastServed(conn, fid, today()[0])
+        return redirect(url_for('food', fid = fid))
 
 @app.route('/updateFood/<int:fid>', methods=["GET","POST"])
 # name, type, rating, description, preference, label
@@ -239,12 +242,12 @@ def create():
         else: 
             query.add_username(conn, name, username, passwd1, hashed_str) # used to be add_username, tt, title,  release
             flash('Profile was created successfully! You can post, review and more!')
-            return redirect(url_for('menu')) 
-        curs.execute('select last_insert_id()') # whats this ?!?!
+            return redirect(url_for('profile', username=username)) 
+        curs.execute('select last_insert_id()') 
         row = curs.fetchone()
         session['username'] = username
         session['logged_in'] = True        
-        return redirect( url_for('menu') )
+        return redirect( url_for('profile', username=username ))
 
     # except Exception as err:
     #     flash('form submission error 1 '+str(err))
@@ -305,23 +308,14 @@ def user_login():
             flash("This username doesn't exist. Please try again.")
             return render_template('create.html')
 
-def login_CAS():
-    flash('successfully logged in!')
-    return redirect( url_for('home') )
 
-    # except Exception as err:
-    #     flash('This username does not exist. Please create an account.')
-    #     return redirect('create')
-
-# temporary solution for catching broken link error
-# better way of doing this ?!?!
 # add titles to all pages ?!?!?!
 @app.route('/profile/', methods = ["GET", "POST"])
 def profile_error():
+    
     sessvalue = request.cookies.get('session')
     if sessvalue is None:
-        print("SHOULD GO TO LOGIN HERE")
-        return redirect(url_for('cas.login'))
+        return redirect(url_for('user_login'))
     else:
         if 'CAS_USERNAME' in session:            
             #check to see if 'CAS_USERNAME' in data base
@@ -330,136 +324,134 @@ def profile_error():
             conn = dbi.connect()
             curs = dbi.cursor(conn)
             if query.username_exists(conn, username):
-                print("HEHEHEHE USERNAME", username)
                 return redirect(url_for('profile', username=username))
             else:
                 flash("Looks like  you don't have an account yet, let's make one first.")
                 return redirect(url_for('create'))
-        else: 
-                #need to create account
-            if request.method == 'GET':
-                if 'username' in session:
-                    username = session['username']
-                    print("ONCE AGAINNNN",username)
-                    print("AND AGAINNNN SESSION:",session)
-                    return redirect(url_for('profile', username=username))
-                print('GETTTT')
-            elif request.method == 'POST':
-                print('POSTTTTT')
-            else:
-                print('WHATS GOING ONNNN')
-            print("THIS IS WHERE YOU NEED TO CREATE", sessvalue)
-            return redirect(url_for('create'))
+        flash('Please log in.')
+        return redirect(url_for('create'))
 
 
 # allows user to see their profile
 # how to get actual text instead of values for DH and Classyear 
 @app.route('/profile/<username>', methods=['GET','POST'])
 def profile(username):
-    sessvalue = request.cookies.get('session')
-    print('WHAT ARE THESE SESSIONS', session)
-    print('Session keys1: ',list(session.keys()))
-    user = session.get('user', {'name': "None", 'year': "None", 'diningHall': None, 'favoriteFood': None})
-
-    conn = dbi.connect()
-    info =  query.get_user_info(conn, username)
-    for k in list(session.keys()):
-        print(k,' => ',session[k])
-    if 'CAS_USERNAME' in session:
-        is_logged_in = True
+    try: 
+        sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        print(('CAS_USERNAME is: ',username))
-    elif 'username' in session:
-        is_logged_in = True
-        username = session['username']
-        print("THREEEEEE",username, "WOOHOO SESSION", session, type(session), "WOOHOO USER",  user, type(user))
-        # name = user['name']
-        session['user'] = user
-    else:
-        is_logged_in = False
-        username = None
-        print('CAS_USERNAME is STILL not in the session')
-        session['user'] = user
-    return render_template('profile.html',
-                           username=username,
-                           is_logged_in=is_logged_in,
-                           cas_attributes = session.get('CAS_ATTRIBUTES'),
-                           session=session,
-                           sessvalue=sessvalue,
-                           user=user,
-                           info=info)
-# @app.route('/logout', methods = ["GET", "POST"])
-# def logout():
-#     logout_user = session.get('logout',)
-#     is_logged_in = False
-#     print("LOGOUT SESSION", session)
-#     return redirect(url_for('home.html'))
+        conn = dbi.connect()
+        info =  query.get_user_info(conn, username)
+        if 'CAS_USERNAME' in session:
+            print('CAS_USERNAME is:',username)
+            if request.method == "GET":
+                return render_template('profile.html', username=username, info=info, title="Your Profile")
+            else:
+                if request.form['submit'] == 'upload':
+                    is_logged_in = True
+                    username = session['CAS_USERNAME']
+                    f = request.files['pic']
+                    user_filename = f.filename
+                    ext = user_filename.split('.')[-1]
+                    filename = secure_filename('{}.{}'.format(username,ext))
+                    pathname = os.path.join(app.config['UPLOADS'],filename)
+                    f.save(pathname)
+                    curs = dbi.dict_cursor(conn)
+                    curs.execute(
+                        '''UPDATE proPics
+                        SET filename = %s
+                        WHERE username = %s''',
+                        [filename, username])
+                    conn.commit()
+                    flash('Upload successful.')
+                    return render_template('profile.html', username=username, info=info, title="Your Profile")
+            return render_template('profile.html', username=username, info=info, title="Your Profile")
+            
+        elif 'username' in session:
+            is_logged_in = True
+            username = session['username']
+            session['user'] = user
+            return render_template('profile.html', username=username, info=info, title="Your Profile")
+
+        else:
+            is_logged_in = False
+            username = None
+            print('CAS_USERNAME is STILL not in the session')
+            session['user'] = user
+    
+        return render_template('profile.html',
+                            username=username,
+                            is_logged_in=is_logged_in,
+                            cas_attributes = session.get('CAS_ATTRIBUTES'),
+                            session=session,
+                            sessvalue=sessvalue,
+                            user=user,
+                            info=info) 
+    except Exception as err:
+            flash('Please log in to continue.') 
+            return redirect(url_for('create'))
+
         
-# should allow user to update profile information. doesn't work yet. ?!?!
 @app.route('/update/<username>', methods = ["GET", "POST"])
 def update(username):
-    conn = dbi.connect()
-    info = query.get_user_info(conn, username)
-    if request.method == "GET":
+    try:
         sessvalue = request.cookies.get('session')
-        user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
-        info = query.get_user_info(conn, username)
-        # print("INFORMASHUNNN",info)
-        name = info['name']
-        year = info['classYear']        
-        diningHall = info['favoriteDH']
-        favoriteFood = info['favoriteFood']
-        allergens  = info['allergies']
-        preferences =  info['preferences']
-        session['user'] =  user
-        return render_template('update.html', username=username, info=info)
-        # flash('Profile was updated successfully!')
+        username = session['CAS_USERNAME']
+        conn = dbi.connect()
+        info =  query.get_user_info(conn, username)
+        if 'CAS_USERNAME' in session:
+            print('CAS_USERNAME is:',username, info)
+            if request.method == "GET":
+                sessvalue = request.cookies.get('session')
+                user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
+                info = query.get_user_info(conn, username)
+                # print("INFORMASHUNNN",info)
+                name = info['name']
+                year = info['classYear']        
+                diningHall = info['favoriteDH']
+                favoriteFood = info['favoriteFood']
+                allergens  = info['allergies']
+                preferences =  info['preferences']
+                session['user'] =  user
+                return render_template('update.html', username=username, info=info)
+                # flash('Profile was updated successfully!')
 
-    elif request.form["submit"] == "update profile":
-        if  request.method == 'POST':
-            name2 = request.form['name']
-            year2 = request.form['year']
-            diningHall2 = request.form['diningHall']
-            favoriteFood2 = request.form['favoriteFood']
-            allergens = request.form.getlist('allergens')
-            str_all = ", ".join(allergens)
-            preferences = request.form.getlist('preferences')  
-            str_pref = ", ".join(preferences)
+            elif request.form["submit"] == "update":
+                if  request.method == 'POST':
+                    name2 = request.form['name']
+                    year2 = request.form['year']
+                    diningHall2 = request.form['diningHall']
+                    favoriteFood2 = request.form['favoriteFood']
+                    allergens = request.form.getlist('allergens')
+                    str_all = ", ".join(allergens)
+                    preferences = request.form.getlist('preferences')  
+                    str_pref = ", ".join(preferences)
 
-            # print('ALLERGENS', allergens, str(allergens), "and  PREFERENCES", preferences, str_pref)
-            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
-            info = query.get_user_info(conn, username)
-            flash("Successfully updated your profile!")
-            return redirect(url_for('profile', 
-                            username=username, 
-                            info=info,
-                            cas_attributes = session.get('CAS_ATTRIBUTES')))
-        else:
-        # except Exception as err:
-            flash('Update failed {why}'.format(why=err))
-            # return
-            return render_template('update.html', username=username, info=info)
-    else:
-        print('ELSEEEEE')
-        try:
-            print("YOU HERE???")
-            f = request.files['username']
-            user_filename = f.filename
-            ext = user_filename.split('.')[-1]
-            filename = secure_filename('{}.{}'.format(username,ext))
-            pathname = os.path.join(app.config['UPLOADS'],filename)
-            f.save(pathname)
-            curs = dbi.dict_cursor(conn)
-            curs.execute(
-                '''insert into proPics(username,filename) values (%s,%s)
-                on duplicate key update filename = %s''',
-                [username, filename, filename])
-            conn.commit()
-            flash('Upload successful.')
-            return render_template('profile.html', username=username, info=info, title="Your Profile")
-        except Exception as err:
-            flash('Update failed {why}'.format(why=err))
-            return render_template('update.html', username=username, info=info, title="Update Profile")
+                    # print('ALLERGENS', allergens, str(allergens), "and  PREFERENCES", preferences, str_pref)
+                    query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
+                    info = query.get_user_info(conn, username)
+                    flash("Successfully updated your profile!")
+                    return redirect(url_for('profile', 
+                                    username=username, 
+                                    info=info,
+                                    cas_attributes = session.get('CAS_ATTRIBUTES')))
+                else: 
+                    print('whats THIS')
+                # except Exception as err:
+                    flash('Update failed {why}'.format(why=err))
+                    # return
+                    return render_template('update.html', username=username, info=info)
+            else:
+                print('ELSEEEEE')
+                try:
+                    print("YOU HERE???")
+
+                    
+                except Exception as err:
+                    flash('Update failed {why}'.format(why=err))
+                    return render_template('update.html', username=username, info=info, title="Update Profile")
+    except Exception as err:
+            flash('Please log in to update your profile.') 
+            return redirect(url_for('create'))
 
         
         
@@ -481,8 +473,6 @@ def propic(username):
     except Exception as err: #in the case when there is not yet a photo uploaded
         return None
 
-# temporary solution for catching broken link error
-# better way of doing this ?!?!
 @app.route('/update/', methods = ["GET", "POST"])
 def username_error():
     flash("Please log in to update your profile.")
@@ -494,11 +484,17 @@ def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
+        sessvalue = request.cookies.get('session')
+        username = session['CAS_USERNAME']
+        print("USERNAME", username)
         name=feed_queries.search_fid(conn,fid)['name']
-        return render_template('feed.html',name=name, fid = fid)
+        return render_template('feed.html',name=name, fid = fid, username=username)
     else:
         # get the input form values from the submitted form
-        username=request.form['user']
+        sessvalue = request.cookies.get('session')
+        username = session['CAS_USERNAME']
+        print("USERNAME", username)
+        # username=request.form['user']
         #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
             # Because the username is not complete, temp is used for flashing tempoararily 

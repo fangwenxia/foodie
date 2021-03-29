@@ -32,6 +32,9 @@
           </span>
           </form>
 <h2>{{rating}} Stars</h2>
+<form method = "POST" action = "{{url_for('food', fid = fid)}}">
+    <input class = "button" type = "submit" name = "update" value = "add to today's menu"> 
+</form>
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
 <p>Description: {{food.ingredients}}</p>
 <p>{{food.name}} is usually served during {{food.type}}</p>
