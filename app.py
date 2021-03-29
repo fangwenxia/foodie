@@ -72,7 +72,7 @@ def mainmenu():
     menu = menuUp.lookupMenuList(conn, today()[0])
     return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
 
-@app.route('/menu/', methods=["GET", "POST"])
+@app.route('/menu/', methods=["GET"])
 def menu():
     conn = dbi.connect()
     if request.method == 'GET':
@@ -81,7 +81,6 @@ def menu():
         mealtype = request.args.get("type-filter", "")
         preference = request.args.getlist("preference")
         now = today()[0]
-            
         if preference:
             preference = ",".join(preference)
         else:
@@ -115,7 +114,6 @@ def menu():
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
-    # else: if we decide to add a post method to our menu
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -181,7 +179,7 @@ def updateFood(fid):
                 [fid, filename, filename])
             conn.commit()
             flash('Upload successful.')
-            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+            return redirect(url_for('food', fid = fid))
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
             item = menuUp.lookupFoodItem(conn, fid)
