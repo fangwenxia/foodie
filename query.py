@@ -21,7 +21,7 @@ def username_exists(conn, username):
 def get_user_info(conn, username):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute('''select student.name, username, classYear, diningHall.name as favoriteDH, favoriteFood
+    curs.execute('''select student.name, username, classYear, diningHall.name as favoriteDH, favoriteFood, allergies, preferences
                     from student, diningHall
                     where student.favoriteDH = diningHall.did
                     and username = %s;''', [username])
@@ -30,20 +30,15 @@ def get_user_info(conn, username):
 
 # is supposed to allow user to change/update information
 # doesn't crash but doesnt update ?!?!
-def update_profile(conn, username, name, year, diningHall, food):
+def update_profile(conn, username, name, year, diningHall, food, allergies, preferences):
     curs = dbi.dict_cursor(conn)
     curs.execute('''UPDATE student 
-                    SET name = %s, classYear = %s, favoriteDH = %s, favoriteFood  = %s
+                    SET name = %s, classYear = %s, favoriteDH = %s, favoriteFood  = %s, allergies = %s,
+                    preferences  = %s
                     WHERE username = %s;''', 
-                    [name, year, diningHall, food, username])
+                    [name, year, diningHall, food, allergies, preferences, username])
     conn.commit()
     return 
 
-def DHName(conn, diningHall):
-    curs = dbi.dict_cursor(conn)
-    curs.execute('''select name
-                from diningHall
-                where did = %s''', [diningHall])
-    return curs.fetchone()
 
     

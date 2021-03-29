@@ -39,6 +39,8 @@ create table student (
     favoriteDH int,
     classYear varchar(30),
     favoriteFood varchar(225),
+    allergies varchar(225),
+    preferences varchar(225),
     primary key (username),
     foreign key (favoriteDH) references diningHall(did)
         on update restrict
