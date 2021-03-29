@@ -1,15 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<div id="messages">
-    <p>{{msg}}</p>
-</div>
-
 <h1>Add Food to Database</h1>
 
-
-<form method=post action="">
+<!-- add something to action -->
+<form method=post action="{{url_for('addfood')}}">
 
     <fieldset>
         <legend>Food Information:</legend>
@@ -44,31 +39,82 @@
                 <td><label for="food-ingredients">Food Ingredients:</label></td>
                 <td><input type="text" name="food-ingredients" id="food-ingredients"></td>
             </tr>
+
             <tr>
                 <td><label for="food-preferences">Food Preferences</label></td>
-                <td><select id="food-preferences" name="food-preferences" required>
-                        <option value="">select</option>
-                        <option value="none">none</option>
-                        <option value="gluten sensitive">gluten sensitive</option>
-                        <option value="vegan">vegan</option>
-                        <option value="vegetarian">vegetarian</option>
-                        <option value="kosher">kosher</option>
-                        <option value="halal">halal</option>
-                    </select></td>
+                <td>
+                    <input type="checkbox" value="none" name="preferences">
+                    <label for="none">none</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="gluten sensitive" name="preferences">
+                    <label for="gluten-sensitive">gluten sensitive</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="vegan" id="flexCheckDefault" name="preferences">
+                    <label for="vegan">vegan</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="vegetarian" name="preferences">
+                    <label for="vegetarian">vegetarian</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="kosher" name="preferences">
+                    <label for="kosher">
+                        kosher
+                    </label>
+                </td>
+                <td>
+                    <input type="checkbox" value="halal" name="preferences">
+                    <label class for="halal">
+                        halal
+                    </label>
+                </td>
             </tr>
             <tr>
-                <td><label for="food-allergens">Allergens</label></td>
-                <td><select id="food-allergens" name="food-allergens" required>
-                        <option value="none">none</option>
-                        <option value="eggs">eggs</option>
-                        <option value="fish">fish</option>
-                        <option value="milk">milk</option>
-                        <option value="peanuts">peanuts</option>
-                        <option value="shellfish">shellfish</option>
-                        <option value="soy">soy</option>
-                        <option value="tree nut">tree nut</option>
-                        <option value="wheat">wheat</option>
-                    </select></td>
+                <td><label for="food-allergens">Food Allergens</label></td>
+                <td>
+                    <input type="checkbox" value="none-allergens" name="allergens">
+                    <label for="allergens">none</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="eggs" name="allergens">
+                    <label for="eggs">
+                        eggs
+                    </label>
+                </td>
+                <td>
+                    <input type="checkbox" value="fish" name="allergens">
+                    <label for="fish">fish</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="milk" name="allergens">
+                    <label for="milk">
+                        milk
+                    </label>
+                </td>
+                <td>
+                    <input type="checkbox" value="peanuts" name="allergens">
+                    <label for="peanuts">peanuts</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="shellfish" name="allergens">
+                    <label for="shellfish">shellfish</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="soy" name="allergens">
+                    <label for="soy">soy</label>
+                </td>
+                <td>
+                    <input type="checkbox" value="tree nut" name="allergens">
+                    <label for="tree nut">
+                        tree nut
+                    </label>
+                </td>
+                <td>
+                    <input type="checkbox" value="wheat" name="allergens">
+                    <label for="wheat">wheat</label>
+                </td>
             </tr>
         </table>
     </fieldset>
