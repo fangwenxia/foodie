@@ -25,8 +25,23 @@ h1 {
     margin-bottom: 0pt;
 }
 
+.profile {
+    text-align: center;
+}
+
+.profile_update {
+    margin-left: 2em;
+}
+
+
+.propic\>.\<form.method\= {
+    align-items: center;
+    text-align: center;
+}
+
 #create_form {
     display: inline-block;
+    /* text-align: center; */
 }
 
 .navbarCustom {

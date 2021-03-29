@@ -65,9 +65,6 @@ def home():
     # the base template needs only one filler
     return render_template('home.html',title='foodie.')
 
-@app.route('/form/')
-def form():
-    return render_template('form.html')
 @app.route('/mainmenu/')
 def mainmenu():
     '''Page with menu and form without any filters'''
@@ -75,8 +72,9 @@ def mainmenu():
     menu = menuUp.lookupMenuList(conn, today()[0])
     return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
 
-@app.route('/menu/', methods=["GET", "POST"])
+@app.route('/menu/', methods=["GET"])
 def menu():
+    '''route for menu that is filtered in some way, either through a specific tag or a search'''
     conn = dbi.connect()
     if request.method == 'GET':
         # mealtype = ""
@@ -84,7 +82,6 @@ def menu():
         mealtype = request.args.get("type-filter", "")
         preference = request.args.getlist("preference")
         now = today()[0]
-            
         if preference:
             preference = ",".join(preference)
         else:
@@ -110,15 +107,12 @@ def menu():
                 fid=menu[0]['fid']
                 return redirect(url_for('food',fid=int(fid)))
             elif len(menu)==0:
-                flash("The name you entered does not match any dish in the databse. \
-                    Wold you like to add a new food entry? ")
+                flash('''The name you entered does not match any dish in the database
+                    Would you like to add a new food entry? ''')
                 return redirect(url_for('addfood'))
-            else: 
-                flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
-    # else: if we decide to add a post method to our menu
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -184,7 +178,7 @@ def updateFood(fid):
                 [fid, filename, filename])
             conn.commit()
             flash('Upload successful.')
-            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+            return redirect(url_for('food', fid = fid))
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
             item = menuUp.lookupFoodItem(conn, fid)
@@ -390,12 +384,7 @@ def profile(username):
                            username=username,
                            is_logged_in=is_logged_in,
                            cas_attributes = session.get('CAS_ATTRIBUTES'),
-                        #    name=name,
-                        #    year=year,
-                        #    diningHall=diningHall,
-                        #    favoriteFood=favoriteFood,
                            session=session,
-                        #    name=session['name'],
                            sessvalue=sessvalue,
                            user=user,
                            info=info)
@@ -415,35 +404,46 @@ def update(username):
         sessvalue = request.cookies.get('session')
         user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
         info = query.get_user_info(conn, username)
+        # print("INFORMASHUNNN",info)
         name = info['name']
         year = info['classYear']        
         diningHall = info['favoriteDH']
         favoriteFood = info['favoriteFood']
+        allergens  = info['allergies']
+        preferences =  info['preferences']
         session['user'] =  user
         return render_template('update.html', username=username, info=info)
         # flash('Profile was updated successfully!')
 
-    elif request.form["submit"] == "update":
-        try:
+    elif request.form["submit"] == "update profile":
+        if  request.method == 'POST':
             name2 = request.form['name']
             year2 = request.form['year']
             diningHall2 = request.form['diningHall']
             favoriteFood2 = request.form['favoriteFood']
-            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2)
+            allergens = request.form.getlist('allergens')
+            str_all = ", ".join(allergens)
+            preferences = request.form.getlist('preferences')  
+            str_pref = ", ".join(preferences)
+
+            # print('ALLERGENS', allergens, str(allergens), "and  PREFERENCES", preferences, str_pref)
+            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
             info = query.get_user_info(conn, username)
             flash("Successfully updated your profile!")
             return redirect(url_for('profile', 
                             username=username, 
                             info=info,
                             cas_attributes = session.get('CAS_ATTRIBUTES')))
-        except Exception as err:
+        else:
+        # except Exception as err:
             flash('Update failed {why}'.format(why=err))
+            # return
             return render_template('update.html', username=username, info=info)
     else:
         print('ELSEEEEE')
         try:
             print("YOU HERE???")
-            f = request.files['pic']
+            f = request.files['username']
             user_filename = f.filename
             ext = user_filename.split('.')[-1]
             filename = secure_filename('{}.{}'.format(username,ext))
@@ -459,7 +459,6 @@ def update(username):
             return render_template('profile.html', username=username, info=info, title="Your Profile")
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
-            item = menuUp.lookupFoodItem(conn, fid)
             return render_template('update.html', username=username, info=info, title="Update Profile")
 
         

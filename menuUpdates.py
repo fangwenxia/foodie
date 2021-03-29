@@ -28,7 +28,6 @@ def lookupMenuList(conn, now):
     # ^^ The above code was removed because it then only displays menu items that have a rating
      # where lateServed= %s [now];
     #---------------------------UPDATE to include DH info AND current date --------------------------
-    
     menu = curs.fetchall()
     for item in menu:
         fid = item["fid"]
@@ -57,8 +56,8 @@ def filterMenuList(conn, dh, mealtype, label, now):
             values = [preference, now]
     elif not label:
         if dh and mealtype: #if the values are both not null
-            sql = ("select food.fid, name from food where did = %s and type = %s and preference like %s and lastServed = %s;")
-            values = [dh, mealtype, preference, now]
+            sql = ("select food.fid, name from food where did = %s and type = %s and lastServed = %s;")
+            values = [dh, mealtype, now]
         elif dh: #if the value for mealtype is null
             sql = ("select food.fid, name from food where did = %s and lastServed = %s;")
             values = [dh, now]
