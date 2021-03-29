@@ -65,9 +65,6 @@ def home():
     # the base template needs only one filler
     return render_template('home.html',title='foodie.')
 
-@app.route('/form/')
-def form():
-    return render_template('form.html')
 @app.route('/mainmenu/')
 def mainmenu():
     '''Page with menu and form without any filters'''
@@ -75,8 +72,9 @@ def mainmenu():
     menu = menuUp.lookupMenuList(conn, today()[0])
     return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
 
-@app.route('/menu/', methods=["GET", "POST"])
+@app.route('/menu/', methods=["GET"])
 def menu():
+    '''route for menu that is filtered in some way, either through a specific tag or a search'''
     conn = dbi.connect()
     if request.method == 'GET':
         # mealtype = ""
@@ -84,7 +82,6 @@ def menu():
         mealtype = request.args.get("type-filter", "")
         preference = request.args.getlist("preference")
         now = today()[0]
-            
         if preference:
             preference = ",".join(preference)
         else:
@@ -110,15 +107,12 @@ def menu():
                 fid=menu[0]['fid']
                 return redirect(url_for('food',fid=int(fid)))
             elif len(menu)==0:
-                flash("The name you entered does not match any dish in the databse. \
-                    Wold you like to add a new food entry? ")
+                flash('''The name you entered does not match any dish in the database
+                    Would you like to add a new food entry? ''')
                 return redirect(url_for('addfood'))
-            else: 
-                flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
-    # else: if we decide to add a post method to our menu
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -184,7 +178,7 @@ def updateFood(fid):
                 [fid, filename, filename])
             conn.commit()
             flash('Upload successful.')
-            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+            return redirect(url_for('food', fid = fid))
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
             item = menuUp.lookupFoodItem(conn, fid)
@@ -534,7 +528,7 @@ def feed(): #rename review() to feed
 def addfood():
     if request.method == 'GET':
         # add a way to dynamically obtain food preferences and allergens
-        return render_template('dataentry.html', action=url_for('addfood'))
+        return render_template('dataentry.html',title='Add Food')
     elif request.method == 'POST':
         conn = dbi.connect()
         food_name = request.form.get('food-name') 
@@ -549,20 +543,21 @@ def addfood():
 
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add Food')
         if len(food_ingredients) == 0: 
             flash("Please enter in the food's ingredients.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add food')
         if len(food_preferences) == 0 or len(food_allergens) == 0: 
             flash("Please make sure that all boxes in the form are checked.")
-            return render_template('dataentry.html', action=url_for('addfood'))
+            return render_template(url_for('addfood'), title = 'Add food')
+        print (['food allergens',food_allergens])
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
         
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return redirect(url_for('mainmenu')) # should go back to landing page, idk how to do this.
+            return redirect(url_for('addfood')) # should go back to landing page, idk how to do this.
         #inserts food into database
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
@@ -574,7 +569,7 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect('/') #get rid of action here
+        return redirect('/')  
 
 @app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
 def delete(): 
@@ -582,7 +577,9 @@ def delete():
     if request.method == "GET": 
         all_foods = entry.get_all_food(conn) 
         all_students = entry.get_all_students(conn)
-        return render_template('delete.html', allfoods=all_foods, students=all_students)
+        # all_comments = entry.get_all_comments(conn) #is there a way to know which user is currently logged in? 
+
+        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods, students=all_students)
         #later, get a dynamic list of usernames
     if request.method == "POST":
         #flesh this out a little bit–using info that the user selected, delete food item.
@@ -591,12 +588,18 @@ def delete():
         student_str = request.form.get('student-name') 
         food_id = request.form.get('food-dlt') 
         print([student_str,food_id])
-        if student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+        if student_str == 'none' or food_id == 'none': 
+            flash('Please make sure you have selected a username and food item to delete.')
+            return redirect(url_for('delete'), title = 'Delete Food')
+        elif student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
+        food_name = entry.get_food(conn,food_id)
+
+        entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
-        flash('Food with {fid} was successfully deleted from the database.'.format(fid=food_id))
+        flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
         return redirect('/')
 
 
