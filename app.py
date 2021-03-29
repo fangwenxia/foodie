@@ -53,9 +53,6 @@ def home():
     # the base template needs only one filler
     return render_template('home.html',title='foodie.')
 
-@app.route('/form/')
-def form():
-    return render_template('form.html')
 @app.route('/mainmenu/')
 def mainmenu():
     '''Page with menu and form without any filters'''
