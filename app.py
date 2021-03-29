@@ -390,12 +390,7 @@ def profile(username):
                            username=username,
                            is_logged_in=is_logged_in,
                            cas_attributes = session.get('CAS_ATTRIBUTES'),
-                        #    name=name,
-                        #    year=year,
-                        #    diningHall=diningHall,
-                        #    favoriteFood=favoriteFood,
                            session=session,
-                        #    name=session['name'],
                            sessvalue=sessvalue,
                            user=user,
                            info=info)
@@ -415,35 +410,46 @@ def update(username):
         sessvalue = request.cookies.get('session')
         user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
         info = query.get_user_info(conn, username)
+        # print("INFORMASHUNNN",info)
         name = info['name']
         year = info['classYear']        
         diningHall = info['favoriteDH']
         favoriteFood = info['favoriteFood']
+        allergens  = info['allergies']
+        preferences =  info['preferences']
         session['user'] =  user
         return render_template('update.html', username=username, info=info)
         # flash('Profile was updated successfully!')
 
-    elif request.form["submit"] == "update":
-        try:
+    elif request.form["submit"] == "update profile":
+        if  request.method == 'POST':
             name2 = request.form['name']
             year2 = request.form['year']
             diningHall2 = request.form['diningHall']
             favoriteFood2 = request.form['favoriteFood']
-            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2)
+            allergens = request.form.getlist('allergens')
+            str_all = ", ".join(allergens)
+            preferences = request.form.getlist('preferences')  
+            str_pref = ", ".join(preferences)
+
+            # print('ALLERGENS', allergens, str(allergens), "and  PREFERENCES", preferences, str_pref)
+            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
             info = query.get_user_info(conn, username)
             flash("Successfully updated your profile!")
             return redirect(url_for('profile', 
                             username=username, 
                             info=info,
                             cas_attributes = session.get('CAS_ATTRIBUTES')))
-        except Exception as err:
+        else:
+        # except Exception as err:
             flash('Update failed {why}'.format(why=err))
+            # return
             return render_template('update.html', username=username, info=info)
     else:
         print('ELSEEEEE')
         try:
             print("YOU HERE???")
-            f = request.files['pic']
+            f = request.files['username']
             user_filename = f.filename
             ext = user_filename.split('.')[-1]
             filename = secure_filename('{}.{}'.format(username,ext))
@@ -459,7 +465,6 @@ def update(username):
             return render_template('profile.html', username=username, info=info, title="Your Profile")
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
-            item = menuUp.lookupFoodItem(conn, fid)
             return render_template('update.html', username=username, info=info, title="Update Profile")
 
         

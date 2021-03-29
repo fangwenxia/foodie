@@ -15,17 +15,17 @@
     
 <legend>Create Account</legend>
     <table>
-    <tr><td><label for="name" accesskey="n">Full Name:</label></td>
-        <td><input type="text" name="name" id="name"></td></tr>
+    <!-- <tr><td><label for="name" accesskey="n">Full Name:</label></td>
+        <td><input type="text" name="name" id="name"></td></tr> -->
     
     <tr><td><label for="username" accesskey="u">Wellesley Username:</label></td>
         <td><input type="text" name="username" id="username"></td></tr>
     
-    <tr><td><label for="password1" accesskey="p">Password:</label></td>
+    <!-- <tr><td><label for="password1" accesskey="p">Password:</label></td>
         <td><input type="password" name="password1" id="password1"></td></tr>
     
     <tr><td><label for="password2" accesskey="p">Password again:</label></td>
-        <td><input type="password" name="password2" id="password2"></td></tr>
+        <td><input type="password" name="password2" id="password2"></td></tr> -->
     </table>
     <p> <input class='button' type='submit' value='Create Account'> </p>
 
@@ -33,87 +33,25 @@
 
 <form id="login_form" method="POST" action="{{url_for('user_login')}}">
 <legend>Log In</legend>
-        <table>
+        <!-- <table>
         <tr><td><label for="username" accesskey="u">Wellesley Username:</label></td>
             <td><input type="text" name="username" id="username"></td></tr>
         
             <tr><td><label for="password" accesskey="p">Password:</label></td>
             <td><input type="password" name="password" id="password"></td></tr>
         </table>
-        <p> <input class='button' type='submit' value='Log In'> </p>
+        <p> <input class='button' type='submit' value='Log In'> </p> -->
 </form>    
-    <!-- <tr>
-        <td><label for="year">Class Year</label></td>
-        <td><select id="year" name ="year" required>  -->
-            <!-- Numbers correspond to id for dining halls in our database -->
-            <!-- <option value= ""> select</option>
-            <option value= 1> 2021</option>
-            <option value= 2> 2022</option>
-            <option value= 3> 2023</option>
-            <option value= 4> 2024</option>
-            <option value= 5> Davis Scholar</option>
-        </select></td>
-    </tr> -->
-
-    <!-- <tr>
-        <td><label for="diningHall">Dining Hall</label></td>
-        <td><select id="diningHall" name ="diningHall" required>  -->
-            <!-- Numbers correspond to id for dining halls in our database -->
-            <!-- <option value= ""> select</option>
-            <option value= 1> Bates</option>
-            <option value= 2> Lulu</option>
-            <option value= 3> Pom</option>
-            <option value= 4> Stone-D</option>
-            <option value= 5> Tower</option>
-        </select></td>
-    </tr> -->
-
-
-
-
-{% endblock %}
-
-
-
-
 {% if username %}
 
 <form method="GET" action="{{url_for('cas.logout')}}">
-    <button>logout {{username}}</button>
+  <button>logout {{username}}</button>
 </form>
-<p>CAS username: {{username}}</p>
-<p>CAS attributes:</p>
-<ul>
-    {% for key,val in cas_attributes.items() %}
-    <li>{{key}} &rArr; {{val}}</li>
-    {% endfor %}
-</ul>
-
 {% else %}
 
 <form method="GET" action="{{url_for('cas.login')}}">
-<p>Login through Wellesley portal</p>
-    <button>login</button>
+  <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
 </form>
 
 {% endif %}
-
-
-
-
-
-{% block jquery_scripts %}
-<script>
-$("#create_form").on('submit', function (event) {
-     var pw1 = $(this).find('[name=password1]').val();
-     var pw2 = $(this).find('[name=password2]').val();
-     // should also check for length and common words etc
-     if( pw1 != pw2 ) {
-         // something more sophisticated than alert would be nice
-         alert("passwords don't match");
-     }
-});
-</script>
 {% endblock %}
-
-
