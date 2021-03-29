@@ -38,6 +38,10 @@ h1 {
     text-align: center;
 }
 
+.login_button {
+    text-align: center;
+}
+
 #create_form {
     display: inline-block;
     /* text-align: center; */
