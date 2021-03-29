@@ -10,13 +10,10 @@ import sys
 import pymysql
 import feed_queries
 import query
-<<<<<<< HEAD
 import bcrypt
 from flask_cas import CAS
-=======
 import entry
 
->>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
 from datetime import date,datetime
 
 CAS(app)
@@ -278,15 +275,9 @@ def user_login():
         # helper function checks to make sure username exists in database
         if query.username_exists(conn, username): 
             # query finds password saved in database to compare with user input
-<<<<<<< HEAD
-            curs.execute('select username, hashed \
-                        from student \
-                        where username = %s;', [username])
-=======
-            curs.execute ('''select username, password 
-                            from student
-                            where username = %s''', [username])
->>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
+            curs.execute('''select username, hashed 
+                        from student 
+                        where username = %s;''', [username])
             user = curs.fetchone()
             # checks if user input matches password on file
             hashed = user['hashed']
@@ -295,7 +286,6 @@ def user_login():
             hashed2_str = hashed2.decode('utf-8')
             if hashed2_str  == hashed:
                 flash('Successfully logged in.')
-<<<<<<< HEAD
                 
                 if '_CAS_TOKEN' in session:
                     token = session['_CAS_TOKEN']
@@ -313,9 +303,6 @@ def user_login():
                     # username = None
                 session['username'] = username
                 session['logged_in'] = True              
-=======
-                # print(check_pass, password)
->>>>>>> 51fb3ab031378880b600623581a0c4080fbe5d08
                 return redirect(url_for('profile', username=username))
             else:
                 flash('Incorrect login. Please try again.')
@@ -334,6 +321,7 @@ def login_CAS():
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!
+# add titles to all pages ?!?!?!
 @app.route('/profile/', methods = ["GET", "POST"])
 def profile_error():
     sessvalue = request.cookies.get('session')
@@ -423,20 +411,7 @@ def profile(username):
 def update(username):
     conn = dbi.connect()
     info = query.get_user_info(conn, username)
-    if request.method == "POST":
-        # flash('Profile was updated successfully!')
-        name2 = request.form['name']
-        year2 = request.form['year']
-        diningHall2 = request.form['diningHall']
-        favoriteFood2 = request.form['favoriteFood']
-        query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2)
-        info = query.get_user_info(conn, username)
-        flash("Successfully updated your profile!")
-        return redirect(url_for('profile', 
-                                username=username, 
-                                info=info,
-                                cas_attributes = session.get('CAS_ATTRIBUTES')))
-    else:
+    if request.method == "GET":
         sessvalue = request.cookies.get('session')
         user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
         info = query.get_user_info(conn, username)
@@ -446,40 +421,66 @@ def update(username):
         favoriteFood = info['favoriteFood']
         session['user'] =  user
         return render_template('update.html', username=username, info=info)
-def upload(username):
-    # profile picture upload
-    # f = request.files['propic']
-    # user_filename = f.filename
-    # ext = user_filename.split('.')[-1]
-    # filename = secure_filename('{}.{}'.format(fid,ext))
-    # pathname = os.path.join(app.config['UPLOADS'],filename)
-    # f.save(pathname)
-    # curs = dbi.dict_cursor(conn)
-    # curs.execute(
-    #         '''insert into proPics(username,filename) values (%s,%s)
-    #            on duplicate key update filename = %s''',
-    #         [username, filename, filename])
-    # conn.commit()
-    # filename = propic(username)
-    return 
+        # flash('Profile was updated successfully!')
+
+    elif request.form["submit"] == "update":
+        try:
+            name2 = request.form['name']
+            year2 = request.form['year']
+            diningHall2 = request.form['diningHall']
+            favoriteFood2 = request.form['favoriteFood']
+            query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2)
+            info = query.get_user_info(conn, username)
+            flash("Successfully updated your profile!")
+            return redirect(url_for('profile', 
+                            username=username, 
+                            info=info,
+                            cas_attributes = session.get('CAS_ATTRIBUTES')))
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('update.html', username=username, info=info)
+    else:
+        print('ELSEEEEE')
+        try:
+            print("YOU HERE???")
+            f = request.files['pic']
+            user_filename = f.filename
+            ext = user_filename.split('.')[-1]
+            filename = secure_filename('{}.{}'.format(username,ext))
+            pathname = os.path.join(app.config['UPLOADS'],filename)
+            f.save(pathname)
+            curs = dbi.dict_cursor(conn)
+            curs.execute(
+                '''insert into proPics(username,filename) values (%s,%s)
+                on duplicate key update filename = %s''',
+                [username, filename, filename])
+            conn.commit()
+            flash('Upload successful.')
+            return render_template('profile.html', username=username, info=info, title="Your Profile")
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('update.html', username=username, info=info, title="Update Profile")
+
+        
+        
+    
+
+
 
 
 @app.route('/propic/<username>') 
 #route to image for food photos, can later be generalized and applied to other photos too
 def propic(username):
-    # conn = dbi.connect()
-    # curs = dbi.cursor(conn)
-    # curs.execute('''select filename from foodPics where username = %s''', [username])
-    # try:
-    #     filename = curs.fetchone()[0]
-    #     return send_from_directory(app.config['UPLOADS'],filename)
-    # except Exception as err: #in the case when there is not yet a photo uploaded
-    #     return None
-
-    # print("SESSION AGAIN",session)
-    # username = session['CAS_ USERNAME']
-    # flash('Successfully logged in.')
-    return redirect(url_for('profile', username=username))
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from proPics where username = %s'''
+    curs.execute(sql, [username])
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except Exception as err: #in the case when there is not yet a photo uploaded
+        return None
 
 # temporary solution for catching broken link error
 # better way of doing this ?!?!

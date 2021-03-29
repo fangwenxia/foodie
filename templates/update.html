@@ -18,9 +18,19 @@
 
 <h2>Change Details</h2>
 
+<div class="d-flex flex-lg-column align-items-center">
+<form method="post" action="{{url_for('update', username = username)}}" enctype="multipart/form-data">
+    
+        <h2>Upload Profile Picture</h2>
+    <p><input type="file" name="pic" class = "button">
+    <input name = "submit" type="submit" value="upload" class = "button"></p></div>
+</div>
+
+</form>
 
 
-<form method="POST" action="" autocomplete="on">
+
+<form method="POST" action="{{url_for('update', username = username)}}" autocomplete="on">
     <table>
       <tr>
         <td><label for="username">Username</label></td>
@@ -100,13 +110,6 @@
     </table>
     <input class= "button" type="submit" name="submit" value="update">
 
-<div class="d-flex flex-lg-column align-items-center">
-    <form method="post" action="{{url_for('update', username = username)}}" enctype="multipart/form-data">
-        
-            <h2>Upload Profile Picture</h2>
-        <p><input type="file" name="propic" class = "button">
-        <input name = "submit" type="submit" value="upload" class = "button"></p></div>
-    </div>
   </form>
 
 {% endblock %}
