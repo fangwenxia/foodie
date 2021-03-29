@@ -26,16 +26,19 @@
 </form>
 </div>
 
-</body>
-
+<form>
 <div class="propic>
-    <form method="post" action="{{url_for('update', username = username)}}" enctype="multipart/form-data">
+    <form method="post" action="{{url_for('profile', username = username)}}" enctype="multipart/form-data">
 
     <p>upload new profile picture</p>
     <p><input type="file" name="pic" class="button">
     <input name="submit" type="submit" value="upload" class="button">
     </p>
 </div>
+</form>
+</body>
+
+
 
 
 

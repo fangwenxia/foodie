@@ -359,27 +359,46 @@ def profile(username):
     sessvalue = request.cookies.get('session')
     print('WHAT ARE THESE SESSIONS', session)
     print('Session keys1: ',list(session.keys()))
-    user = session.get('user', {'name': "None", 'year': "None", 'diningHall': None, 'favoriteFood': None})
-
+    username = session['CAS_USERNAME']
     conn = dbi.connect()
     info =  query.get_user_info(conn, username)
     for k in list(session.keys()):
         print(k,' => ',session[k])
     if 'CAS_USERNAME' in session:
-        is_logged_in = True
-        username = session['CAS_USERNAME']
         print(('CAS_USERNAME is: ',username))
+        return render_template('profile.html', username=username, info=info, title="Your Profile")
+        
     elif 'username' in session:
         is_logged_in = True
         username = session['username']
         print("THREEEEEE",username, "WOOHOO SESSION", session, type(session), "WOOHOO USER",  user, type(user))
         # name = user['name']
         session['user'] = user
+        return render_template('profile.html', username=username, info=info, title="Your Profile")
+
+    elif request.form["submit"] == "upload":
+        is_logged_in = True
+        username = session['CAS_USERNAME']
+        f = request.files['username']
+        user_filename = f.filename
+        ext = user_filename.split('.')[-1]
+        filename = secure_filename('{}.{}'.format(username,ext))
+        pathname = os.path.join(app.config['UPLOADS'],filename)
+        f.save(pathname)
+        curs = dbi.dict_cursor(conn)
+        curs.execute(
+            '''insert into proPics(username,filename) values (%s,%s)
+            on duplicate key update filename = %s''',
+            [username, filename, filename])
+        conn.commit()
+        flash('Upload successful.')
+        return render_template(url_for('profile', username=username))
     else:
         is_logged_in = False
         username = None
         print('CAS_USERNAME is STILL not in the session')
         session['user'] = user
+  
     return render_template('profile.html',
                            username=username,
                            is_logged_in=is_logged_in,
@@ -415,8 +434,9 @@ def update(username):
         return render_template('update.html', username=username, info=info)
         # flash('Profile was updated successfully!')
 
-    elif request.form["submit"] == "update profile":
+    elif request.form["submit"] == "update":
         if  request.method == 'POST':
+            print("POST STUFF")
             name2 = request.form['name']
             year2 = request.form['year']
             diningHall2 = request.form['diningHall']
@@ -434,7 +454,8 @@ def update(username):
                             username=username, 
                             info=info,
                             cas_attributes = session.get('CAS_ATTRIBUTES')))
-        else:
+        else: 
+            print('whats THIS')
         # except Exception as err:
             flash('Update failed {why}'.format(why=err))
             # return
@@ -443,20 +464,8 @@ def update(username):
         print('ELSEEEEE')
         try:
             print("YOU HERE???")
-            f = request.files['username']
-            user_filename = f.filename
-            ext = user_filename.split('.')[-1]
-            filename = secure_filename('{}.{}'.format(username,ext))
-            pathname = os.path.join(app.config['UPLOADS'],filename)
-            f.save(pathname)
-            curs = dbi.dict_cursor(conn)
-            curs.execute(
-                '''insert into proPics(username,filename) values (%s,%s)
-                on duplicate key update filename = %s''',
-                [username, filename, filename])
-            conn.commit()
-            flash('Upload successful.')
-            return render_template('profile.html', username=username, info=info, title="Your Profile")
+
+            
         except Exception as err:
             flash('Update failed {why}'.format(why=err))
             return render_template('update.html', username=username, info=info, title="Update Profile")
@@ -494,11 +503,17 @@ def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
+        sessvalue = request.cookies.get('session')
+        username = session['CAS_USERNAME']
+        print("USERNAME", username)
         name=feed_queries.search_fid(conn,fid)['name']
-        return render_template('feed.html',name=name, fid = fid)
+        return render_template('feed.html',name=name, fid = fid, username=username)
     else:
         # get the input form values from the submitted form
-        username=request.form['user']
+        sessvalue = request.cookies.get('session')
+        username = session['CAS_USERNAME']
+        print("USERNAME", username)
+        # username=request.form['user']
         #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
             # Because the username is not complete, temp is used for flashing tempoararily 
