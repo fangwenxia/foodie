@@ -93,7 +93,7 @@ def menu():
             dhName = ""
             waitTime = ""
         # IMPLEMENT SEARCH BY LABEL label = ""
-        search = request.args["query"]
+        search = request.args.get("query", "")
         # the variable date = today()[] generates the current date to display on the menu page
         if dh == '3' or dh == '4':
             flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))

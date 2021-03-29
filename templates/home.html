@@ -2,7 +2,30 @@
 
 {% block content %}
 <h1>foodie<span style="color:#fd8953">.</span></h1>  
-<h2>To start using foodie. create your account using your Wellesley username  or log in.</h2>
+<!-- dh = request.args.get('dh-filter', "")
+        mealtype = request.args.get("type-filter", "") -->
+<div class="d-flex flex-column align-items-center homePage">
+  <form method = "GET" action = "{{url_for('menu')}}">
+    What's for
+    <select name = "type-filter" class = "form-control">
+      <option value = "">Meal</option>
+           <option value = "breakfast"> Breakfast </option>
+           <option value = "lunch"> Lunch </option>
+           <option value = "dinner"> Dinner </option>
+           <option value = "all day"> All Day </option>
+  </select>
+  at
+    <select name = "dh-filter" class = "form-control">
+        <option value = "">Dining Hall</option>
+             <option value = 1> Bates </option>
+             <option value = 2> Lulu </option>
+             <option value = 3> Pom </option>
+             <option value = 4> Stone-D </option>
+             <option value = 5> Tower </option>
+    </select>
+    ?
+<input class = "button" type = "submit" name = "filter" value = "view menu"> 
+</div>
 <form action="{{url_for('create')}}">
   <button class='button' type="submit">Create Account</button>
 </form>
