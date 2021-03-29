@@ -37,12 +37,10 @@ create table student (
     username varchar(15) not null,
     name varchar(30),
     favoriteDH int,
-    favoriteFood int,
+    classYear varchar(30),
+    favoriteFood varchar(225),
     primary key (username),
     foreign key (favoriteDH) references diningHall(did)
-        on update restrict
-        on delete restrict,
-    foreign key (favoriteFood) references food(fid)
         on update restrict
         on delete restrict
 ) 

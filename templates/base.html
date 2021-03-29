@@ -63,6 +63,28 @@
 
 {% endblock %}
 
+
+{% if username %}
+
+        <form method="GET" action="{{url_for('cas.logout')}}">
+          <button>logout {{username}}</button>
+        </form>
+   <p>CAS username: {{username}}</p>
+   <p>CAS attributes:</p>
+
+   <!-- <ul>
+       {#% for key,val in cas_attributes.items() %#}
+       <li>{{key}} &rArr; {{val}}</li>
+       {#% endfor %#}
+   </ul> -->
+{% else %}
+
+   <form method="GET" action="{{url_for('cas.login')}}">
+     <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
+   </form>
+
+{% endif %} 
+
 <footer>
     {% block footer %}
     Copyright foodie. 2021

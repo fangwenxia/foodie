@@ -8,17 +8,22 @@
 
 <h1>Your Profile</h1>
 <body>
-    <!-- will include option to upload image -->
-<h2>{{info.name}}</h2>
-<p>Username: {{info.username}}</p>
-<p>Class: {{info.classYear}}</p>
-<p>Favorite Dining Hall: {{info.favoriteDH}}</p>
-<p>Favorite Food: {{info.favoriteFood}}</p>
+
+<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{name}}"></p>
+
+<h2>{{info['name']}}</h2>
+<p>Username: {{username}}</p>
+<p>Class: {{info['classYear']}}</p>
+<p>Favorite Dining Hall: {{info['favoriteDH']}}</p>
+<p>Favorite Food: {{info['favoriteFood']}}</p>
 <p>Restrictions:</p>
 </body>
-<form id="update_profile" method=post action="{{url_for('update', username=username)}}"> <!--FIX THIS URL-->
+<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
     <p> <input class='button' type='submit' value='Update Profile'> </p>
 </form>
 
 
+
 {% endblock %}
+
+
