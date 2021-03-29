@@ -74,6 +74,7 @@ def mainmenu():
 
 @app.route('/menu/', methods=["GET"])
 def menu():
+    '''route for menu that is filtered in some way, either through a specific tag or a search'''
     conn = dbi.connect()
     if request.method == 'GET':
         # mealtype = ""
@@ -106,11 +107,9 @@ def menu():
                 fid=menu[0]['fid']
                 return redirect(url_for('food',fid=int(fid)))
             elif len(menu)==0:
-                flash("The name you entered does not match any dish in the databse. \
-                    Wold you like to add a new food entry? ")
+                flash('''The name you entered does not match any dish in the database
+                    Would you like to add a new food entry? ''')
                 return redirect(url_for('addfood'))
-            else: 
-                flash("Your entry matched multiple entries. Pick from one of the below. ")
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
