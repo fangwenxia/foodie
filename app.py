@@ -225,8 +225,8 @@ def create():
         curs = dbi.cursor(conn)
         # next helper function checks to see if username is already in database and prompts user to log in instead 
         if query.username_exists(conn, username): 
-            flash('This username already exists. If this is you, please log in. \
-                If not, please enter your Wellesley email username.')
+            flash('''This username already exists. If this is you, please log in.
+                If not, please enter your Wellesley email username.''')
             return render_template('create.html')
         
         # if username doesn't exist, user is added to database and can now log in
@@ -256,7 +256,7 @@ def user_login():
         return render_template('create.html')
     else:
         username = request.form['username'] 
-        passwd = request.form['password'] 
+        # passwd = request.form['password'] 
         conn = dbi.connect()
         curs = dbi.dict_cursor(conn)
         # helper function checks to make sure username exists in database
@@ -273,7 +273,7 @@ def user_login():
             hashed2_str = hashed2.decode('utf-8')
             if hashed2_str  == hashed:
                 flash('Successfully logged in.')
-                
+                print("Does this even run?")
                 if '_CAS_TOKEN' in session:
                     token = session['_CAS_TOKEN']
                 if 'CAS_ATTRIBUTES' in session:
@@ -307,7 +307,8 @@ def profile_error():
     if sessvalue is None:
         return redirect(url_for('user_login'))
     else:
-        if 'CAS_USERNAME' in session:            
+        if 'CAS_USERNAME' in session: 
+            print("YOOOOOO2")           
             #check to see if 'CAS_USERNAME' in data base
             #if in database:
             username = session['CAS_USERNAME']
@@ -333,7 +334,13 @@ def profile(username):
         info =  query.get_user_info(conn, username)
         if 'CAS_USERNAME' in session:
             if request.method == "GET":
-                return render_template('profile.html', username=username, info=info, title="Your Profile")
+                print('here1')
+                diningHall = info['favoriteDH']
+                print('diningHalllllll',  diningHall)
+                dh_name = query.DH_name(conn, diningHall)
+                DH = dh_name['name']
+                print("DH:", dh_name['name'], DH)
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile")
             else:
                 if request.form['submit'] == 'upload':
                     is_logged_in = True
@@ -375,8 +382,8 @@ def profile(username):
                             user=user,
                             info=info) 
     except Exception as err:
-            flash('Please log in to continue.') 
-            return redirect(url_for('create'))
+        flash('Please log in to continue.') 
+        return redirect(url_for('create'))
 
         
 @app.route('/update/<username>', methods = ["GET", "POST"])
@@ -394,11 +401,13 @@ def update(username):
                 name = info['name']
                 year = info['classYear']        
                 diningHall = info['favoriteDH']
+                dh_name = query.DH_name(conn, diningHall)
+                DH = dh_name['name']
                 favoriteFood = info['favoriteFood']
                 allergens  = info['allergies']
                 preferences =  info['preferences']
                 session['user'] =  user
-                return render_template('update.html', username=username, info=info)
+                return render_template('update.html', username=username, info=info, dh_name=DH)
                 # flash('Profile was updated successfully!')
 
             elif request.form["submit"] == "update":
@@ -406,6 +415,8 @@ def update(username):
                     name2 = request.form['name']
                     year2 = request.form['year']
                     diningHall2 = request.form['diningHall']
+                    dh_name = query.DH_name(conn, diningHall2)
+                    DH = dh_name['name']
                     favoriteFood2 = request.form['favoriteFood']
                     allergens = request.form.getlist('allergens')
                     str_all = ", ".join(allergens)
@@ -417,7 +428,8 @@ def update(username):
                     return redirect(url_for('profile', 
                                     username=username, 
                                     info=info,
-                                    cas_attributes = session.get('CAS_ATTRIBUTES')))
+                                    cas_attributes = session.get('CAS_ATTRIBUTES'),
+                                    dh_name=DH))
                 else: 
                     flash('Update failed {why}'.format(why=err))
                     return render_template('update.html', username=username, info=info)
@@ -434,15 +446,18 @@ def propic(username):
     curs.execute(sql, [username])
     try:
         filename = curs.fetchone()[0]
+        print("pooooop",filename)
         return send_from_directory(app.config['UPLOADS'],filename)
     except Exception as err: #in the case when there is not yet a photo uploaded
-        return None
+            flash('Update failed {why}'.format(why=err))
+            return redirect(url_for('profile'),username=username)
 
 @app.route('/update/', methods = ["GET", "POST"])
 def username_error():
     flash("Please log in to update your profile.")
     return render_template('create.html')
 
+# Fangwen's Part
 ## Here's the route to entering a feedback form
 @app.route('/reviews/<int:fid>',methods=['POST','GET'])
 def reviews(fid):

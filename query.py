@@ -21,11 +21,18 @@ def username_exists(conn, username):
 def get_user_info(conn, username):
     conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
-    curs.execute('''select student.name, username, classYear, diningHall.name as favoriteDH, favoriteFood, allergies, preferences
-                    from student, diningHall
-                    where student.favoriteDH = diningHall.did
-                    and username = %s;''', [username])
-    # print (curs.fetchone())
+    curs.execute('''select student.name, username, classYear, favoriteDH, favoriteFood, allergies, preferences
+                    from student
+                    where username = %s;''', [username])
+    return curs.fetchone()
+
+# helper function to get diningHall name
+def DH_name(conn, id):
+    conn = dbi.connect()
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select name
+                    from diningHall
+                    where did = %s;''', [id])
     return curs.fetchone()
 
 # is supposed to allow user to change/update information
