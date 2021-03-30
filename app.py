@@ -479,6 +479,11 @@ def feed(): #rename review() to feed
 # route for adding a food item to the database
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
+    # redirects user to login page if they are not logged in 
+    sessvalue = request.cookies.get('session')  
+    if len(session) == 0:
+        flash('Please login before accessing the add food page.')
+        return redirect(url_for('user_login'))
     if request.method == 'GET':
         # add a way to dynamically obtain food preferences and allergens, in beta  
         return render_template('dataentry.html',title='Add Food')
@@ -526,34 +531,38 @@ def delete():
     # check if user is logged in before allowing access to delete food webpage
     sessvalue = request.cookies.get('session')  
     if len(session) == 0:
+        flash('Please login before accessing the delete page.')
         return redirect(url_for('user_login'))
     username = session['CAS_USERNAME']
+    conn = dbi.connect()
     if request.method == "GET": 
-        conn = dbi.connect()
         all_foods = entry.get_all_food(conn) 
         all_comments = entry.get_all_comments(conn,username)
         return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
     if request.method == "POST":
         food_id = request.form.get('food-dlt')
         comment_entered = request.form.get('comment-dlt') 
-        print([comment_entered, type(comment_entered)])
         # error handling (if food isn't selected, or user isn't part of team foodie)
-        if food_id == 'none': 
-            flash('Please make sure you have selected a food item to delete.')
-            return redirect(url_for('delete'), title = 'Delete Food')
-        elif username not in ['fx1','ggabeau','lteffera','sclark4','scott']:  # should add 'admin' property to student table in ddl 
+        # note: because the user can select a food item OR a comment to delete, it doesn't make 
+        # sense to require both to be selected. 
+        if food_id == 'none' and comment_entered == 'none': 
+            flash('Please make sure you have selected a food item or comment to delete.')
+            return redirect(url_for('delete'))
+        if username not in ['fx1','ggabeau','lteffera','sclark4','scott']:  # should add 'admin' property to student table in ddl 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
-        food_name = entry.get_food(conn,food_id)
+        if food_id != 'none': 
+
+            food_name = entry.get_food(conn,food_id)
 
         # deletes comments, labels and food table entries associated with a specific food item
-        entry.delete_comments(conn,food_id) 
-        entry.delete_labels(conn,food_id)
-        entry.delete_food(conn,food_id)
+            entry.delete_comments(conn,food_id) 
+            entry.delete_labels(conn,food_id)
+            entry.delete_food(conn,food_id)
+            flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
         if comment_entered != "none": 
             entry.delete_comment(conn,username,comment_entered)
-            flash(' Your comment was successfully delete from the database')
-        flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
+            flash('Your comment was successfully delete from the database')
         return redirect('/')
 
 
