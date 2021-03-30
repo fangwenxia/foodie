@@ -562,24 +562,26 @@ def addfood():
 @app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
 def delete(): 
     conn = dbi.connect()
+    sessvalue = request.cookies.get('session')
+    username = session['CAS_USERNAME']
+    print("USERNAME", username)  
     if request.method == "GET": 
         all_foods = entry.get_all_food(conn) 
-        all_students = entry.get_all_students(conn)
+        all_comments = entry.get_all_comments(conn,username)
         # all_comments = entry.get_all_comments(conn) #is there a way to know which user is currently logged in? 
 
-        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods, students=all_students)
+        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
         #later, get a dynamic list of usernames
     if request.method == "POST":
         #flesh this out a little bit–using info that the user selected, delete food item.
         #also, only allow delete to happen if the "right" username is selected 
         print(request.form)
-        student_str = request.form.get('student-name') 
-        food_id = request.form.get('food-dlt') 
-        print([student_str,food_id])
-        if student_str == 'none' or food_id == 'none': 
-            flash('Please make sure you have selected a username and food item to delete.')
+        food_id = request.form.get('food-dlt')
+        comment_entered = request.form.get('comment-dlt') 
+        if food_id == 'none': 
+            flash('Please make sure you have selected a food item to delete.')
             return redirect(url_for('delete'), title = 'Delete Food')
-        elif student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+        elif username not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
         food_name = entry.get_food(conn,food_id)
@@ -587,6 +589,9 @@ def delete():
         entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
+        if comment_entered is not None: 
+            entry.delete_comment(conn,username,comment_entered)
+            flash(' Your comment was successfully delete from the database')
         flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
         return redirect('/')
 

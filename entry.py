@@ -50,7 +50,7 @@ def get_all_students(conn):
     curs.execute(sql)
     return curs.fetchall()
 def get_all_comments(conn,student):
-    sql = '''select comment, comment.username from feedback where username = %s'''
+    sql = '''select comment,entered,fid from feedback where username = %s'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql,student)
     return curs.fetchall()
@@ -65,6 +65,12 @@ def delete_food(conn,fid):
     sql = '''delete from food where fid = %s'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql,fid)
+    conn.commit()
+def delete_comment(conn,username,entered): 
+    sql = '''delete from feedback where username = %s and entered = %s'''
+    curs = dbi.dict_cursor(conn)
+    vals = [username,entered]
+    curs.execute(sql,vals)
     conn.commit()
 
 def get_food(conn,fid): 
