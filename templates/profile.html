@@ -4,20 +4,23 @@
  <title>Profile</title>
 {% endblock %}
 
+
+
+
+
 {% block content %}
 
 <h1>{{info['name']}}</h1>
-<body>
 
-<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{name}}"></p>
+
+<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{info['name']}}, profile picture"></p>
 
 
 <div class="profile">
-
 <p>username: {{username}}</p>
 <p>class: {{info['classYear']}}</p>
-<p>favorite Dining Hall: {{info['favoriteDH']}}</p>
-<p>favorite Food: {{info['favoriteFood']}}</p>
+<p>favorite dining Hall: {{dh_name}}</p>
+<p>favorite food: {{info['favoriteFood']}}</p>
 <p>allergies: {{info['allergies']}}</p>
 <p>preferences: {{info['preferences']}} </p>
 
@@ -30,17 +33,13 @@
     <form method="post" action="{{url_for('profile', username = username)}}" enctype="multipart/form-data">
 
     <h2>upload new profile picture</h2>
-    <p><input type="file" name="pic" class="button">
+    <p><input id="file" type="file" name="pic" class="button">
+        <label for="file" class="sr-only">Upload</label>
     <input name="submit" type="submit" value="upload" class="button">
-    </p></form>
+
+</p>
+</form>
 </div>
-
-</body>
-
-
-
-
-
 {% endblock %}
 
 

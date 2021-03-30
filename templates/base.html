@@ -14,7 +14,9 @@
 <body>
 <nav class="navbarCustom navbar navbar-expand-sm navbar-light" style="color: #fd8953;">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{{url_for('home')}}"><span style="color:white; font-weight: 800;">foodie.</span></a>
+      <a class="navbar-brand" href="{{url_for('home')}}">
+        <span style="color:white; font-weight: 800;">foodie.</span>
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -44,6 +46,7 @@
 
 
 
+
 {% with messages = get_flashed_messages() %}
 {% if messages %}
 <div class="messages">
@@ -57,7 +60,6 @@
 
 
 {% block content %}
-
 <h1>{{title}}</h1>
 
 <article>foodie.</article>
@@ -66,12 +68,10 @@
 
 
 
-
-<footer>
-    {% block footer %}
+{% block footer %}
+<footer> 
     Copyright foodie. 2021
-    {% endblock %}
 </footer>
-
 </body>
 </html>
+{% endblock %}
