@@ -34,8 +34,11 @@ h1 {
 }
 
 
-.propic\>.\<form.method\= {
-    align-items: center;
+.propic{
+    text-align: center;
+}
+
+.login_button {
     text-align: center;
 }
 
@@ -124,7 +127,7 @@ footer {
 }
 h3 {
     font-family: Nunito;
-    color: rvar(--orange);
+    color: var(--orange);
 }
 
 .menuList {
@@ -140,9 +143,9 @@ h3 {
     border-radius: .6em;
     text-transform: uppercase;
     width: max-content;
-    inline-size: max-content;
+    /* inline-size: max-content; */
     height: max-content;
-    block-size: max-content;
+    /* block-size: max-content; */
     margin: 0 auto;
     /* padding-top: 2em; */
     /* padding-bottom: 2em; */

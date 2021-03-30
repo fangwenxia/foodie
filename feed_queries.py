@@ -49,7 +49,7 @@ def recent_feedback(conn):
     curs=dbi.dict_cursor(conn)
     curs.execute('select username,entered,rating,comment,name \
         from feedback inner join food using (fid) \
-        order by entered limit 10')
+        order by entered DESC limit 10')
     return curs.fetchall()
 
 # don't use this yet- not fully planned out 

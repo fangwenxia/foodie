@@ -1,28 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-
+<h1>Delete Food/Comments from Database</h1>
+<p>Select a meal, comment, or both to delete from the database.
+    <br> Note: If you are not an administrator, you will not be able to delete meals from the database. 
+</p>
 <form method="post" action="{{url_for('delete')}}">
     <form method="get" action="{{url_for('delete')}}">
-        <h1>Select Food to Delete</h1>
-        <form method=POST action="/select/">
-            <label for="student-name">Select your name:</label>
-            <select name="student-name">
-                <option value="none">Select name</option>
-                <!--Fills out the drop down menu with incomplete movies-->
-                {% for student in students%}
-                <option name = '{{student.name}}'value="{{student.username}}">{{student.name}}</option>   
-                {% endfor %}
-            </select>
-            <label for="food-dlt">Select the food you wish to delete:</label>
-            <select name="food-dlt">
-                <option value="none">Select Food</option>
-                <!--Fills out the drop down menu with incomplete movies-->
-                {% for food in allfoods %}
-                <option name = '{{food.name}}'value="{{food.fid}}">{{food.name}}</option>   
-                {% endfor %}
-            </select>
-            <input type="submit" name="submit" value="delete">
-        </form>
+        <label for="food-dlt">Select the food you wish to delete:</label>
+        <select name="food-dlt">
+            <option value="none">Select Food</option>
+            <!--Fills out the drop down menu with incomplete movies-->
+            {% for food in allfoods %}
+            <option name='{{food.name}}' value="{{food.fid}}">{{food.name}}</option>
+            {% endfor %}
+        </select>
+        <label for="comments-dlt">Select the comment you wish to delete:</label>
+        <select name="comment-dlt">
+            <option value="none">Select Comment</option>
+            <!--Fills out the drop down menu with incomplete movies-->
+            {% for fback in comments %}
+            <option value='{{fback.entered}}'>{{fback.comment}}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" name="submit" value="delete">
+    </form>
+</form>
 {% endblock %}

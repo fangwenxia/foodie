@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block headstuff%}
-<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet"></link>
+<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet">
 <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
 <script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
 <script>
@@ -52,12 +52,10 @@ $(function(){
              <option value = "dinner"> Dinner </option>
              <option value = "all day"> All Day </option>
     </select>
-    <!-- IMPLEMENT FILTER BY PREFERENCE IN ALPHA -->
-    
         <p><strong>Dietary Restrictions: </strong>
         <input type="checkbox" id="vegan" name="preference" value="vegan">
         <label for="vegan"> Vegan</label>
-        <input type="checkbox" id="vegetarian" name="preference"value="vegetarian">
+        <input type="checkbox" id="vegetarian" name="preference" value="vegetarian">
         <label for="vegetarian"> Vegetarian </label>
         <input type="checkbox" id="kosher" name="preference" value="kosher">
         <label for="kosher"> Kosher </label>
@@ -74,7 +72,7 @@ $(function(){
 </div>
 <div class="d-flex p-2 menuList flex-column align-items-center">
     {%for item in menu %}
-        <p><a class = "menuItem"href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}
+        <p><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}
             ({{item['rating']}} Stars) </a>
             </p>
     {%endfor%}

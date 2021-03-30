@@ -13,7 +13,7 @@
 <form method="POST" action="{{url_for('update', username = username)}}" autocomplete="on">
     <table>
       <tr>
-        <p>Username: {{username}}</p>
+        <p>Username: <label>{{username}}</label></p>
       </tr>
       <tr>
         <td><label for="name">Name</label></td>
@@ -51,7 +51,7 @@
     <tr>
         <td><label for="food-allergens">Food Allergens</label></td>
         <td>
-            <input type="checkbox" value=None name="allergens">
+            <input type="checkbox" value=none name="allergens">
             <label for="allergens">none </label>
         </td>
         <td>

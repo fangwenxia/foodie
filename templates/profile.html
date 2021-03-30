@@ -6,14 +6,14 @@
 
 {% block content %}
 
-<h1>your profile</h1>
+<h1>{{info['name']}}</h1>
 <body>
 
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{name}}"></p>
 
 
 <div class="profile">
-<h2>{{info['name']}}</h2>
+
 <p>username: {{username}}</p>
 <p>class: {{info['classYear']}}</p>
 <p>favorite Dining Hall: {{info['favoriteDH']}}</p>
@@ -26,16 +26,15 @@
 </form>
 </div>
 
-<form>
-<div class="propic>
+<div class="propic">
     <form method="post" action="{{url_for('profile', username = username)}}" enctype="multipart/form-data">
 
-    <p>upload new profile picture</p>
+    <h2>upload new profile picture</h2>
     <p><input type="file" name="pic" class="button">
     <input name="submit" type="submit" value="upload" class="button">
-    </p>
+    </p></form>
 </div>
-</form>
+
 </body>
 
 
