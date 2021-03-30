@@ -150,7 +150,7 @@ def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(conn, fid)
         return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
-    elif request.form["submit"] == "update":
+    elif request.form.get("submit") == "update":
         try:
             ingredients = request.form["ingredients"]
             menuUp.updateFoodItem(conn, fid, ingredients)
@@ -486,23 +486,15 @@ def reviews(fid):
         # get the form to display 
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        print("USERNAME", username)
         name=feed_queries.search_fid(conn,fid)['name']
         return render_template('feed.html',name=name, fid = fid, username=username)
     else:
         # get the input form values from the submitted form
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        print("USERNAME", username)
-        # username=request.form['user']
-        #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
-            # Because the username is not complete, temp is used for flashing tempoararily 
-            # to show available usernames you can possibly input
-            temp=[person["username"] for person in feed_queries.temp_user(conn)]
-            flash('Username Under Construction:only enter below for usernames:' )
-            flash(temp)
-            return render_template('feed.html')
+            flash('Invalid username not found in databse' )
+            return render_template('feed.html',username=username)
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
@@ -539,13 +531,13 @@ def addfood():
 
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
-            return render_template(url_for('addfood'), title = 'Add Food')
+            return render_template('dataentry.html',title='Add Food')
         if len(food_ingredients) == 0: 
             flash("Please enter in the food's ingredients.")
-            return render_template(url_for('addfood'), title = 'Add food')
+            return render_template('dataentry.html',title='Add Food')
         if len(food_preferences) == 0 or len(food_allergens) == 0: 
             flash("Please make sure that all boxes in the form are checked.")
-            return render_template(url_for('addfood'), title = 'Add food')
+            return render_template('dataentry.html',title='Add Food')
         print (['food allergens',food_allergens])
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
@@ -553,7 +545,7 @@ def addfood():
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return redirect(url_for('addfood')) # should go back to landing page, idk how to do this.
+            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
         #inserts food into database
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
@@ -565,29 +557,31 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect('/')  
+        return redirect(url_for("mainmenu"))
 
 @app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
 def delete(): 
     conn = dbi.connect()
+    sessvalue = request.cookies.get('session')
+    username = session['CAS_USERNAME']
+    print("USERNAME", username)  
     if request.method == "GET": 
         all_foods = entry.get_all_food(conn) 
-        all_students = entry.get_all_students(conn)
+        all_comments = entry.get_all_comments(conn,username)
         # all_comments = entry.get_all_comments(conn) #is there a way to know which user is currently logged in? 
 
-        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods, students=all_students)
+        return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
         #later, get a dynamic list of usernames
     if request.method == "POST":
         #flesh this out a little bit–using info that the user selected, delete food item.
         #also, only allow delete to happen if the "right" username is selected 
         print(request.form)
-        student_str = request.form.get('student-name') 
-        food_id = request.form.get('food-dlt') 
-        print([student_str,food_id])
-        if student_str == 'none' or food_id == 'none': 
-            flash('Please make sure you have selected a username and food item to delete.')
+        food_id = request.form.get('food-dlt')
+        comment_entered = request.form.get('comment-dlt') 
+        if food_id == 'none': 
+            flash('Please make sure you have selected a food item to delete.')
             return redirect(url_for('delete'), title = 'Delete Food')
-        elif student_str not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+        elif username not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
         food_name = entry.get_food(conn,food_id)
@@ -595,6 +589,9 @@ def delete():
         entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
+        if comment_entered is not None: 
+            entry.delete_comment(conn,username,comment_entered)
+            flash(' Your comment was successfully delete from the database')
         flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
         return redirect('/')
 
