@@ -521,7 +521,7 @@ def addfood():
     
         # inserts related label into food database
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
-        success_message = "{fname} inserted".format(fname=food_name)
+        success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name)
         flash(success_message)
         return redirect(url_for("mainmenu"))
 
@@ -549,7 +549,7 @@ def delete():
             flash('Please make sure you have selected a food item or comment to delete.')
             return redirect(url_for('delete'))
         if username not in ['fx1','ggabeau','lteffera','sclark4','scott']:  # should add 'admin' property to student table in ddl 
-            flash('Sorry, but you are not authorized to delete food items from the database.')
+            flash('Sorry, you are not authorized to delete food items from the foodie database.')
             return redirect('/')
         if food_id != 'none': 
 
@@ -559,10 +559,10 @@ def delete():
             entry.delete_comments(conn,food_id) 
             entry.delete_labels(conn,food_id)
             entry.delete_food(conn,food_id)
-            flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
+            flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
         if comment_entered != "none": 
             entry.delete_comment(conn,username,comment_entered)
-            flash('Your comment was successfully delete from the database')
+            flash('Your comment was successfully delete from the foodie database')
         return redirect('/')
 
 
