@@ -52,14 +52,14 @@
 {% if comments %}
 <div class = "comment">
 <h3>Comments</h3>
-<p>{%for comment in comments %}
+{%for comment in comments %}
     <p> {{comment['rating']}} Stars || {{comment['comment']}} </p>
     <p>{{comment['username']}}</p>
-    <p>________________________________________________________________________________________   </p>
-    {%endfor%}</p>
+    <p>________________________________________________________________________________________ </p>
+    {%endfor%}
 </div>
 {% endif %}
-<h3><a alt = "Add Comment" href="{{ url_for('reviews',fid=fid)}}">Review {{food.name}}</a></h3>
+<h3><a href="{{ url_for('reviews',fid=fid)}}">Review {{food.name}}</a></h3>
 <!-- Connect to page fangwen writes?? -->
 <a class = "button" href="{{ url_for('updateFood', fid = fid)}}">Edit
 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
