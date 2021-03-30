@@ -562,7 +562,7 @@ def delete():
             flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
         if comment_entered != "none": 
             entry.delete_comment(conn,username,comment_entered)
-            flash('Your comment was successfully delete from the foodie database')
+            flash('Your comment was successfully deleted from the foodie database')
         return redirect('/')
 
 
