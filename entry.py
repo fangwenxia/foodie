@@ -22,11 +22,8 @@ def insert_label(conn,allergens,preferences,ingredients,id):
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
     preferences = ['gluten sensitive' if i=='gluten-sensitive' else i for i in preferences]
-    print(preferences)
     prefs = ','.join(preferences)
     allgns = ','.join(allergens)
-    print(prefs)
-    print(allgns)
     labelvals = [allgns,prefs,ingredients,id]
     curs2.execute(sql2,labelvals)
     conn.commit()
@@ -42,6 +39,7 @@ def exists(conn,name):
         return True
     else: 
         return False 
+        
 # gets all the food in the database
 def get_all_food(conn):
     sql = '''select fid,food.name from food'''
