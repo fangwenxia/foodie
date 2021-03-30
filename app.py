@@ -258,7 +258,6 @@ def create_CAS():
     return redirect( url_for('home') )
 
 
-
 # allows user to log in
 @app.route('/user_login/', methods=["GET", "POST"])
 def user_login():
