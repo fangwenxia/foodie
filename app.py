@@ -510,11 +510,11 @@ def feed(): #rename review() to feed
         item['avg']=str(item['avg'])
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
 
-
+# route for adding a food item to the database
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     if request.method == 'GET':
-        # add a way to dynamically obtain food preferences and allergens
+        # add a way to dynamically obtain food preferences and allergens, in beta  
         return render_template('dataentry.html',title='Add Food')
     elif request.method == 'POST':
         conn = dbi.connect()
@@ -526,8 +526,6 @@ def addfood():
         food_ingredients = request.form.get('food-ingredients')
 
         # error-handling: if any of the form elements aren't filled out, don't submit the form
-        # code elsewhere handles the elements selected by the dropdown
-
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
             return render_template('dataentry.html',title='Add Food')
@@ -537,56 +535,51 @@ def addfood():
         if len(food_preferences) == 0 or len(food_allergens) == 0: 
             flash("Please make sure that all boxes in the form are checked.")
             return render_template('dataentry.html',title='Add Food')
-        print (['food allergens',food_allergens])
 
-        # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
-        
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
             return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
-        #inserts food into database
+        
+        # obtains date and inserts food into food table
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
         
-        #get food id
+        # obtains food id for food recently inserted into food table
         food_id = entry.get_food_id(conn,food_name)
     
-        #insert related label into food database: 
+        # inserts related label into food database
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
-        success_message = "Food {fname} inserted".format(fname=food_name)
+        success_message = "{fname} inserted".format(fname=food_name)
         flash(success_message)
         return redirect(url_for("mainmenu"))
 
-@app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
+# route for deleting a food or comment from the database
+@app.route('/delete/', methods=["GET", "POST"]) 
 def delete(): 
     conn = dbi.connect()
-    sessvalue = request.cookies.get('session')
+    sessvalue = request.cookies.get('session') #obtains the logged-in user's username
     username = session['CAS_USERNAME']
     print("USERNAME", username)  
-    if request.method == "GET": 
+    if request.method == "GET": #if user is not logged in, this page does not load, fix in beta
         all_foods = entry.get_all_food(conn) 
         all_comments = entry.get_all_comments(conn,username)
-        # all_comments = entry.get_all_comments(conn) #is there a way to know which user is currently logged in? 
-
         return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
-        #later, get a dynamic list of usernames
     if request.method == "POST":
-        #flesh this out a little bit–using info that the user selected, delete food item.
-        #also, only allow delete to happen if the "right" username is selected 
-        print(request.form)
         food_id = request.form.get('food-dlt')
         comment_entered = request.form.get('comment-dlt') 
         print([comment_entered, type(comment_entered)])
+        # error handling (if food isn't selected, or user isn't part of team foodie)
         if food_id == 'none': 
             flash('Please make sure you have selected a food item to delete.')
             return redirect(url_for('delete'), title = 'Delete Food')
-        elif username not in ['fx1','ggabeau','lteffera','sclark4','scott']: 
+        elif username not in ['fx1','ggabeau','lteffera','sclark4','scott']:  # should add 'admin' property to student table in ddl 
             flash('Sorry, but you are not authorized to delete food items from the database.')
             return redirect('/')
         food_name = entry.get_food(conn,food_id)
 
-        entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
+        # deletes comments, labels and food table entries associated with a specific food item
+        entry.delete_comments(conn,food_id) 
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
         if comment_entered != "none": 
