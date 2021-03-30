@@ -204,32 +204,23 @@ def updateWait(did):
             flash('Update failed {why}'.format(why=err))
             return render_template('waittimeUpdate.html', dh = dh, did = did, title = ("Update " + dh + " Wait Time"))
 
-
-
-
-
-
-
-################################################################################################
-################################################################################################
-################################################################################################
-
 # Gigi's Stuff!!
 @app.route('/create/', methods=["GET", "POST"]) 
 def create():
     if request.method ==  "GET":
         return render_template('create.html')
     else:
-        name = request.form['name']
+        # old form items commented out to show understanding of how login would work if not using CAS
+        # name = request.form['name']
         username = request.form['username']
-        passwd1 = request.form['password1']
-        passwd2 = request.form['password2']
-        if passwd1 != passwd2:
-            flash('passwords do not match. please try again.')
-            return render_template('create.html')
-        hashed = bcrypt.hashpw(passwd1.encode('utf-8'),
-                               bcrypt.gensalt())
-        hashed_str = hashed.decode('utf-8')
+        # passwd1 = request.form['password1']
+        # passwd2 = request.form['password2']
+        # if passwd1 != passwd2:
+        #     flash('passwords do not match. please try again.')
+        #     return render_template('create.html')
+        # hashed = bcrypt.hashpw(passwd1.encode('utf-8'),
+        #                        bcrypt.gensalt())
+        # hashed_str = hashed.decode('utf-8')
         conn = dbi.connect()
         curs = dbi.cursor(conn)
         # next helper function checks to see if username is already in database and prompts user to log in instead 
@@ -341,7 +332,6 @@ def profile(username):
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
         if 'CAS_USERNAME' in session:
-            print('CAS_USERNAME is:',username)
             if request.method == "GET":
                 return render_template('profile.html', username=username, info=info, title="Your Profile")
             else:
@@ -374,7 +364,6 @@ def profile(username):
         else:
             is_logged_in = False
             username = None
-            print('CAS_USERNAME is STILL not in the session')
             session['user'] = user
     
         return render_template('profile.html',
@@ -398,12 +387,10 @@ def update(username):
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
         if 'CAS_USERNAME' in session:
-            print('CAS_USERNAME is:',username, info)
             if request.method == "GET":
                 sessvalue = request.cookies.get('session')
                 user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
                 info = query.get_user_info(conn, username)
-                # print("INFORMASHUNNN",info)
                 name = info['name']
                 year = info['classYear']        
                 diningHall = info['favoriteDH']
@@ -424,8 +411,6 @@ def update(username):
                     str_all = ", ".join(allergens)
                     preferences = request.form.getlist('preferences')  
                     str_pref = ", ".join(preferences)
-
-                    # print('ALLERGENS', allergens, str(allergens), "and  PREFERENCES", preferences, str_pref)
                     query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
                     info = query.get_user_info(conn, username)
                     flash("Successfully updated your profile!")
@@ -434,30 +419,11 @@ def update(username):
                                     info=info,
                                     cas_attributes = session.get('CAS_ATTRIBUTES')))
                 else: 
-                    print('whats THIS')
-                # except Exception as err:
                     flash('Update failed {why}'.format(why=err))
-                    # return
                     return render_template('update.html', username=username, info=info)
-            else:
-                print('ELSEEEEE')
-                try:
-                    print("YOU HERE???")
-
-                    
-                except Exception as err:
-                    flash('Update failed {why}'.format(why=err))
-                    return render_template('update.html', username=username, info=info, title="Update Profile")
     except Exception as err:
             flash('Please log in to update your profile.') 
             return redirect(url_for('create'))
-
-        
-        
-    
-
-
-
 
 @app.route('/propic/<username>') 
 #route to image for food photos, can later be generalized and applied to other photos too
