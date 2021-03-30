@@ -14,7 +14,7 @@
     checked = "checked"
 {% endif %} -->
 
-<h1>{{food.name}} from {{food.dh}}</h1> 
+<h1>{{food.name}}</h1> 
 <!--  -->
 <div class="d-flex flex-column align-items-center">
     <form method = "GET" action = "{{url_for('reviews', fid = fid)}}">
@@ -37,7 +37,7 @@
 </form>
 <!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
 <p>Description: {{food.ingredients}}</p>
-<p>{{food.name}} is usually served during {{food.type}}</p>
+<p>{{food.name}} is served during {{food.type}} at {{food.dh}}</p>
 <p>Preference: {{food.preference}}</p>
 <p>Contains the following allergens: {{food.allergen}}</p>
 <!-- <p>Description: {{description}}</p>
@@ -50,14 +50,28 @@
 </ul>
 </p> -->
 {% if comments %}
-<div class = "comment">
-<h3>Comments</h3>
+<div class = "comment card">
+<h3>reviews from the feed</h3>
+<table class="table">
+    <tbody>
 {%for comment in comments %}
+<tr> 
+    <td class="Stars" style="--rating: {{rating}};" aria-label="Rating of this product is {{rating}} out of 5."><div></div></td>
+    <td>{{comment['comment']}} <a href="{{url_for('feed')}}">@{{comment['username']}}</a></td>
+    <!-- <td><a href="{{url_for('feed')}}"> {{comment['comment']}} @ {{comment['username']}}</a></td> -->
+</tr>
+        
+    
+{%endfor%}
+</tbody>
+</table>
+</div>
+<!-- {%for comment in comments %}
     <p> {{comment['rating']}} Stars || {{comment['comment']}} </p>
     <p>{{comment['username']}}</p>
     <p>________________________________________________________________________________________ </p>
     {%endfor%}
-</div>
+</div> -->
 {% endif %}
 <h3><a href="{{ url_for('reviews',fid=fid)}}">Review {{food.name}}</a></h3>
 <!-- Connect to page fangwen writes?? -->

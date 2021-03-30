@@ -9,6 +9,10 @@
     --lightgreen: #8fbc8f;
     --green: #5CB88D;
     --darkgrey: rgb(58, 58, 58);
+    --star-size: 20px;
+    --star-color: #fdfdfc;
+    --star-background: #fd8953;
+    --navbarColor: #ffb08c21;
     /* --darkgreen: #6aa66a; */
   }
 
@@ -50,10 +54,18 @@ h1 {
 .navbarCustom {
     font-family: Nunito;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 25px;
     text-align: left;
-    background-color: var(--lightorange);
-    margin-bottom: 10pt
+    /* background-color: var(--navbarColor); */
+    margin-bottom: 10pt;
+    box-shadow: 0px 0px 5px 0px #bebebe;
+    
+    /* border-bottom: var(--orange); */
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px var(--orange); */
+    /* border-bottom-left-radius: .2em;
+    border-bottom-right-radius: .2em; */
 }
 
 nav {
@@ -120,9 +132,11 @@ footer {
 }
 .comment {
     padding: 15px 32px;
+    margin-top: 1em;
+    margin-bottom: 2em;
     border-radius: .6em;
     border-color: var(--green);
-    border-width: 1em;
+    border-width: .1em;
     border-style: solid;
 }
 h3 {
@@ -242,10 +256,40 @@ a:active.menuItem  {
 
 .homePage {
     font-family: Nunito;
-    color: var(--orange);
-    font-size: x-large;
+    color: var(--darkgrey);
+    font-size: 20pt;
+    /* background-color: #bebebe; */
+    background-color: #ffb08c;
+    /* border-color: var(--orange);
+    box-width: medium; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    /* width: 80%; */
+    padding: 1em;
+    margin-left: 20%;
+    margin-right: 20%;
+    /* margin-left: 30%; */
+    text-align: center;
+    margin-bottom: 2em;
+    margin-top: 2em;
+    /* align-content: center; */
 }
-
+.homeButton {
+    background-color: var(--white);
+    color: var(--darkgrey);
+    font-size: larger;
+    padding: 6px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-style: solid;
+    border-color: #bebebe;
+    border-width: .1em;
+    border-radius: .5em;
+    font-size: 16px;
+    font-family: Nunito;
+    margin: .5em;
+}
 .homePage select {
     width:max-content; /*hide original SELECT element: */
     display: inline;
@@ -256,17 +300,62 @@ a:active.menuItem  {
   }
 
 
-/* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 
-#foodie {
-    color: #5CB88D;
+/* div.grow{
+    transition: .5s ease;
+    } */
+    
+div.grow :hover{
+    -webkit-transform: scale(1.1);
+    -ms-transform: scale(1.1);
+    transform: scale(1.1);
+    transition: .5s ease;
+    }
+    
+
+.search {
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px #999; */
+    
+    border-radius: .2em;
+}
+
+div.card {
+    box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen);
+    text-align: center;
+    margin-bottom: 2em;
+  }
+.hours {
+    width: max-content;
+    align-content: center;
+}
+
+.Stars {
+    --percent: calc(var(--rating) / 5 * 100%);
+    
+    display:inline-block;
+    font-size: var(--star-size);
     font-family: Nunito;
-    font-size : 50pt;
+    padding: 0;
+    margin: 0;
 }
+.Stars ::before {
+      content: '★★★★★';
+      letter-spacing: 3px;
+      background: linear-gradient(90deg, var(--star-background) var(--percent), var(--star-color) var(--percent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
 
-#foodieLogo h1 {
-    font-style :italic;
-}
-h2 {
-    color: #FFA055;
-    /* color: rgb(216, 104, 63); */
+.row {
+    display: flex;
+  }
+  
+.column {
+    flex: 50%;
+  }
+
+.menuList th, td {
+    border: none;
+  }

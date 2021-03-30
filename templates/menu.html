@@ -26,14 +26,6 @@ $(function(){
 {% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center">
-<h1>{{location}} {{type}} menu for {{date}}</h1>
-
-{% if location%} 
-<!-- if the page is given a location -->
-<h2><a class="text-waittime button" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
-{% endif %}
-</div>
 <div class="d-inline-flex flex-column align-items-center">
 <form method = "GET" action = "{{url_for('menu')}}">
     <select name = "dh-filter">
@@ -66,16 +58,32 @@ $(function(){
     <p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
       </svg>
-        <input type="text" name="query" id="autocomplete" size="50" placeholder="Search"></label></p>
+        <input class = "search" type="text" name="query" id="autocomplete" size="50" placeholder="Search"></label></p>
         <br><input class = "button" type = "submit" name = "filter" value = "filter"> 
     </form>
 </div>
+
+<div class="d-flex flex-column align-items-center">
+    <h1>today's {{location}} {{type}} menu</h1>
+    <!-- <h1>{{location}} {{type}} menu for {{date}}</h1> -->
+    
+    {% if location%} 
+    <!-- if the page is given a location -->
+    <h2><a class="text-waittime button" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
+    {% endif %}
+    </div>
 <div class="d-flex p-2 menuList flex-column align-items-center">
+    <table class="table">
+        <tbody>
     {%for item in menu %}
-        <p><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}
-            ({{item['rating']}} Stars) </a>
-            </p>
+    <tr><td><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}</a></td> 
+        <td class="Stars" style="--rating: {{item['rating']}};" aria-label="Rating of this product is {{item['rating']}} out of 5."><div></div></td>
+    </tr>
+            
+        
     {%endfor%}
+</tbody>
+</table>
 </div>
     
 <div class="d-flex flex-column align-items-center">

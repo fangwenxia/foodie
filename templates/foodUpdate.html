@@ -25,6 +25,7 @@
     <form method="post" action="{{url_for('updateFood', fid = food.fid)}}" enctype="multipart/form-data">
         
             <h2>Upload Image</h2>
+            <p><i>note: file size must be smaller than 1MB</i></p>
         <p><input type="file" name="pic" class = "button">
         <input name = "submit" type="submit" value="upload" class = "button"></p>
     </form>
