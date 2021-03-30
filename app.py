@@ -150,7 +150,7 @@ def updateFood(fid):
     if request.method == "GET":
         item = menuUp.lookupFoodItem(conn, fid)
         return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
-    elif request.form["submit"] == "update":
+    elif request.form.get("submit") == "update":
         try:
             ingredients = request.form["ingredients"]
             menuUp.updateFoodItem(conn, fid, ingredients)
@@ -531,13 +531,13 @@ def addfood():
 
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
-            return render_template(url_for('addfood'), title = 'Add Food')
+            return render_template('dataentry.html',title='Add Food')
         if len(food_ingredients) == 0: 
             flash("Please enter in the food's ingredients.")
-            return render_template(url_for('addfood'), title = 'Add food')
+            return render_template('dataentry.html',title='Add Food')
         if len(food_preferences) == 0 or len(food_allergens) == 0: 
             flash("Please make sure that all boxes in the form are checked.")
-            return render_template(url_for('addfood'), title = 'Add food')
+            return render_template('dataentry.html',title='Add Food')
         print (['food allergens',food_allergens])
 
         # entry.handle_empty_values(food_name,food_category,food_dhall,food_preferences,food_allergens,food_ingredients)
@@ -545,7 +545,7 @@ def addfood():
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return redirect(url_for('addfood')) # should go back to landing page, idk how to do this.
+            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
         #inserts food into database
         food_date = today()[0]
         entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
@@ -557,7 +557,7 @@ def addfood():
         entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
         success_message = "Food {fname} inserted".format(fname=food_name)
         flash(success_message)
-        return redirect('/')  
+        return redirect(url_for("mainmenu"))
 
 @app.route('/delete/', methods=["GET", "POST"]) #change to select and then redirect to delete? 
 def delete(): 
