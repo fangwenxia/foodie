@@ -233,7 +233,7 @@ def create():
         else: 
             query.add_username(conn, username)
             # query.add_username(conn, name, username, passwd1, hashed_str) # used to be add_username, tt, title,  release
-            flash('Profile was created successfully! You can post, review and more!')
+            # flash('Profile was created successfully! You can post, review and more!')
             return redirect(url_for('profile', username=username)) 
         curs.execute('select last_insert_id()') 
         row = curs.fetchone()
