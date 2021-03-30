@@ -208,7 +208,7 @@ def updateWait(did):
 @app.route('/create/', methods=["GET", "POST"]) 
 def create():
     if request.method ==  "GET":
-        return render_template('create.html')
+        return render_template('create.html', title="Login")
     else:
         # old form items commented out to show understanding of how login would work if not using CAS
         # name = request.form['name']
@@ -227,11 +227,12 @@ def create():
         if query.username_exists(conn, username): 
             flash('''This username already exists. If this is you, please log in.
                 If not, please enter your Wellesley email username.''')
-            return render_template('create.html')
+            return render_template('create.html', title="Login")
         
         # if username doesn't exist, user is added to database and can now log in
         else: 
-            query.add_username(conn, name, username, passwd1, hashed_str) # used to be add_username, tt, title,  release
+            query.add_username(conn, username)
+            # query.add_username(conn, name, username, passwd1, hashed_str) # used to be add_username, tt, title,  release
             flash('Profile was created successfully! You can post, review and more!')
             return redirect(url_for('profile', username=username)) 
         curs.execute('select last_insert_id()') 
@@ -245,15 +246,15 @@ def create():
     #     return render_template('create.html')
 
 def create_CAS():
-    flash('Profile was created successfully! You can post, review and more!')
-    return redirect( url_for('home') )
+    # flash('Username added to database! Please log in using Wellesley account now.')
+    return redirect( url_for('login') )
 
 
 # allows user to log in
 @app.route('/user_login/', methods=["GET", "POST"])
 def user_login():
     if request.method ==  "GET":
-        return render_template('create.html')
+        return render_template('create.html', title="Login")
     else:
         username = request.form['username'] 
         # passwd = request.form['password'] 
@@ -296,7 +297,7 @@ def user_login():
                 return redirect(url_for('user_login'))
         else:
             flash("This username doesn't exist. Please try again.")
-            return render_template('create.html')
+            return render_template('create.html', title="Login")
 
 
 # add titles to all pages ?!?!?!
@@ -380,7 +381,8 @@ def profile(username):
                             session=session,
                             sessvalue=sessvalue,
                             user=user,
-                            info=info) 
+                            info=info,
+                            title="Your Profile") 
     except Exception as err:
         flash('Please log in to continue.') 
         return redirect(url_for('create'))
@@ -407,7 +409,7 @@ def update(username):
                 allergens  = info['allergies']
                 preferences =  info['preferences']
                 session['user'] =  user
-                return render_template('update.html', username=username, info=info, dh_name=DH)
+                return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile")
                 # flash('Profile was updated successfully!')
 
             elif request.form["submit"] == "update":
@@ -432,7 +434,7 @@ def update(username):
                                     dh_name=DH))
                 else: 
                     flash('Update failed {why}'.format(why=err))
-                    return render_template('update.html', username=username, info=info)
+                    return render_template('update.html', username=username, info=info, title="Update Profile")
     except Exception as err:
             flash('Please log in to update your profile.') 
             return redirect(url_for('create'))
@@ -455,7 +457,7 @@ def propic(username):
 @app.route('/update/', methods = ["GET", "POST"])
 def username_error():
     flash("Please log in to update your profile.")
-    return render_template('create.html')
+    return render_template('create.html', title="Login")
 
 # Fangwen's Part
 ## Here's the route to entering a feedback form
