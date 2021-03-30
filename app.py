@@ -538,10 +538,17 @@ def delete():
     if request.method == "GET": 
         all_foods = entry.get_all_food(conn) 
         all_comments = entry.get_all_comments(conn,username)
+
+        # strips whitespace from datetime object, so HTML for the user's comments drop-down menu is valid 
+        for i in all_comments: 
+            val = i['entered']
+            i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
         return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
     if request.method == "POST":
         food_id = request.form.get('food-dlt')
         comment_entered = request.form.get('comment-dlt') 
+        print(comment_entered)
+        
         # error handling (if food isn't selected, or user isn't part of team foodie)
         # note: because the user can select a food item OR a comment to delete, it doesn't make 
         # sense to require both to be selected. 
