@@ -486,23 +486,15 @@ def reviews(fid):
         # get the form to display 
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        print("USERNAME", username)
         name=feed_queries.search_fid(conn,fid)['name']
         return render_template('feed.html',name=name, fid = fid, username=username)
     else:
         # get the input form values from the submitted form
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        print("USERNAME", username)
-        # username=request.form['user']
-        #to gigi: how do I link the user here? 
         if len(feed_queries.search_user(conn,username))==0:
-            # Because the username is not complete, temp is used for flashing tempoararily 
-            # to show available usernames you can possibly input
-            temp=[person["username"] for person in feed_queries.temp_user(conn)]
-            flash('Username Under Construction:only enter below for usernames:' )
-            flash(temp)
-            return render_template('feed.html')
+            flash('Invalid username not found in databse' )
+            return render_template('feed.html',username=username)
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
