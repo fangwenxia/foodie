@@ -258,7 +258,6 @@ def create_CAS():
     return redirect( url_for('home') )
 
 
-
 # allows user to log in
 @app.route('/user_login/', methods=["GET", "POST"])
 def user_login():
@@ -578,6 +577,7 @@ def delete():
         print(request.form)
         food_id = request.form.get('food-dlt')
         comment_entered = request.form.get('comment-dlt') 
+        print([comment_entered, type(comment_entered)])
         if food_id == 'none': 
             flash('Please make sure you have selected a food item to delete.')
             return redirect(url_for('delete'), title = 'Delete Food')
@@ -589,7 +589,7 @@ def delete():
         entry.delete_comments(conn,food_id) #haven't checked (don't want to delete anything that already exists in db)
         entry.delete_labels(conn,food_id)
         entry.delete_food(conn,food_id)
-        if comment_entered is not None: 
+        if comment_entered != "none": 
             entry.delete_comment(conn,username,comment_entered)
             flash(' Your comment was successfully delete from the database')
         flash('{fname} was successfully deleted from the database.'.format(fname=food_name))
