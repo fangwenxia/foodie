@@ -511,7 +511,8 @@ def addfood():
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
         food_ingredients = request.form.get('food-ingredients')
-
+        print(food_allergens)
+        print(food_ingredients)
         # error-handling: if any of the form elements aren't filled out, don't submit the form
         if len(food_name)==0: 
             flash("Please enter in the name of the food.")
@@ -563,7 +564,6 @@ def delete():
     if request.method == "POST":
         food_id = request.form.get('food-dlt')
         comment_entered = request.form.get('comment-dlt') 
-        print(comment_entered)
         
         # error handling (if food isn't selected, or user isn't part of team foodie)
         # note: because the user can select a food item OR a comment to delete, it doesn't make 

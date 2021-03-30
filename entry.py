@@ -22,6 +22,7 @@ def insert_label(conn,allergens,preferences,ingredients,id):
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
     preferences = ['gluten sensitive' if i=='gluten-sensitive' else i for i in preferences]
+    allergens = ['tree nut' if i=='tree-nut' else i for i in allergens]
     prefs = ','.join(preferences)
     allgns = ','.join(allergens)
     labelvals = [allgns,prefs,ingredients,id]
