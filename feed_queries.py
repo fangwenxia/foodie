@@ -1,15 +1,5 @@
 import cs304dbi as dbi
 
-''' 
-temporary function for flashing: 
-show availble usernames you can input
-@ return: a list of dictionary of student usernames
-'''
-def temp_user(conn):
-    curs=dbi.dict_cursor(conn)
-    curs.execute('select username from student')
-    return curs.fetchall()
-
 '''
 search food name by fid
 @ param: food id 
@@ -55,7 +45,6 @@ def recent_feedback(conn):
 # don't use this yet- not fully planned out 
 def top_rated(conn):
     curs=dbi.dict_cursor(conn)
-    # how can I order by week in the time column?
     curs.execute('select name,(avg(rating))as avg from feedback inner join food using fid group by fid order by time DESC, rating limit 5')
     # sort by month and select by month
     return curs.fetchall()

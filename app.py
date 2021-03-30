@@ -452,14 +452,12 @@ def reviews(fid):
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
         name=feed_queries.search_fid(conn,fid)['name']
-        return render_template('feed.html',name=name, fid = fid, username=username)
+        title="Reviews"
+        return render_template('feed.html',title=title,name=name, fid = fid, username=username)
     else:
         # get the input form values from the submitted form
         sessvalue = request.cookies.get('session')
         username = session['CAS_USERNAME']
-        if len(feed_queries.search_user(conn,username))==0:
-            flash('Invalid username not found in databse' )
-            return render_template('feed.html',username=username)
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
@@ -468,13 +466,14 @@ def reviews(fid):
         return redirect(url_for('feed'))
 
 @app.route('/feed/')     
-def feed(): #rename review() to feed
+def feed(): 
     conn=dbi.connect()
     feedbacks= feed_queries.recent_feedback(conn)
     top_rated=feed_queries.food_rating(conn)
     for item in top_rated:
         item['avg']=str(item['avg'])
-    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated)
+    title='Feed'
+    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
 
 # route for adding a food item to the database
 @app.route('/addfood/', methods=["GET", "POST"])
