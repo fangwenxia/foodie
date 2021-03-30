@@ -4,20 +4,23 @@
  <title>Profile</title>
 {% endblock %}
 
-{% block content %}
 
-<h1>{{info['name']}}</h1>
+
+
+
+{% block content %}
 <body>
+<h1>{{info['name']}}</h1>
+
 
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{name}}"></p>
 
 
 <div class="profile">
-
 <p>username: {{username}}</p>
 <p>class: {{info['classYear']}}</p>
-<p>favorite Dining Hall: {{info['favoriteDH']}}</p>
-<p>favorite Food: {{info['favoriteFood']}}</p>
+<p>favorite dining Hall: {{dh_name}}</p>
+<p>favorite food: {{info['favoriteFood']}}</p>
 <p>allergies: {{info['allergies']}}</p>
 <p>preferences: {{info['preferences']}} </p>
 
@@ -36,11 +39,6 @@
 </div>
 
 </body>
-
-
-
-
-
 {% endblock %}
 
 
