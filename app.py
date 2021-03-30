@@ -523,11 +523,13 @@ def addfood():
 # route for deleting a food or comment from the database
 @app.route('/delete/', methods=["GET", "POST"]) 
 def delete(): 
-    conn = dbi.connect()
-    sessvalue = request.cookies.get('session') #obtains the logged-in user's username
+    # check if user is logged in before allowing access to delete food webpage
+    sessvalue = request.cookies.get('session')  
+    if len(session) == 0:
+        return redirect(url_for('user_login'))
     username = session['CAS_USERNAME']
-    print("USERNAME", username)  
-    if request.method == "GET": #if user is not logged in, this page does not load, fix in beta
+    if request.method == "GET": 
+        conn = dbi.connect()
         all_foods = entry.get_all_food(conn) 
         all_comments = entry.get_all_comments(conn,username)
         return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
