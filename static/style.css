@@ -15,6 +15,7 @@
     --star-color: #bebebe;
     --star-background: #fddb53;
     --navbarColor: #ffb08c21;
+    --pale: #f0f0f0;
     /* --darkgreen: #6aa66a; */
   }
 
@@ -24,7 +25,10 @@ body {
 }
 
 .foodBackground{
-    background-color:var(--lightgreen);
+    background-color:var(--pale);
+    border-color: var(--lightgrey);
+    border: .01em solid var(--lightgrey);
+
 }
 h1 {
     color: var(--green);
@@ -98,7 +102,7 @@ font-family: Montserrat;
     
 label {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
 }
 
 h2 {
@@ -131,10 +135,11 @@ p {
 }
 footer {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
     text-align: center; 
     font-size: 10pt;
     margin-bottom: .5em;
+    margin-top: 10em;
 }
 .button {
     background-color: var(--lightorange);
@@ -250,10 +255,10 @@ a:active.menuItem  {
 }
 
 .starRating:not(old){
-    display        : inline-block;
+    display        :inline-table;
     width          : 7.5em;
-    height         : 1.5em;
-    overflow       : hidden;
+    height         : 0em;
+    overflow-y      : hidden;
     vertical-align : bottom;
   }
 .starRating:not(old) > input{

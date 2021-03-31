@@ -527,7 +527,7 @@ def addfood():
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+            return redirect(url_for("mainmenu"))
         
         # obtains date and inserts food into food table
         food_date = today()[0]

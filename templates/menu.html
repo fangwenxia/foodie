@@ -26,8 +26,13 @@ $(function(){
 {% endblock %}
 
 {% block content %}
-<div class="d-inline-flex flex-column align-items-center">
+<div class="d-flex flex-column flex-row-reverse foodBackground">
 <form method = "GET" action = "{{url_for('menu')}}">
+    <label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+      </svg>
+        </label>
+    <input class = "search" type="text" name="query" id="autocomplete" size="40" placeholder="Search">&emsp; &emsp;
     <select name = "dh-filter">
         <option value = "" selected disabled hidden>Location</option>
              <option value = 1> Bates </option>
@@ -44,7 +49,8 @@ $(function(){
              <option value = "dinner"> Dinner </option>
              <option value = "all day"> All Day </option>
     </select>
-        <p><strong>Dietary Restrictions: </strong>
+    &emsp; &emsp;
+        <strong>Dietary Restrictions: </strong>
         <input type="checkbox" id="vegan" name="preference" value="vegan">
         <label for="vegan"> Vegan</label>
         <input type="checkbox" id="vegetarian" name="preference" value="vegetarian">
@@ -54,13 +60,10 @@ $(function(){
         <input type="checkbox" id="halal" name="preference" value="halal">
         <label for="halal"> Halal </label>
         <input type="checkbox" id="gs" name="preference" value="gluten sensitive">
-        <label for="gs"> Gluten-sensitive </label> </p>
-    <p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-      </svg>
-        <input class = "search" type="text" name="query" id="autocomplete" size="50" placeholder="Search"></label></p>
-        <br><input class = "button" type = "submit" name = "filter" value = "filter"> 
+        <label for="gs"> Gluten-sensitive </label>
+        <input class = "button" type = "submit" name = "filter" value = "filter"> 
     </form>
+</div>
 </div>
 
 <div class="d-flex flex-column align-items-center">
@@ -77,7 +80,8 @@ $(function(){
         <tbody>
     {%for item in menu %}
     <tr><td><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}</a></td> 
-        <td class="Stars" style="--rating: {{item['rating']}};" aria-label="Rating of this product is {{item['rating']}} out of 5."><div></div></td>
+        <td><a href="{{url_for('reviews', fid = item['fid'])}}">
+            <div class="Stars" style="--rating: {{item['rating']}};" aria-label="Rating of this product is {{item['rating']}} out of 5."><div></div></div></a></td>
     </tr>     
     {%endfor%}
 </tbody>
@@ -97,8 +101,8 @@ $(function(){
 {% endblock %}
 
 {% block footer %}
-<div class="d-flex flex-column align-items-center">
-    <p>daily menu provided by students like you. thank you!</p>
-    </div>
+<footer> 
+    daily menu provided by students like you. thank you!
+</footer>
 
 {% endblock %}
