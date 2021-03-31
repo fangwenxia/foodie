@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center container-fluid">
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+<div class="d-flex flex-column align-items-center card">
 <h1>Review {{name}}</h1>
 <form id="feedback-form" method ="post" action="{{url_for('reviews', fid = fid)}}">
     <table class ="table">
@@ -37,5 +42,7 @@
 {% endblock %}
 
 {% block footer %}
-Want to see changes? Tell us what your think!
+<div class="d-flex flex-column align-items-center">
+<p>Want to see changes? Tell us what your think!</p>
+</div>
 {% endblock %}

@@ -78,19 +78,16 @@ $(function(){
     {%for item in menu %}
     <tr><td><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}</a></td> 
         <td class="Stars" style="--rating: {{item['rating']}};" aria-label="Rating of this product is {{item['rating']}} out of 5."><div></div></td>
-    </tr>
-            
-        
+    </tr>     
     {%endfor%}
 </tbody>
+
 </table>
 </div>
     
-<div class="d-flex flex-column align-items-center">
-    <div class="button">
-<h2><a class="text-add" href="{{url_for('addfood')}}">add new food</a></h2>
+<div class="d-flex flex-column align-items-center addButton">
 <a href="{{url_for('addfood')}}">
-    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" fill="currentColor" class="bi bi-plus-circle-fill text-add" viewBox="0 0 16 16">
+    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" fill="#fd8953" class="bi bi-plus-circle-fill text-add" viewBox="0 0 16 16">
         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
       </svg></a></div>
 
@@ -100,5 +97,8 @@ $(function(){
 {% endblock %}
 
 {% block footer %}
-daily menu provided by students like you. thank you!
+<div class="d-flex flex-column align-items-center">
+    <p>daily menu provided by students like you. thank you!</p>
+    </div>
+
 {% endblock %}

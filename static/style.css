@@ -9,8 +9,10 @@
     --lightgreen: #8fbc8f;
     --green: #5CB88D;
     --darkgrey: rgb(58, 58, 58);
+    --grey: #676967;
+    --lightgrey: #bebebe;
     --star-size: 20px;
-    --star-color: #c6c6c6;
+    --star-color: #bebebe;
     --star-background: #fddb53;
     --navbarColor: #ffb08c21;
     /* --darkgreen: #6aa66a; */
@@ -19,6 +21,10 @@
 body {
     background-color:var(--white);
     padding-bottom: 70px;
+}
+
+.foodBackground{
+    background-color:var(--lightgreen);
 }
 h1 {
     color: var(--green);
@@ -68,6 +74,7 @@ h1 {
     /* background-color: var(--navbarColor); */
     margin-bottom: 10pt;
     box-shadow: 0px 0px 5px 0px #bebebe;
+    background-color: var(--white);
     
     /* border-bottom: var(--orange); */
     /* -webkit-box-shadow: 0 8px 6px -6px #999;
@@ -99,6 +106,12 @@ font-family: Nunito;
 color: var(--orange);
 
 }
+
+h4 {
+    font-family: Montserrat;
+    color: var(--grey);
+    
+    }
 #subtitle {
 font-style: italic;
 text-align: center;
@@ -110,7 +123,7 @@ li.label {
 }
 p {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
 
 }
 #form {
@@ -141,12 +154,13 @@ footer {
 }
 .comment {
     padding: 15px 32px;
+    font-family: Nunito;
     margin-top: 1em;
     margin-bottom: 2em;
     border-radius: .6em;
-    border-color: var(--green);
     border-width: .1em;
     border-style: solid;
+    background-color: #f0f0f0;
 }
 h3 {
     font-family: Nunito;
@@ -157,6 +171,8 @@ h3 {
     /* margin-left: 30%;
     margin-right: 30%; */
     /* margin-bottom: 2em; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
     text-align: center;
     font-family: Nunito;
     font-size:larger;
@@ -194,11 +210,16 @@ a:active.menuItem  {
   }
 
 .messages {
-    background-color: cornsilk;
+    background-color: #f0f0f0;
     font-family: Nunito;
     font-size: large;
     font-weight: 500;
     text-align: center;
+    /* text-align: center;
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%; */
 }
 
 .reviews {
@@ -331,9 +352,14 @@ div.grow :hover{
 }
 
 div.card {
-    box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen);
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
     text-align: center;
     margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
   }
 .hours {
     width: max-content;
@@ -367,4 +393,35 @@ div.card {
 
 .menuList th, td {
     border: none;
+  }
+
+.addButton {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    text-shadow:rgba(0, 0, 0, 0.23);
+    margin-top: 1em;
+}
+
+.addReview {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    text-shadow:rgba(0, 0, 0, 0.23);
+    margin-top: 1em;
+}
+
+a:link.addReview {
+    text-decoration: none;
+    color: var(--darkgrey);
+  }
+  
+a:visited.addReview {
+    text-decoration:none;
+    color: var(--orange);
+  }
+  
+a:hover.addReview {
+    text-decoration: none;
+    background-color: #f0f0f0;
+  }
+  
+a:active.addReview  {
+    text-decoration: underline;
   }

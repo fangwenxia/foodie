@@ -15,6 +15,20 @@
         <span>and said "{{entry.comment}}"</span><br>
     </div>
     {% endfor %}
+
+<!-- Review with stars in a table -->
+<!-- {% for entry in feedbacks %} -->
+    <!-- <table class="table">
+        <tbody>
+    <tr> 
+        <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div></div></td>
+        <td>{{entry.comment}} <a href="{{url_for('feed')}}">@{{entry.username}}</a></td>
+    </tr>
+    {% endfor %}
+</tbody>
+</table>
+</div> -->
+
     </section>
     <!-- Displaying the top rated food items not showing up for some reason-->
     <section class="top_rated">
