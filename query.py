@@ -8,10 +8,10 @@ import cs304dbi as dbi
 #     conn.commit()
 
 # new  helper function to add new user into student
-def add_username(conn, username): 
+def add_username(conn, username, passwd1, hashed_str): 
     curs = dbi.dict_cursor(conn)
-    curs.execute('''INSERT INTO student(username)
-                VALUES (%s);''', [username])
+    curs.execute('''INSERT INTO student(username, password, hashed)
+                VALUES (%s, %s, %s);''', [username, passwd1, hashed_str])
     conn.commit()
 
 
