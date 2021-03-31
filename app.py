@@ -138,7 +138,7 @@ def food(fid):
         # list of dictionaries for each comment for a given food item and with the comment's rating and user
         comments = menuUp.lookupComments(conn, fid)
         filename = pic(fid)
-        return render_template('food.html', food = item, comments = comments, fid = fid, rating = int(avgRating), title = item["name"], filename = filename)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
     else:
         menuUp.updateLastServed(conn, fid, today()[0])
         return redirect(url_for('food', fid = fid))
@@ -648,7 +648,7 @@ def addfood():
         test_bool = entry.exists(conn,food_name)
         if test_bool == True: 
             flash("Food already exists in database.")
-            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+            return redirect(url_for("mainmenu"))
         
         # obtains date and inserts food into food table
         food_date = today()[0]

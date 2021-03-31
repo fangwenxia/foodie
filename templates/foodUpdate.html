@@ -8,9 +8,15 @@
     preference 
 
 -->
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+<div class="card">
 <h1>{{food.name}}</h1> 
-<div class="d-flex flex-md-column align-items-center">
-<h3>(Last Served at {{food.dh}} on {{food.lastServed}})</h3> 
+<div class="d-flex flex-md-column align-items-center"></div>
+<h4>(Last Served at {{food.dh}} on {{food.lastServed}})</h4> 
 <!-- fid, name, ingredients, rating -->
 <h2>Update Ingredients</h2>
 <section id="form">
@@ -20,15 +26,16 @@
         <p><input name = "submit" type="submit" value="update" class = "button"></p>
     </form>
 </section>
-</div>
+
 <div class="d-flex flex-lg-column align-items-center">
     <form method="post" action="{{url_for('updateFood', fid = food.fid)}}" enctype="multipart/form-data">
         
             <h2>Upload Image</h2>
             <p><i>note: file size must be smaller than 1MB</i></p>
-        <p><input type="file" name="pic" class = "button">
-        <input name = "submit" type="submit" value="upload" class = "button"></p>
+        <p><input type="file" name="pic">
+        </p><p><input name = "submit" type="submit" value="upload" class = "button"></p>
     </form>
+</div>
 </div>
 {% endblock %}
 

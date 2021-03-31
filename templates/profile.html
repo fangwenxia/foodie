@@ -9,6 +9,12 @@
 
 
 {% block content %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+<div class="card">
 
 <h1>{{info['name']}}</h1>
 
@@ -23,7 +29,7 @@
 <p>favorite food: {{info['favoriteFood']}}</p>
 <p>allergies: {{info['allergies']}}</p>
 <p>preferences: {{info['preferences']}} </p>
-
+</div>
 <form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
     <p> <input class='button' type='submit' value='update profile'> </p>
 </form>
