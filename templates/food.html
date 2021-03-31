@@ -49,7 +49,7 @@
     <tbody>
 {%for comment in comments %}
 <tr> 
-    <td class="Stars" style="--rating: {{rating}};" aria-label="Rating of this product is {{rating}} out of 5."><div></div></td>
+    <td class="Stars" style="--rating: {{comment.rating}};" aria-label="Rating of this product is {{comment.rating}} out of 5."><div></div></td>
     <td>{{comment['comment']}} <a href="{{url_for('feed')}}">@{{comment['username']}}</a></td>
     <!-- <td><a href="{{url_for('feed')}}"> {{comment['comment']}} @ {{comment['username']}}</a></td> -->
 </tr>
