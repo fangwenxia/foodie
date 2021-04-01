@@ -655,7 +655,7 @@ def addfood():
             flash("Please make sure that all boxes in the form are checked.")
             return render_template('dataentry.html',title='Add Food')
 
-        test_bool = entry.exists(conn,food_name)
+        test_bool = entry.exists(conn,food_name,food_hall)
         if test_bool == True: 
             flash("Food already exists in database.")
             return redirect(url_for("mainmenu"))
