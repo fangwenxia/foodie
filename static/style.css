@@ -56,6 +56,36 @@ h1 {
     text-align: center;
 }
 
+fieldset {
+    display: block;
+    margin-inline-start: 2px;
+    margin-inline-end: 2px;
+    padding-block-start: 0.35em;
+    padding-inline-start: 0.75em;
+    padding-inline-end: 0.75em;
+    padding-block-end: 0.625em;
+    min-inline-size: min-content;
+    border-width: 2px;
+    border-style: groove;
+    border-color: threedface;
+    border-image: initial;
+}
+
+.legend{
+    display: block;
+    padding-inline-start: 2px;
+    padding-inline-end: 2px;
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+    font-family: Montserrat;
+    color: var(--orange);
+    font-style: italic;
+    margin-top: -.5em;
+    width: auto;
+    float:inherit;
+}
 .sr-only{
     position:absolute;
     left:-10000px;
@@ -65,7 +95,7 @@ h1 {
     overflow:hidden;
  }
 
-#create_form {
+#create_forms {
     display: inline-block;
     /* text-align: center; */
 }
