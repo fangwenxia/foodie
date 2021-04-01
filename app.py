@@ -219,6 +219,7 @@ def updateWait(did):
 def create():
     if request.method ==  "GET":
         username = ""
+        session['logged_in'] = False
         return render_template('create.html', username=username, title="Login")
     else:
         username = request.form['username']
@@ -255,6 +256,7 @@ def create():
 def user_login():
     if request.method ==  "GET":
         username = ""
+        session['logged_in'] = False
         print("HERE2:", username)
         return render_template('create.html', username=username, title="Login")
     else:
@@ -527,7 +529,6 @@ def addfood():
         if request.method == 'GET':
             # add a way to dynamically obtain food preferences and allergens, in beta  
             return render_template('dataentry.html',title='Add Food')
-<<<<<<< HEAD
         elif request.method == 'POST':
             conn = dbi.connect()
             food_name = request.form.get('food-name') 
@@ -560,17 +561,6 @@ def addfood():
             
             # obtains food id for food recently inserted into food table
             food_id = entry.get_food_id(conn,food_name)
-=======
-
-        test_bool = entry.exists(conn,food_name,food_dhall)
-        if test_bool == True: 
-            flash("Food already exists in database.")
-            return redirect(url_for("mainmenu"))
-        
-        # obtains date and inserts food into food table
-        food_date = today()[0]
-        entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
->>>>>>> 04ae44fef37d20b1c803748f1302531c4dd858fe
         
             # inserts related label into food database
             entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
