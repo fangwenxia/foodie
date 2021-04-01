@@ -9,6 +9,12 @@
 
 
 {% block content %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+<div class="card">
 
 <h1>{{info['name']}}</h1>
 
@@ -23,6 +29,11 @@
 <p>favorite food: {{info['favoriteFood']}}</p>
 <p>allergies: {{info['allergies']}}</p>
 <p>preferences: {{info['preferences']}} </p>
+</div>
+
+{% endblock %}
+
+{% block extra%}
 
 <form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
     <p> <input class='button' type='submit' value='update profile'> </p>
@@ -33,6 +44,7 @@
     <form method="post" action="{{url_for('profile', username = username)}}" enctype="multipart/form-data">
 
     <h2>upload new profile picture</h2>
+    <p><i>note: file size must be smaller than 1MB</i></p>
     <p><input id="file" type="file" name="pic" class="button">
         <label for="file" class="sr-only">Upload</label>
     <input name="submit" type="submit" value="upload" class="button">
@@ -40,6 +52,6 @@
 </p>
 </form>
 </div>
-{% endblock %}
+{% endblock%}
 
 

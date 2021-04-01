@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>foodie<span style="color:#fd8953">.</span></h1>  
+<div class="d-flex flex-column align-items-center">
+<h1>foodie<span style="color:#fd8953">.</span></h1> 
+<h2><i>your guide to the best eats at wellesley college</i></h2>
+</div>
 <!-- dh = request.args.get('dh-filter', "")
         mealtype = request.args.get("type-filter", "") -->
 <div class="d-flex flex-column align-items-center homePage">
-  <form method = "GET" action = "{{url_for('cas.login')}}">
+  <form method = "GET" action = "{{url_for('menu')}}">
     What's for
     <select name = "type-filter" class = "form-control">
       <option value = "" selected disabled hidden>Meal</option>
@@ -24,7 +27,7 @@
              <option value = 5> Tower </option>
     </select>
     ?
-<input class = "button" type = "submit" name = "filter" value = "view menu"> 
+<input class = "homeButton" type = "submit" name = "filter" value = "view menu"> 
 </form>
 </div>
 <!-- <form action="{{url_for('create')}}">
@@ -45,7 +48,7 @@
 </form>
 
 {% endif %}
-<div class="d-flex flex-column align-items-center">
+<div class="d-flex flex-column align-items-center ">
 <h2>Hours of Operation Lulu & Bates & Tower</h2>
 <p> Monday - Friday <br/>
     Continental Breakfast: 7:00 AM - 7:30 AM <br/>

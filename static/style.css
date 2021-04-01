@@ -9,12 +9,26 @@
     --lightgreen: #8fbc8f;
     --green: #5CB88D;
     --darkgrey: rgb(58, 58, 58);
+    --grey: #676967;
+    --lightgrey: #bebebe;
+    --star-size: 20px;
+    --star-color: #bebebe;
+    --star-background: #fddb53;
+    --navbarColor: #ffb08c21;
+    --pale: #f0f0f0;
     /* --darkgreen: #6aa66a; */
   }
 
 body {
     background-color:var(--white);
     padding-bottom: 70px;
+}
+
+.foodBackground{
+    background-color:var(--pale);
+    border-color: var(--lightgrey);
+    border: .01em solid var(--lightgrey);
+
 }
 h1 {
     color: var(--green);
@@ -59,10 +73,19 @@ h1 {
 .navbarCustom {
     font-family: Nunito;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 25px;
     text-align: left;
-    background-color: var(--lightorange);
-    margin-bottom: 10pt
+    /* background-color: var(--navbarColor); */
+    margin-bottom: 10pt;
+    box-shadow: 0px 0px 5px 0px #bebebe;
+    background-color: var(--white);
+    
+    /* border-bottom: var(--orange); */
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px var(--orange); */
+    /* border-bottom-left-radius: .2em;
+    border-bottom-right-radius: .2em; */
 }
 
 nav {
@@ -79,7 +102,7 @@ font-family: Montserrat;
     
 label {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
 }
 
 h2 {
@@ -87,6 +110,12 @@ font-family: Nunito;
 color: var(--orange);
 
 }
+
+h4 {
+    font-family: Montserrat;
+    color: var(--grey);
+    
+    }
 #subtitle {
 font-style: italic;
 text-align: center;
@@ -98,7 +127,7 @@ li.label {
 }
 p {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
 
 }
 #form {
@@ -106,10 +135,11 @@ p {
 }
 footer {
     font-family: Montserrat;
-    color: var(--green);
+    color: var(--grey);
     text-align: center; 
     font-size: 10pt;
     margin-bottom: .5em;
+    margin-top: 10em;
 }
 .button {
     background-color: var(--lightorange);
@@ -129,10 +159,13 @@ footer {
 }
 .comment {
     padding: 15px 32px;
+    font-family: Nunito;
+    margin-top: 1em;
+    margin-bottom: 2em;
     border-radius: .6em;
-    border-color: var(--green);
-    border-width: 1em;
+    border-width: .1em;
     border-style: solid;
+    background-color: #f0f0f0;
 }
 h3 {
     font-family: Nunito;
@@ -143,6 +176,8 @@ h3 {
     /* margin-left: 30%;
     margin-right: 30%; */
     /* margin-bottom: 2em; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
     text-align: center;
     font-family: Nunito;
     font-size:larger;
@@ -180,11 +215,16 @@ a:active.menuItem  {
   }
 
 .messages {
-    background-color: cornsilk;
+    background-color: #f0f0f0;
     font-family: Nunito;
     font-size: large;
     font-weight: 500;
     text-align: center;
+    /* text-align: center;
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%; */
 }
 
 .reviews {
@@ -215,10 +255,10 @@ a:active.menuItem  {
 }
 
 .starRating:not(old){
-    display        : inline-block;
+    display        :inline-table;
     width          : 7.5em;
-    height         : 1.5em;
-    overflow       : hidden;
+    height         : 0em;
+    overflow-y      : hidden;
     vertical-align : bottom;
   }
 .starRating:not(old) > input{
@@ -251,10 +291,40 @@ a:active.menuItem  {
 
 .homePage {
     font-family: Nunito;
-    color: var(--orange);
-    font-size: x-large;
+    color: var(--darkgrey);
+    font-size: 20pt;
+    /* background-color: #bebebe; */
+    background-color: #ffb08c;
+    /* border-color: var(--orange);
+    box-width: medium; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    /* width: 80%; */
+    padding: 1em;
+    margin-left: 20%;
+    margin-right: 20%;
+    /* margin-left: 30%; */
+    text-align: center;
+    margin-bottom: 2em;
+    margin-top: 2em;
+    /* align-content: center; */
 }
-
+.homeButton {
+    background-color: var(--white);
+    color: var(--darkgrey);
+    font-size: larger;
+    padding: 6px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-style: solid;
+    border-color: #bebebe;
+    border-width: .1em;
+    border-radius: .5em;
+    font-size: 16px;
+    font-family: Nunito;
+    margin: .5em;
+}
 .homePage select {
     width:max-content; /*hide original SELECT element: */
     display: inline;
@@ -265,17 +335,98 @@ a:active.menuItem  {
   }
 
 
-/* @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
 
-#foodie {
-    color: #5CB88D;
+/* div.grow{
+    transition: .5s ease;
+    } */
+    
+div.grow :hover{
+    -webkit-transform: scale(1.1);
+    -ms-transform: scale(1.1);
+    transform: scale(1.1);
+    transition: .5s ease;
+    }
+    
+
+.search {
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px #999; */
+    
+    border-radius: .2em;
+}
+
+div.card {
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    text-align: center;
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
+  }
+.hours {
+    width: max-content;
+    align-content: center;
+}
+
+.Stars {
+    --percent: calc(var(--rating) / 5 * 100%);
+    
+    display:inline-block;
+    font-size: var(--star-size);
     font-family: Nunito;
-    font-size : 50pt;
+    padding: 0;
+    margin: 0;
+}
+.Stars ::before {
+      content: '★★★★★';
+      letter-spacing: 3px;
+      background: linear-gradient(90deg, var(--star-background) var(--percent), var(--star-color) var(--percent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
+
+.row {
+    display: flex;
+  }
+  
+.column {
+    flex: 50%;
+  }
+
+.menuList th, td {
+    border: none;
+  }
+
+.addButton {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    text-shadow:rgba(0, 0, 0, 0.23);
+    margin-top: 1em;
 }
 
-#foodieLogo h1 {
-    font-style :italic;
+.addReview {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    text-shadow:rgba(0, 0, 0, 0.23);
+    margin-top: 1em;
 }
-h2 {
-    color: #FFA055;
-    /* color: rgb(216, 104, 63); */
+
+a:link.addReview {
+    text-decoration: none;
+    color: var(--darkgrey);
+  }
+  
+a:visited.addReview {
+    text-decoration:none;
+    color: var(--orange);
+  }
+  
+a:hover.addReview {
+    text-decoration: none;
+    background-color: #f0f0f0;
+  }
+  
+a:active.addReview  {
+    text-decoration: underline;
+  }
