@@ -265,7 +265,6 @@ def user_login():
             curs.execute('''select username, hashed 
                         from student 
                         where username = %s;''', [username])
-            user = curs.fetchone()
             # checks if user input matches password on file
             hashed = user['hashed']
             hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
@@ -327,13 +326,9 @@ def profile_error():
 def profile(username):
     try: 
         sessvalue = request.cookies.get('session')
-        print(1)
         username = session['CAS_USERNAME']
-        print(2)
         conn = dbi.connect()
-        print(3)
         info =  query.get_user_info(conn, username)
-        print('HEREEEEE', username)
         if 'CAS_USERNAME' in session:
             if request.method == "GET":
                 diningHall = info['favoriteDH']
@@ -341,7 +336,6 @@ def profile(username):
                 DH = dh_name['name']
                 return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile")
             else:
-                print('OR HERE????')
                 if request.form['submit'] == 'upload':
                     is_logged_in = True
                     username = session['CAS_USERNAME']
@@ -384,28 +378,20 @@ def profile(username):
                             title="Your Profile") 
     except:
         try:
-            print(username)
             session['username'] = username
             session['logged_in'] = True 
             conn = dbi.connect()
             info =  query.get_user_info(conn, username)
-            print(info)
             if 'username' in session:
                 if request.method == "GET":
-                    print("B")
                     try:
                         diningHall = info['favoriteDH']
-                        print("DHALL:", diningHall)
                         dh_name = query.DH_name(conn, diningHall)
-                        print("DH NAME:",dh_name)
                         DH = dh_name['name']
-                        print("DH:", DH)
                         return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile")
                     except:
-                        print(info['favoriteDH'])
                         return render_template('profile.html', username=username, info=info, dh_name=info['favoriteDH'], title="Your Profile")
                 else:
-                    print('OR HERE????')
                     if request.form['submit'] == 'upload':
                         is_logged_in = True
                         username = session['username']
@@ -414,7 +400,6 @@ def profile(username):
                         ext = user_filename.split('.')[-1]
                         filename = secure_filename('{}.{}'.format(username,ext))
                         pathname = os.path.join(app.config['UPLOADS'],filename)
-                        print("STUFF:", filename, username)
                         f.save(pathname)
                         curs = dbi.dict_cursor(conn)
                         curs.execute('''SELECT filename 
@@ -422,13 +407,11 @@ def profile(username):
                                         WHERE username = %s''', 
                                         [username])
                         if len(curs.fetchall()) == 0: 
-                            print("YESSSSS")
                             curs.execute(
                                 '''INSERT INTO proPics (username, filename)
                                 VALUES (%s, %s)''',
                                 [username, filename])
                         else:
-                            print("NOOOOOOO")
                             curs.execute(
                                 '''UPDATE proPics
                                 SET filename = %s
@@ -455,7 +438,6 @@ def update(username):
         if 'CAS_USERNAME' in session:
             if request.method == "GET":
                 sessvalue = request.cookies.get('session')
-                user = session.get('user', {'name': None, 'year': None, 'diningHall': None, 'favoriteFood': None})
                 info = query.get_user_info(conn, username)
                 name = info['name']
                 year = info['classYear']        
@@ -465,7 +447,6 @@ def update(username):
                 favoriteFood = info['favoriteFood']
                 allergens  = info['allergies']
                 preferences =  info['preferences']
-                session['user'] =  user
                 return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile")
                 # flash('Profile was updated successfully!')
 
@@ -497,31 +478,24 @@ def update(username):
             conn = dbi.connect()
             if 'username' in session:
                 if request.method == "GET":
-                    print("AB", username)
                     sessvalue = request.cookies.get('session')
-                    print("GRRRR")
                     info = query.get_user_info(conn, username)
-                    print("SESS:",sessvalue, "INFO:", info)
                     name = info['name']
                     year = info['classYear']        
                     diningHall = info['favoriteDH']
                     favoriteFood = info['favoriteFood']
                     allergens  = info['allergies']
                     preferences =  info['preferences']
-                    print("LILNASX")
                     try:
-                        print("CD")
                         dh_name = query.DH_name(conn, diningHall)
                         DH = dh_name['name']
                         return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile")
                     except:
-                        print("BOOP")
                         return render_template('update.html', username=username, info=info, dh_name=diningHall, title="Update Profile")
 
                     # flash('Profile was updated successfully!')
 
                 elif request.form["submit"] == "update":
-                    print("BC")
                     if  request.method == 'POST':
                         name2 = request.form['name']
                         year2 = request.form['year']
@@ -556,7 +530,6 @@ def update(username):
 def propic(username):
     conn = dbi.connect()
     curs = dbi.cursor(conn)
-    print("UI", username)
     sql = '''select filename from proPics where username = %s'''
     curs.execute(sql, [username])
     try:
@@ -572,10 +545,34 @@ def username_error():
     return render_template('create.html', title="Login")
 
 
-@app.route('/user/<username>', methods= ['POST', "GET"])
-def other_users(username):
+@app.route('/user/<user>', methods= ['POST', "GET"])
+def user(user):
     # allows user to look at other people's profile
-    return
+    try: 
+        sessvalue = request.cookies.get('session')
+        username = session['CAS_USERNAME']
+        conn = dbi.connect()
+        if 'CAS_USERNAME' in session:
+            if request.method == "GET":
+                sessvalue = request.cookies.get('session')
+                info = query.get_user_info(conn, user)
+                name = info['name']
+                year = info['classYear']        
+                diningHall = info['favoriteDH']
+                dh_name = query.DH_name(conn, diningHall)
+                DH = dh_name['name']
+                favoriteFood = info['favoriteFood']
+                allergens  = info['allergies']
+                preferences =  info['preferences']
+                return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile")
+    
+    except:
+        flash("Please log in to view other profiles.")
+        return redirect(url_for('create'))
+    
+    # except Exception as err: #in the case when there is not yet a photo uploaded
+    #         flash('Update failed {why}'.format(why=err))
+    #         return redirect(url_for('home'))
 
 
 
