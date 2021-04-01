@@ -9,8 +9,8 @@
     </span>
     {% for entry in feedbacks %}
     <div class="reviews">
-        <span><b>{{entry.username}} </b></span>
-        <span>@ {{entry.entered}}</span><br>
+        <span><b><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}} </a></b></span>
+        <span>{{entry.entered}}</span><br>
         <span>rated <b>{{entry.name}}</b> {{entry.rating}} points</span><br>
         <span>and said "{{entry.comment}}"</span><br>
     </div>
