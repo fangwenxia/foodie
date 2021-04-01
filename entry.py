@@ -35,7 +35,7 @@ def exists(conn,name,did):
     curs = dbi.cursor(conn)
     sql = '''select * from food where name=%s and did=%s'''
     vals = [name,did]
-    curs.execute(sql,name)
+    curs.execute(sql,[name,did])
     food_name=curs.fetchone()
     print(food_name)
     if food_name is not None: 
