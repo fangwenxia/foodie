@@ -148,8 +148,17 @@ def food(fid):
 def updateFood(fid):
     conn = dbi.connect()
     if request.method == "GET":
-        item = menuUp.lookupFoodItem(conn, fid)
-        return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+        try: 
+            sessvalue = request.cookies.get('session')
+            username = session['CAS_USERNAME']
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+        except:
+            flash("Please log in to update food")
+            return redirect(url_for("create"))
+
+
+        
     elif request.form.get("submit") == "update":
         try:
             ingredients = request.form["ingredients"]
@@ -584,11 +593,15 @@ def reviews(fid):
     conn=dbi.connect()
     if request.method=='GET':
         # get the form to display 
-        sessvalue = request.cookies.get('session')
-        username = session['CAS_USERNAME']
-        name=feed_queries.search_fid(conn,fid)['name']
-        title="Reviews"
-        return render_template('feed.html',title=title,name=name, fid = fid, username=username)
+        try: 
+            sessvalue = request.cookies.get('session')
+            username = session['CAS_USERNAME']
+            name=feed_queries.search_fid(conn,fid)['name']
+            title="Reviews"
+            return render_template('feed.html',title=title,name=name, fid = fid, username=username)
+        except:
+            flash("Please log in to add a review")
+            return redirect(url_for("create"))
     else:
         # get the input form values from the submitted form
         sessvalue = request.cookies.get('session')
