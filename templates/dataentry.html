@@ -6,10 +6,13 @@
         border: #676967;
         border-width: 20px;
     }
+    body {
+    background-color:#5cb88d32;
+    }
 </style>
 <h1>Add Food to Database</h1>
 <!-- add something to action -->
-<div class="d-flex flex-column row addfood">
+<div class="d-flex flex-column row addfood card">
     <form method=post action="{{url_for('addfood')}}">
         <h2>Food Information:</h2>
         <label for="food-name"><b>Name:</b></label>
