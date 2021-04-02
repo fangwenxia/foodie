@@ -1,13 +1,6 @@
 import cs304dbi as dbi
 
-# old helper function to add new user into student and passwords database without CAS
-# def add_username(conn, name, username, passwd1, hashed): 
-#     curs = dbi.dict_cursor(conn)
-#     curs.execute('''INSERT INTO student(username, name, password, hashed)
-#                 VALUES (%s, %s, %s, %s);''', [username, name, passwd1, hashed])
-#     conn.commit()
-
-# new  helper function to add new user into student
+# helper function to add new user into student
 def add_username(conn, username, passwd1, hashed_str): 
     curs = dbi.dict_cursor(conn)
     curs.execute('''INSERT INTO student(username, password, hashed)
@@ -19,6 +12,11 @@ def add_username(conn, username, passwd1, hashed_str):
 def username_exists(conn, username): 
     curs = dbi.dict_cursor(conn)
     curs.execute('''select username from student where username = %s;''', [username])
+    return len(curs.fetchall()) != 0
+
+def is_admin(conn, username):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select * from admin where adminname = %s;''', [username])
     return len(curs.fetchall()) != 0
         
 

@@ -153,13 +153,9 @@ def updateFood(fid):
             item = menuUp.lookupFoodItem(conn, fid)
             return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
         except:
-            session['username'] = ""
-            session['logged_in'] = False
             flash("Please log in to update food")
             return redirect(url_for("create"))
 
-
-        
     elif request.form.get("submit") == "update":
         try:
             ingredients = request.form["ingredients"]
@@ -251,14 +247,14 @@ def create():
 @app.route('/user_login/', methods=["GET", "POST"])
 def user_login():
     if request.method ==  "GET":
-        return render_template('create.html', username=username, title="Login")
+        return render_template('create.html', title="Login")
     else:
         username = request.form['username'] 
         passwd = request.form['password'] 
         conn = dbi.connect()
         curs = dbi.dict_cursor(conn)
         # helper function checks to make sure username exists in database
-        if query.username_exists(conn, username): 
+        if query.is_admin(conn, username): 
             # query finds password saved in database to compare with user input
             curs.execute('''select username, hashed 
                                 from student 
@@ -281,7 +277,7 @@ def user_login():
                 session['logged_in'] = False
                 return redirect(url_for('user_login'))
         else:
-            flash("This username doesn't exist. Please try again.")
+            flash("Only administrators can use this form. Please login through Wellesley portal.")
             session['username'] = ""
             session['logged_in'] = False
             return render_template('create.html', title="Login")
@@ -324,11 +320,14 @@ def profile(username):
                 flash("Upload successful. (If you don't see your new profile picture, hold down shift and refresh your page.")
                 return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
         return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
-    except:
-        flash('Please log in to continue.') 
-        session['username'] = ""
-        session['logged_in'] = False
-        return redirect(url_for('create'))
+    except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return redirect(url_for('create'))
+    # except:
+    #     flash('Please log in to continue.') 
+    #     session['username'] = ""
+    #     session['logged_in'] = False
+    #     return redirect(url_for('create'))
 
         
 @app.route('/update/<username>', methods = ["GET", "POST"])
@@ -375,14 +374,12 @@ def update(username):
                 flash('Update failed {why}'.format(why=err))
                 return render_template('update.html', username=username, info=info, title="Update Profile")
     except:
-        session['username'] = ""
-        session['logged_in'] = False
         flash('Please log in to update your profile.') 
         return redirect(url_for('create'))
 
 @app.route('/user_logout')
 def user_logout():
-    session['username'] = ''
+    session.pop('username', None)
     session['logged_in'] = False
     return redirect(url_for('cas.logout'))
 
@@ -448,28 +445,28 @@ def username_error():
 def user(user):
     # allows user to look at other people's profile
     try: 
-        if request.method == "GET":
-            conn = dbi.connect()
-            curs = dbi.cursor(conn)
-            curs.execute('''select filename from proPics where username = %s''',[user])
-            filename = curs.fetchone()[0]
-            print(filename)
-            info = query.get_user_info(conn, user)
-            name = info['name']
-            year = info['classYear']        
-            diningHall = info['favoriteDH']
-            if diningHall == None:
-                return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename)
-            else:
-                dh_name = query.DH_name(conn, diningHall)
-                DH = dh_name['name']
-                favoriteFood = info['favoriteFood']
-                allergens  = info['allergies']
-                preferences =  info['preferences']
-                return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename)
+        print('hmmm')
+        username = session['username']
+        print(username)
+        conn = dbi.connect()
+        curs = dbi.cursor(conn)
+        curs.execute('''select filename from proPics where username = %s''',[user])
+        filename = curs.fetchone()[0]
+        print(filename)
+        info = query.get_user_info(conn, user)
+        name = info['name']
+        year = info['classYear']        
+        diningHall = info['favoriteDH']
+        if diningHall == None:
+            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename)
+        else:
+            dh_name = query.DH_name(conn, diningHall)
+            DH = dh_name['name']
+            favoriteFood = info['favoriteFood']
+            allergens  = info['allergies']
+            preferences =  info['preferences']
+            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename)
     except:
-        session['username'] = ""
-        session['logged_in'] = False
         flash("Please log in to view other profiles.")
         return redirect(url_for('create'))
 
@@ -488,8 +485,6 @@ def reviews(fid):
             title="Reviews"
             return render_template('feed.html',title=title,name=name, fid = fid, username=username)
         except:
-            session['username'] = ""
-            session['logged_in'] = False
             flash("Please log in to add a review")
             return redirect(url_for("create"))
     else:
@@ -606,7 +601,6 @@ def delete():
                 flash('Your comment was successfully deleted from the foodie database')
             return redirect('/')
     except:
-        session['username'] = ""
         flash("Please login before accessing the delete food page")
         return redirect(url_for('user_login'))
 
