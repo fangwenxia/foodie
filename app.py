@@ -226,7 +226,6 @@ def create():
         passwd1 = request.form['password1']
         passwd2 = request.form['password2']
         conn = dbi.connect()
-        print(username)
         # next helper function checks to see if username is already in database and prompts user to log in instead 
         if query.username_exists(conn, username): 
             flash('''This username already exists. If this is you, please log in.
@@ -247,7 +246,6 @@ def create():
                 query.add_username(conn, username, passwd1, hashed_str) 
                 session['username'] = username
                 session['logged_in'] = True
-                print(session)
                 flash('Profile was created successfully! You can post, review and more!')
                 return redirect(url_for('profile', username=username)) 
 
@@ -257,7 +255,6 @@ def user_login():
     if request.method ==  "GET":
         username = ""
         session['logged_in'] = False
-        print("HERE2:", username)
         return render_template('create.html', username=username, title="Login")
     else:
         username = request.form['username'] 
@@ -278,12 +275,9 @@ def user_login():
             hashed2_str = hashed2.decode('utf-8')
             if hashed2_str  == hashed:
                 flash('Successfully logged in.')
-                print("BLAHHHH:", session)
                 session['username'] = username
                 session['logged_in'] = True
                 info =  query.get_user_info(conn, username)
-                print("BLAHHHH2:", session)
-                print("poop:", username, session['username'])
                 return redirect(url_for('profile', username=session['username'], info=info))
             else:
                 flash('Incorrect login. Please try again.')
@@ -302,31 +296,23 @@ def user_login():
 def profile(username):
     try: 
         username = session['username']
-        print('GAHHHH', username)
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
         if request.method == "GET":
-            print("HMMMMMMM")
             diningHall = info['favoriteDH']
             if diningHall == None:
-                print("NO HALL")
                 return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
             else:
-                print("YESSIR",diningHall)
                 dh_name = query.DH_name(conn, diningHall)
-                print("NO SSIRRR", dh_name)
                 DH = dh_name['name']
                 return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile")
         else:
-            print("OOOOOOH")
             if request.form['submit'] == 'upload':
-                print("BOOBIES:", username)
                 f = request.files['pic']
                 user_filename = f.filename
                 ext = user_filename.split('.')[-1]
                 filename = secure_filename('{}.{}'.format(username,ext))
                 pathname = os.path.join(app.config['UPLOADS'],filename)
-                print("FILE:", filename)
                 f.save(pathname)
                 curs = dbi.dict_cursor(conn)
                 curs.execute(
@@ -351,7 +337,6 @@ def update(username):
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
         if request.method == "GET":
-            print("CALL ME")
             info = query.get_user_info(conn, username)
             name = info['name']
             year = info['classYear']        
@@ -366,7 +351,6 @@ def update(username):
                 preferences =  info['preferences']
                 return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile")
         elif request.form["submit"] == "update":
-            print("WHEN YOU WANT")
             if  request.method == 'POST':
                 name2 = request.form['name']
                 year2 = request.form['year']
@@ -424,7 +408,6 @@ def profile_error():
     elif 'CAS_USERNAME' in session: 
             #check to see if logging in using CAS
             #if in database:
-            print("FUCK IT UPPPPP")
             username = session['CAS_USERNAME']
             session['username'] = username
             conn = dbi.connect()
