@@ -218,9 +218,7 @@ def updateWait(did):
 @app.route('/create/', methods=["GET", "POST"]) 
 def create():
     if request.method ==  "GET":
-        username = ""
-        session['logged_in'] = False
-        return render_template('create.html', username=username, title="Login")
+        return render_template('create.html', title="Login")
     else:
         username = request.form['username']
         passwd1 = request.form['password1']
@@ -253,8 +251,6 @@ def create():
 @app.route('/user_login/', methods=["GET", "POST"])
 def user_login():
     if request.method ==  "GET":
-        username = ""
-        session['logged_in'] = False
         return render_template('create.html', username=username, title="Login")
     else:
         username = request.form['username'] 
@@ -379,6 +375,12 @@ def update(username):
         flash('Please log in to update your profile.') 
         return redirect(url_for('create'))
 
+@app.route('/user_logout')
+def user_logout():
+    session['username'] = ''
+    session['logged_in'] = False
+    return redirect(url_for('cas.logout'))
+
 @app.route('/propic/<username>') 
 #route to image for food photos, can later be generalized and applied to other photos too
 def propic(username):
@@ -395,7 +397,20 @@ def propic(username):
 
 @app.route('/profile/', methods = ["GET", "POST"])
 def profile_error():
-    if 'username' in session: 
+    if 'CAS_USERNAME' in session: 
+        #check to see if logging in using CAS
+        #if in database:
+        username = session['CAS_USERNAME']
+        session['username'] = username
+        conn = dbi.connect()
+        curs = dbi.cursor(conn)
+        if query.username_exists(conn, username):
+            return redirect(url_for('profile', username=username))
+        else:
+            flash("Looks like you're new here. Your account has just been created. Welcome to Foodie.!")
+            query.add_username(conn, username, "NONE", "NONE")
+            return redirect(url_for('profile', username=username))
+    elif 'username' in session: 
         #if in database:
         conn = dbi.connect()
         curs = dbi.cursor(conn)
@@ -404,20 +419,6 @@ def profile_error():
             return redirect(url_for('profile', username=username))
         else:
             return redirect(url_for('create'))
-
-    elif 'CAS_USERNAME' in session: 
-            #check to see if logging in using CAS
-            #if in database:
-            username = session['CAS_USERNAME']
-            session['username'] = username
-            conn = dbi.connect()
-            curs = dbi.cursor(conn)
-            if query.username_exists(conn, username):
-                return redirect(url_for('profile', username=username))
-            else:
-                flash("Looks like you're new here. Your account has just been created. Welcome to Foodie.!")
-                query.add_username(conn, username, "NONE", "NONE")
-                return redirect(url_for('profile', username=username))
     else:
         session['username'] = ""
         session['logged_in'] = False

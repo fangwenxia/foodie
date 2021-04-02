@@ -24,7 +24,6 @@ def username_exists(conn, username):
 
 # helper function to access all users info from student table
 def get_user_info(conn, username):
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute('''select student.name, username, classYear, favoriteDH, favoriteFood, allergies, preferences
                     from student
@@ -33,7 +32,6 @@ def get_user_info(conn, username):
 
 # helper function to get diningHall name
 def DH_name(conn, id):
-    conn = dbi.connect()
     curs = dbi.dict_cursor(conn)
     curs.execute('''select name
                     from diningHall
