@@ -405,9 +405,9 @@ def propic(username):
     try:
         filename = curs.fetchone()[0]
         return send_from_directory(app.config['UPLOADS'],filename)
-    except Exception as err: #in the case when there is not yet a photo uploaded
-            flash('Update failed {why}'.format(why=err))
-            return redirect(url_for('profile', username=username))
+    except: #in the case when there is not yet a photo uploaded
+        flash("This user either doesn't exist or doesn't have a profile picture")
+        return redirect(url_for('profile', username=username))
 
 @app.route('/profile/', methods = ["GET", "POST"])
 def profile_error():
@@ -549,7 +549,7 @@ def addfood():
             if len(food_preferences) == 0 or len(food_allergens) == 0: 
                 flash("Please make sure that all boxes in the form are checked.")
                 return render_template('dataentry.html',title='Add Food')
-
+            
             test_bool = entry.exists(conn,food_name,food_hall)
             if test_bool == True: 
                 flash("Food already exists in database.")
@@ -561,15 +561,13 @@ def addfood():
             
             # obtains food id for food recently inserted into food table
             food_id = entry.get_food_id(conn,food_name)
-        
+
             # inserts related label into food database
             entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
             success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name)
             flash(success_message)
             return redirect(url_for("mainmenu"))
     except:
-        session['username'] = ""
-        session['logged_in'] = False
         flash("Please login before accessing the add food page")
         return redirect(url_for('user_login'))
 
@@ -617,7 +615,6 @@ def delete():
             return redirect('/')
     except:
         session['username'] = ""
-        session['logged_in'] = False
         flash("Please login before accessing the delete food page")
         return redirect(url_for('user_login'))
 
