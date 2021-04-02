@@ -5,33 +5,99 @@
     .addfood {
         border: 2em solid white;
     }
+
     body {
-    background-color:#5cb88d32;
+        background-color: #5cb88d32;
     }
 </style>
 <div class="card addfood">
-<h1>Remove Comment or Food</h1>
-<p>Select a meal, comment, or both to delete from the database.
-    <br> <i> Note: If you are not an administrator, you will not be able to delete meals from the database. </i>
-</p>
-<form method="post" action="{{url_for('delete')}}">
+    <h1>Remove Comment or Food</h1>
+    <p>Select a meal, comment, or both to delete from the database.
+        <br> <i> Note: If you are not an administrator, you will not be able to delete meals from the database. </i>
+    </p>
+    <form method="post" action="{{url_for('delete')}}">
         <p>Select the food you wish to delete:
-        <select name="food-dlt">
-            <option value="none">Select Food</option>
-            <!--Fills out the drop down menu with incomplete movies-->
-            {% for food in allfoods %}
-            <option id ='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
-            {% endfor %}
-        </select></p>
+            <select name="food-dlt">
+                <option value="none">Select Food</option>
+                {% for food in allfoods %}
+                <option id='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
+                {% endfor %}
+            </select>
+        </p>
         <p>Select the comment you wish to delete:
-        <select name="comment-dlt">
-            <option value="none">Select Comment</option>
-            <!--Fills out the drop down menu with incomplete movies-->
-            {% for fback in comments %}
-            <option value='{{fback.entered}}' id='{{fback.entered}}'>{{fback.comment}}</option>
-            {% endfor %}
-        </select></p>
+            <select name="comment-dlt">
+                <option value="none">Select Comment</option>
+                {% for fback in comments %}
+                <option value='{{fback.entered}}' id='{{fback.entered}}'>{{fback.comment}}</option>
+                {% endfor %}
+            </select>
+        </p>
         <input type="submit" name="submit" class="button" value="remove">
     </form>
 </div>
+
+<div class="card addfood">
+    <h2>Update Food (Admin-only)</h2>
+    <form method="post" action="">
+        <p>Select the food item you wish to delete:</p>
+            <select name="food-update">
+                <option value="none">Select Food</option>
+                {% for food in allfoods %}
+                <option id='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
+                {% endfor %}
+            </select>
+        <p><b>Food Preferences:</b>
+            <input type="checkbox" value="none" id="none" name="preferences">
+            <label for="none">none</label>
+            <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
+            <label for="gluten-sensitive">gluten sensitive</label>
+
+            <input type="checkbox" value="vegan" id="vegan" name="preferences">
+            <label for="vegan">vegan</label>
+
+            <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
+            <label for="vegetarian">vegetarian</label>
+
+            <input type="checkbox" value="kosher" id="kosher" name="preferences">
+            <label for="kosher">
+                kosher
+            </label>
+            <input type="checkbox" value="halal" id="halal" name="preferences">
+            <label for="halal">halal</label>
+        </p>
+        <p><b>Allergens:</b>
+            <input type="checkbox" value="none" name="allergens" id="allergens">
+            <label for="allergens">none</label>
+
+            <input type="checkbox" value="eggs" id="eggs" name="allergens">
+            <label for="eggs">eggs</label>
+
+            <input type="checkbox" value="fish" id="fish" name="allergens">
+            <label for="fish">fish</label>
+
+            <input type="checkbox" value="milk" id="milk" name="allergens">
+            <label for="milk">
+                milk
+            </label>
+
+            <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
+            <label for="peanuts">peanuts</label>
+
+            <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
+            <label for="shellfish">shellfish</label>
+
+            <input type="checkbox" value="soy" id="soy" name="allergens">
+            <label for="soy">soy</label>
+
+            <input type="checkbox" value="tree-nut" id="tree-nut" name="allergens">
+            <label for="tree-nut">
+                tree nut
+            </label>
+
+            <input type="checkbox" value="wheat" id="wheat" name="allergens">
+            <label for="wheat">wheat</label>
+        </p>
+
+</div>
+</form>
 {% endblock %}
