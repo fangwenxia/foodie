@@ -21,8 +21,8 @@
 {% if filename %}
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{info['name']}}, profile picture"></p>
 {% else %}
-<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('static', filename = 'foodieEmoji.png')}}" alt="{{info['name']}}, profile picture"></p>
-% endif %}
+<p><img class ="mx-auto d-block" src="{{url_for('static', filename = 'foodieEmoji.png')}}" alt="Default Profile Picture" width="150" height = "150"></p>
+{% endif %}
 
 <div class="profile">
 <p>username: {{username}}</p>

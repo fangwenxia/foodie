@@ -15,17 +15,17 @@
     <form method=post action="{{url_for('addfood')}}">
         <h2>Food Information:</h2>
         <div class="d-flex-inline">
-        <label for="food-name"><b>Name:</b></label>
-        <input type="text" name="food-name" id="food-name" required><br>
-        <label for="food-type"><b>Food type:</b></label></td>
+        <p><label for="food-name"><b>Name:</b></label>
+        <input type="text" name="food-name" id="food-name" required></p>
+        <p><label for="food-type"><b>Food type:</b></label></td>
         <select id="food-type" name="food-type" required>
             <option value="" selected disabled hidden>select</option>
             <option value="breakfast">Breakfast</option>
             <option value="lunch">Lunch</option>
             <option value="dinner">Dinner</option>
             <option value="all day">All-day</option>
-        </select><br>
-        <label for="food-hall"><b>Dining hall:</b></label>
+        </select></p>
+       <p><label for="food-hall"><b>Dining hall:</b></label>
         <select id="food-hall" name="food-hall" required>
             <option value="" selected disabled hidden>select</option>
             <option value="1">Bates</option>
@@ -33,10 +33,10 @@
             <option value="3">Pom</option>
             <option value="4">Stone-D</option>
             <option value="5">Tower</option>
-        </select><br>
-        <label for="food-ingredients"><b>Food Ingredients:</b></label>
-        <input type="text" name="food-ingredients" id="food-ingredients" required>
-        <p><b>Food Preferences:</b>
+        </select></p> 
+        <p><label for="food-ingredients"><b>Food Ingredients:</b></label>
+        <input type="text" name="food-ingredients" id="food-ingredients" required></p>
+        <p><b>Food Preferences: </b>
         <input type="checkbox" value="none" id="none" name="preferences">
         <label for="none">none</label>
         <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
@@ -86,7 +86,7 @@
         <input type="checkbox" value="wheat" id="wheat" name="allergens">
         <label for="wheat">wheat</label></p>
 
-        <p> <input type='submit' value='Add New Meal'> </p>
+        <p> <input type='submit' class = "button" value='Add New Meal'> </p>
     </form>
 </div>
 </div>

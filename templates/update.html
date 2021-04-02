@@ -21,30 +21,32 @@
         <td><input id="name" name='name' value="{{info['name']}}" required></td> 
       </tr>
       
-      <tr>
-        <td><label for="year">Class Year</label></td>
-        <td><select id="year" name ="year" required> 
-            <!-- Numbers correspond to id for dining halls in our database -->
-            <option value= ""> select</option>
-            <option value= "2021"> 2021</option>
-            <option value= "2022"> 2022</option>
-            <option value= "2023"> 2023</option>
-            <option value= "2024"> 2024</option>
-            <option value= "Davis Scholar"> Davis Scholar</option>
+  <tr>
+    <td><label for="year">Class Year</label></td>
+    <td><select id="year" name="year" required>
+            {% for year in [' ', '2021', '2022', '2023', '2024', 'Davis Scholar'] %}
+                {% if year == info['classYear']%}
+                <option selected> {{year}}</option>
+                {% else %}
+                <option> {{year}}</option>
+                {% endif %}
+            {% endfor %}
         </select></td>
-    </tr>
-      <tr>
-        <td><label for="diningHall">Favorite Dining Hall</label></td>
-        <td><select id="diningHall" name ="diningHall" required> 
-            <!-- Numbers correspond to id for dining halls in our database -->
-            <option value= ""> select</option>
-            <option value= 1> Bates</option>
-            <option value= 2> Lulu</option>
-            <option value= 3> Pom</option>
-            <option value= 4> Stone-D</option>
-            <option value= 5> Tower</option>
+</tr>
+
+<tr>
+    <td><label for="diningHall">Favorite Dining Hall</label></td>
+    <td><select id="diningHall" name="diningHall" required>
+            {% for hall in [' ', 1, 2, 3, 4, 5] %}
+                    {% if hall == info['favoriteDH'] %}
+                    <option value= {{hall}} selected> {{names[hall]}}</option>
+                    {% else %}
+                    <option value= {{hall}}> {{names[hall]}}</option>
+                    {% endif %}
+            {% endfor %}
         </select></td>
-    </tr>
+</tr>
+
     <tr>
         <td><label for="favoriteFood">Favorite Food</label></td>
         <td><input id="favoriteFood" name='favoriteFood' value="{{info['favoriteFood']}}" required></td> 
@@ -53,68 +55,31 @@
     <tr>
         <td><label>Food Allergens</label></td>
         <td>
-            <input type="checkbox" value=none id="al_none" name="allergens" >
-            <label for="al_none">none </label>
-        </td>
-        <td>
-            <input type="checkbox" value="eggs" id="eggs" name="allergens">
-            <label for="eggs">eggs </label>
-        </td>
-        <td>
-            <input type="checkbox" value="fish" id="fish" name="allergens">
-            <label for="fish">fish </label>
-        </td>
-        <td>
-            <input type="checkbox" value="milk" id="milk" name="allergens">
-            <label for="milk">milk </label>
-        </td>
-        <td>
-            <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
-            <label for="peanuts">peanuts  </label>
-        </td>
-        <td>
-            <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
-            <label for="shellfish">shellfish  </label>
-        </td>
-        <td>
-            <input type="checkbox" value="soy" id="soy" name="allergens">
-            <label for="soy">soy </label>
-        </td>
-        <td>
-            <input type="checkbox" value="tree nut" id="tree_nut" name="allergens">
-            <label for="tree_nut">tree nut </label>
-        </td>
-        <td>
-            <input type="checkbox" value="wheat" id="wheat" name="allergens">
-            <label for="wheat">wheat </label>
-        </td>
+                {% for al in ['none', 'eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree nut', 'wheat'] %}
+                        {% if al in info['allergies'] %}
+                        <input type="checkbox"  value={{al}} name="allergens" checked>
+                        <label class="pro_checks"> {{al}} </label>
+                        {% else %}
+                        <input type="checkbox" value={{al}} name="allergens">
+                        <label class="pro_checks"> {{al}} </label>
+                        {% endif %}
+                {% endfor %}
+            </td>
     </tr>
+
     <tr>
         <td><label>Food Preferences</label></td>
-        <td>
-            <input type="checkbox" value="none" id="pref_none" name="preferences">
-            <label for="pref_none">none </label>
-        </td>
-        <td>
-            <input type="checkbox" value="gluten sensitive" id="gluten_sensitive" name="preferences">
-            <label for="gluten_sensitive">gluten sensitive </label>
-        </td>
-        <td>
-            <input type="checkbox" value="vegan" id="vegan" name="preferences">
-            <label for="vegan">vegan </label>
-        </td>
-        <td>
-            <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
-            <label for="vegetarian">vegetarian </label>
-        </td>
-        <td>
-            <input type="checkbox" value="kosher" id="kosher" name="preferences">
-            <label for="kosher">kosher </label>
-        </td>
-        <td>
-            <input type="checkbox" value="halal" id="halal" name="preferences">
-            <label class for="halal">halal </label>
-        </td>
+        <td class="pro_checks">
+                {% for pref in ['none', 'gluten sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'] %}
+                        {% if pref in info['preferences'] %}
+                        <input type="checkbox" value={{pref}} name="preferences" checked>
+                        <label> {{pref}} </label>
+                        {% else %}
+                        <input type="checkbox" value={{pref}} name="preferences">
+                        <label> {{pref}} </label>
+                        {% endif %}
+                {% endfor %}
+            </td>
     </tr>
     
     </table>

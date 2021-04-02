@@ -56,6 +56,10 @@ h1 {
     text-align: center;
 }
 
+.login_forms{
+    text-align: center;
+}
+
 fieldset {
     display: block;
     margin-inline-start: 2px;
@@ -95,7 +99,7 @@ fieldset {
     overflow:hidden;
  }
 
-#create_forms {
+.create_forms {
     display: inline-block;
     /* text-align: center; */
 }
