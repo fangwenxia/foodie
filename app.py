@@ -286,15 +286,13 @@ def user_login():
 # how to get actual text instead of values for DH and Classyear 
 @app.route('/profile/<username>', methods=['GET','POST'])
 def profile(username):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute('''select filename from proPics where username = %s''',[username])
+    filename = curs.fetchone()
     try: 
         username = session['username']
-        conn = dbi.connect()
         info =  query.get_user_info(conn, username)
-        curs = dbi.cursor(conn)
-        curs.execute('''select filename from proPics where username = %s''',
-                    [username])
-        filename = curs.fetchone()[0]
-        print(filename)
         if request.method == "GET":
             diningHall = info['favoriteDH']
             if diningHall == None:
@@ -460,15 +458,14 @@ def username_error():
 @app.route('/user/<user>', methods= ['POST', "GET"])
 def user(user):
     # allows user to look at other people's profile
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute('''select filename from proPics where username = %s''',[user])
+    filename = curs.fetchone()
     try: 
         print('hmmm')
         username = session['username']
         print(username)
-        conn = dbi.connect()
-        curs = dbi.cursor(conn)
-        curs.execute('''select filename from proPics where username = %s''',[user])
-        filename = curs.fetchone()[0]
-        print(filename)
         info = query.get_user_info(conn, user)
         name = info['name']
         year = info['classYear']        

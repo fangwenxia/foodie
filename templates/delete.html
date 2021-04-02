@@ -1,28 +1,37 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Delete Food/Comments from Database</h1>
+<style>
+    .addfood {
+        border: 2em solid white;
+    }
+    body {
+    background-color:#5cb88d32;
+    }
+</style>
+<div class="card addfood">
+<h1>Remove Comment or Food</h1>
 <p>Select a meal, comment, or both to delete from the database.
-    <br> Note: If you are not an administrator, you will not be able to delete meals from the database. 
+    <br> <i> Note: If you are not an administrator, you will not be able to delete meals from the database. </i>
 </p>
 <form method="post" action="{{url_for('delete')}}">
-        <p>Select the food you wish to delete:</p>
+        <p>Select the food you wish to delete:
         <select name="food-dlt">
             <option value="none">Select Food</option>
             <!--Fills out the drop down menu with incomplete movies-->
             {% for food in allfoods %}
             <option id ='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
             {% endfor %}
-        </select>
-        <p>Select the comment you wish to delete:</p>
+        </select></p>
+        <p>Select the comment you wish to delete:
         <select name="comment-dlt">
             <option value="none">Select Comment</option>
             <!--Fills out the drop down menu with incomplete movies-->
             {% for fback in comments %}
             <option value='{{fback.entered}}' id='{{fback.entered}}'>{{fback.comment}}</option>
             {% endfor %}
-        </select>
-        <input type="submit" name="submit" value="delete">
+        </select></p>
+        <input type="submit" name="submit" class="button" value="remove">
     </form>
-
+</div>
 {% endblock %}
