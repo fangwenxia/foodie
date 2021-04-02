@@ -38,10 +38,7 @@ def exists(conn,name,did):
     curs.execute(sql,[name,did])
     food_name=curs.fetchone()
     print(food_name)
-    if food_name is not None: 
-        return True
-    else: 
-        return False 
+    return (food_name is not None)
         
 # gets all the food in the database
 def get_all_food(conn):
@@ -106,6 +103,12 @@ def delete_comments(conn,fid):
         curs = dbi.dict_cursor(conn)
         curs.execute(sql,fid)
         conn.commit()
+def is_admin(conn,username):
+    sql = '''select * from admin where adminname = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,username)
+    admin = curs.fetchone()
+    return admin is not None
     
 
 

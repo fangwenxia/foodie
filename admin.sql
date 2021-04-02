@@ -11,8 +11,8 @@ create table admin (
 ) 
 ENGINE = InnoDB; 
 
-insert into admin(adminname) values ('lteffera'); 
-insert into admin(adminname) values ('sclark4'); 
-insert into admin(adminname) values ('ggabeau'); 
-insert into admin(adminname) values ('fx1'); 
-insert into admin(adminname) values ('scott'); 
+-- insert into admin(adminname) values ('lteffera'); 
+-- insert into admin(adminname) values ('sclark4'); 
+-- insert into admin(adminname) values ('ggabeau'); 
+-- insert into admin(adminname) values ('fx1'); 
+-- insert into admin(adminname) values ('scott'); 

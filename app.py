@@ -537,8 +537,7 @@ def addfood():
             food_preferences = request.form.getlist('preferences')
             food_allergens = request.form.getlist('allergens')
             food_ingredients = request.form.get('food-ingredients')
-            print(food_allergens)
-            print(food_ingredients)
+
             # error-handling: if any of the form elements aren't filled out, don't submit the form
             if len(food_name)==0: 
                 flash("Please enter in the name of the food.")
@@ -584,7 +583,8 @@ def delete():
             all_foods = entry.get_all_food(conn) 
             all_comments = entry.get_all_comments(conn,username)
 
-            # strips whitespace from datetime object, so HTML for the user's comments drop-down menu is valid 
+            # converts datetime object to one that doesn't have spaces. 
+            # each comment will be added to the HTML webpage, 
             for i in all_comments: 
                 val = i['entered']
                 i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
@@ -599,9 +599,9 @@ def delete():
             if food_id == 'none' and comment_entered == 'none': 
                 flash('Please make sure you have selected a food item or comment to delete.')
                 return redirect(url_for('delete'))
-            if username not in ['fx1','ggabeau','lteffera','sclark4','scott']:  # should add 'admin' property to student table in ddl 
+            elif not entry.is_admin(conn,username):
                 flash('Sorry, you are not authorized to delete food items from the foodie database.')
-                return redirect('/')
+                return redirect(url_for('/'))
             if food_id != 'none': 
 
                 food_name = entry.get_food(conn,food_id)
