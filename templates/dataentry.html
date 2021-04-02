@@ -5,14 +5,18 @@
     .addfood {
         border: 20px solid #d0dea0;
     }
+    body {
+    background-color:#5cb88d32;
+    }
 </style>
 <h1>Add Food to Database</h1>
 <!-- add something to action -->
-<div class="d-flex flex-column flex-row-reverse addfood card">
+<div class="d-flex flex-column row addfood card">
     <form method=post action="{{url_for('addfood')}}">
         <h2>Food Information:</h2>
+        <div class="d-flex-inline">
         <label for="food-name"><b>Name:</b></label>
-        <input type="text" name="food-name" id="food-name" required>
+        <input type="text" name="food-name" id="food-name" required><br>
         <label for="food-type"><b>Food type:</b></label></td>
         <select id="food-type" name="food-type" required>
             <option value="" selected disabled hidden>select</option>
@@ -20,7 +24,7 @@
             <option value="lunch">Lunch</option>
             <option value="dinner">Dinner</option>
             <option value="all day">All-day</option>
-        </select>
+        </select><br>
         <label for="food-hall"><b>Dining hall:</b></label>
         <select id="food-hall" name="food-hall" required>
             <option value="" selected disabled hidden>select</option>
@@ -29,10 +33,10 @@
             <option value="3">Pom</option>
             <option value="4">Stone-D</option>
             <option value="5">Tower</option>
-        </select>
+        </select><br>
         <label for="food-ingredients"><b>Food Ingredients:</b></label>
         <input type="text" name="food-ingredients" id="food-ingredients" required>
-        <p><b>Food Preferences:</b></p>
+        <p><b>Food Preferences:</b>
         <input type="checkbox" value="none" id="none" name="preferences">
         <label for="none">none</label>
         <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
@@ -49,8 +53,8 @@
             kosher
         </label>
         <input type="checkbox" value="halal" id="halal" name="preferences">
-        <label for="halal">halal</label>
-        <p><b>Allergens:</b></p>
+        <label for="halal">halal</label></p>
+        <p><b>Allergens:</b>
         <input type="checkbox" value="none" name="allergens" id="allergens">
         <label for="allergens">none</label>
 
@@ -80,10 +84,11 @@
         </label>
 
         <input type="checkbox" value="wheat" id="wheat" name="allergens">
-        <label for="wheat">wheat</label>
+        <label for="wheat">wheat</label></p>
 
         <p> <input type='submit' value='Add New Meal'> </p>
     </form>
+</div>
 </div>
 
 
@@ -209,5 +214,6 @@
 {% endblock %}
 
 {% block footer %}
-daily menu provided by students like you. thank you!
+<footer>
+daily menu provided by students like you. thank you!</footer>
 {% endblock %}

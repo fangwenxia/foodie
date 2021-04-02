@@ -33,12 +33,12 @@
 
 {% if session['username'] %}
 
-<form method="GET" action="{{url_for('cas.logout')}}">
+<form method="GET" action="{{url_for('user_logout')}}">
     <p class="login_button"><input class='button' type='submit' value='logout {{session["username"]}}'> </p>
 </form>
 {% else %}
 <form method="GET" action="{{url_for('cas.login')}}">
-  <p class="login_button"><input class='button' type='submit' value='login'> </p>
+  <p class="login_button"><input class='button' type='submit' value='login/create account'> </p>
 </form>
 
 {% endif %}

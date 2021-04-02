@@ -13,12 +13,12 @@
 <form method="POST" action="{{url_for('update', username = username)}}" autocomplete="on">
     <table>
       <tr>
-        <td>Username</label></td>
+        <td><label>Username</label></td>
         <td>{{username}}</td>  
       </tr>
       <tr>
         <td><label for="name">Name</label></td>
-        <td><input id="name" name='name' value="{{info['name']}}"></td> 
+        <td><input id="name" name='name' value="{{info['name']}}" required></td> 
       </tr>
       
       <tr>
@@ -47,13 +47,13 @@
     </tr>
     <tr>
         <td><label for="favoriteFood">Favorite Food</label></td>
-        <td><input id="favoriteFood" name='favoriteFood' value="{{info['favoriteFood']}}"></td> 
+        <td><input id="favoriteFood" name='favoriteFood' value="{{info['favoriteFood']}}" required></td> 
 
     </tr>
     <tr>
         <td><label>Food Allergens</label></td>
         <td>
-            <input type="checkbox" value=none id="al_none" name="allergens">
+            <input type="checkbox" value=none id="al_none" name="allergens" >
             <label for="al_none">none </label>
         </td>
         <td>

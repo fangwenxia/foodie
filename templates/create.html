@@ -49,18 +49,18 @@
 </fieldset>  
 </form>
 
-{% if session['username']%}
+{% if session['username'] %}
 
 <form method="GET" action="{{url_for('cas.logout')}}">
-    <p><input class='button' type='submit' value='logout session["username"]'> </p>
+    <p class="login_button"><input class='button' type='submit' value='logout {{session["username"]}}'> </p>
 </form>
 {% else %}
-<p>{{username}}</p>
 <form method="GET" action="{{url_for('cas.login')}}">
-    <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
+  <p class="login_button"><input class='button' type='submit' value='login through wellesley portal'> </p>
 </form>
 
 {% endif %}
+
 
 {% endblock %}
 </div>
