@@ -612,13 +612,22 @@ def delete():
             if comment_entered != "none": 
                 entry.delete_comment(conn,username,comment_entered)
                 flash('Your comment was successfully deleted from the foodie database')
-            return redirect('/')
+            return redirect(url_for('/'))
     except:
         flash("Please login before accessing the delete food page")
         return redirect(url_for('user_login'))
 
+@app.route('/adminFoodUpdate/', methods=["POST"]) 
+def adminFoodUpdate(): 
+    #add stuff here and redirect??
+    if request.method == "POST": 
+        food_preferences = request.form.getlist('preferences')
+        food_allergens = request.form.getlist('allergens')
+        food_id = request.form.get('update')
+        redirect(url_for('update',food_id))
 
-    
+
+     
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()

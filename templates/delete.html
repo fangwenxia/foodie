@@ -38,8 +38,8 @@
 
 <div class="card addfood">
     <h2>Update Food (Admin-only)</h2>
-    <form method="post" action="">
-        <p>Select the food item you wish to delete:</p>
+    <form method="post" action="{{url_for('adminFoodUpdate')}}">
+        <p>Select the food item you wish to update:</p>
             <select name="food-update">
                 <option value="none">Select Food</option>
                 {% for food in allfoods %}
@@ -96,6 +96,7 @@
 
             <input type="checkbox" value="wheat" id="wheat" name="allergens">
             <label for="wheat">wheat</label>
+            <input type="submit" name="submit" class="button" value="update">
         </p>
 
 </div>
