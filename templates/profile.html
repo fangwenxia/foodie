@@ -22,7 +22,7 @@
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{info['name']}}, profile picture"></p>
 {% else %}
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('static', filename = 'foodieEmoji.png')}}" alt="{{info['name']}}, profile picture"></p>
-% endif %}
+{% endif %}
 
 <div class="profile">
 <p>username: {{username}}</p>
