@@ -1,13 +1,97 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    .addfood {
+        border: #676967;
+        border-width: 20px;
+    }
+</style>
 <h1>Add Food to Database</h1>
-
 <!-- add something to action -->
-<form method=post action="{{url_for('addfood')}}">
+<div class="d-flex flex-column row addfood">
+    <form method=post action="{{url_for('addfood')}}">
+        <h2>Food Information:</h2>
+        <label for="food-name"><b>Name:</b></label>
+        <input type="text" name="food-name" id="food-name" required>
+        <label for="food-type"><b>Food type:</b></label></td>
+        <select id="food-type" name="food-type" required>
+            <option value="" selected disabled hidden>select</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="all day">All-day</option>
+        </select>
+        <label for="food-hall"><b>Dining hall:</b></label>
+        <select id="food-hall" name="food-hall" required>
+            <option value="" selected disabled hidden>select</option>
+            <option value="1">Bates</option>
+            <option value="2">Lulu</option>
+            <option value="3">Pom</option>
+            <option value="4">Stone-D</option>
+            <option value="5">Tower</option>
+        </select>
+        <label for="food-ingredients"><b>Food Ingredients:</b></label>
+        <input type="text" name="food-ingredients" id="food-ingredients" required>
+        <p><b>Food Preferences:</b></p>
+        <input type="checkbox" value="none" id="none" name="preferences">
+        <label for="none">none</label>
+        <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
+        <label for="gluten-sensitive">gluten sensitive</label>
 
-    <fieldset>
-        <legend>Food Information:</legend>
+        <input type="checkbox" value="vegan" id="vegan" name="preferences">
+        <label for="vegan">vegan</label>
+
+        <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
+        <label for="vegetarian">vegetarian</label>
+
+        <input type="checkbox" value="kosher" id="kosher" name="preferences">
+        <label for="kosher">
+            kosher
+        </label>
+        <input type="checkbox" value="halal" id="halal" name="preferences">
+        <label for="halal">halal</label>
+        <p><b>Allergens:</b></p>
+        <input type="checkbox" value="none" name="allergens" id="allergens">
+        <label for="allergens">none</label>
+
+        <input type="checkbox" value="eggs" id="eggs" name="allergens">
+        <label for="eggs">eggs</label>
+
+        <input type="checkbox" value="fish" id="fish" name="allergens">
+        <label for="fish">fish</label>
+
+        <input type="checkbox" value="milk" id="milk" name="allergens">
+        <label for="milk">
+            milk
+        </label>
+
+        <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
+        <label for="peanuts">peanuts</label>
+
+        <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
+        <label for="shellfish">shellfish</label>
+
+        <input type="checkbox" value="soy" id="soy" name="allergens">
+        <label for="soy">soy</label>
+
+        <input type="checkbox" value="tree-nut" id="tree-nut" name="allergens">
+        <label for="tree-nut">
+            tree nut
+        </label>
+
+        <input type="checkbox" value="wheat" id="wheat" name="allergens">
+        <label for="wheat">wheat</label>
+
+        <p> <input type='submit' value='Add New Meal'> </p>
+    </form>
+</div>
+
+
+<!-- <fieldset>
+        <legend>
+            <h2>Food Information:</h2>
+        </legend>
         <table>
             <tr>
                 <td><label for="food-name">Name:</label></td>
@@ -41,7 +125,9 @@
             </tr>
 
             <tr>
-                <td><p>Food Preferences:</p></td>
+                <td>
+                    <p>Food Preferences:</p>
+                </td>
                 <td>
                     <input type="checkbox" value="none" id="none" name="preferences">
                     <label for="none">none</label>
@@ -70,7 +156,9 @@
                 </td>
             </tr>
             <tr>
-                <td><p>Allergens:</p></td>
+                <td>
+                    <p>Allergens:</p>
+                </td>
                 <td>
                     <input type="checkbox" value="none" name="allergens" id="allergens">
                     <label for="allergens">none</label>
@@ -112,11 +200,11 @@
                     <label for="wheat">wheat</label>
                 </td>
             </tr>
-        </table>
-    </fieldset>
-    <p> <input type='submit' value='Add New Meal'> </p>
+        </table> -->
+<!-- </fieldset> -->
 
-</form>
+
+<!-- </form> -->
 
 
 {% endblock %}
