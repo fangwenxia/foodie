@@ -10,11 +10,12 @@
 {% block content %}
 
 <h1>Create Profile</h1>
+<div class="login_forms" align=center>
+<p>If you are admin, please log in using the form on the right. Otherwise, login through Wellesley portal.</p>
 
-<form id="create_form" method="POST" action="{{url_for('create')}}"> <!--FIX THIS URL-->
-    
-<legend>Create Account</legend>
-    <p>If you are admin, please log in using the form on the left. Otherwise, login through Wellesley portal.</p>
+<form id="create_forms" method="POST" action="{{url_for('create')}}"> <!--FIX THIS URL-->
+<fieldset class="fieldset">    
+<legend class="legend">Create Account</legend>
     <table>
     <!-- <tr><td><label for="name" accesskey="n">Full Name:</label></td>
         <td><input type="text" name="name" id="name"></td></tr> -->
@@ -31,28 +32,35 @@
     <p> <input class='button' type='submit' value='Create Account'> </p>
 
 </form>
+</fieldset> 
 
-<form id="login_form" method="POST" action="{{url_for('user_login')}}">
-<legend>Log In</legend>
+
+<form id="create_forms" method="POST" action="{{url_for('user_login')}}">
+<fieldset class="fieldset"> 
+<legend class="legend">Administrator Log In</legend>
         <table>
-        <tr><td><label for="username" accesskey="u">Wellesley Username:</label></td>
+        <tr><td><label for="username" accesskey="u">Admin Username:</label></td>
             <td><input type="text" name="username" id="username"></td></tr>
         
             <tr><td><label for="password" accesskey="p">Password:</label></td>
             <td><input type="password" name="password" id="password"></td></tr>
         </table>
         <p> <input class='button' type='submit' value='Log In'> </p>
-</form>    
-{% if username %}
+</fieldset>  
+</form>
+
+{% if session['username']%}
 
 <form method="GET" action="{{url_for('cas.logout')}}">
-  <button>logout {{username}}</button>
+    <p><input class='button' type='submit' value='logout session["username"]'> </p>
 </form>
 {% else %}
-
+<p>{{username}}</p>
 <form method="GET" action="{{url_for('cas.login')}}">
-  <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
+    <p><input class='button' type='submit' value='login through your Wellesley account'> </p>
 </form>
 
 {% endif %}
+
 {% endblock %}
+</div>

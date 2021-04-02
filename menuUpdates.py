@@ -3,7 +3,12 @@
 import cs304dbi as dbi
 
 def avgRating(conn, fid):
-    '''compute average rating for a given food item, return tuple containing average rating and number of ratings'''
+    '''compute average rating for a given food item, return tuple containing average rating and number of ratings
+    Implemented this using Python rather than MySQL because of an issue when joining the table 
+    that contains the list of food items and the table that contains the ratings and reviews for 
+    those items. Essentially, because not every food has a rating (ie does not exist in the 
+    feedback table), by using MySQL, only food items that have been rated are returned. 
+    Hence, the complex code that manually adds a rating value to the dictionary.'''
     curs = dbi.cursor(conn)
     curs.execute("select rating from feedback where fid = %s;", [fid])
     ratingsList = curs.fetchall()
@@ -27,8 +32,10 @@ def lookupMenuList(conn, now):
     # curs.execute("select food.fid, name, avg(rating) as rating from food inner join feedback using (fid) group by feedback.fid;")
     # ^^ The above code was removed because it then only displays menu items that have a rating
      # where lateServed= %s [now];
-    #---------------------------UPDATE to include DH info AND current date --------------------------
     menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
     for item in menu:
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
@@ -40,35 +47,47 @@ def filterMenuList(conn, dh, mealtype, label, now):
     '''
     curs = dbi.dict_cursor(conn)
     preference = ["%" + label + "%"]
-    if label:
-        if dh and mealtype: #if the values are both not null
+    if label: #case where a user filters by label and the value of label is not null
+        #case where a user filters by label, dining hall, and meal type
+        if dh and mealtype: 
             sql = '''select food.fid, name from food inner join labels using (fid)
              where did = %s and type = %s and preference like %s and lastServed = %s;'''
             values = [dh, mealtype, preference, now]
+        #case where a user filters by label and dining hall
         elif dh: #if the value for mealtype is null
             sql = ("select food.fid, name from food inner join labels using (fid) where did = %s and preference like %s and lastServed = %s;")
             values = [dh, preference, now]
-        elif mealtype: #if the value for mealtype is null
+        #case where a user filters by label and meal type
+        elif mealtype:
             sql = ("select food.fid, name from food inner join labels using (fid) where type = %s and preference like %s and lastServed = %s;")
             values = [mealtype, preference, now]
+        #case where a user filters by label only
         else:
             sql = ("select food.fid, name from food inner join labels using (fid) where preference like %s and lastServed = %s;")
             values = [preference, now]
+    #case where a user does not select a preference to filter by
     elif not label:
+        #case where a user does not select a preference to filter by, but filters by dining hall and meal type
         if dh and mealtype: #if the values are both not null
             sql = ("select food.fid, name from food where did = %s and type = %s and lastServed = %s;")
             values = [dh, mealtype, now]
-        elif dh: #if the value for mealtype is null
+        #case where a user does not select a preference to filter by, but filters by dining hall
+        elif dh:
             sql = ("select food.fid, name from food where did = %s and lastServed = %s;")
             values = [dh, now]
-        elif mealtype: #if the value for mealtype is null
+        #case where a user does not select a preference to filter by, but filters by meal type
+        elif mealtype:
             sql = ("select food.fid, name from food where type = %s and lastServed = %s;")
             values = [mealtype, now]
-    else: #if the value for mealtype and dh is null
+    #case where the user clicks the filter button without selecting any filters
+    else: 
         sql = ("select food.fid, name from food where lastServed = %s;")
         values = [now]
     curs.execute(sql, values) # where lateServed= %s [now];
     menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
     for item in menu:
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
@@ -141,9 +160,11 @@ def searchMenu(conn, search):
 the food table, as a list of dictionaries.
     '''
     curs = dbi.dict_cursor(conn)
-    curs.execute("select fid, name from food inner join labels using (fid) where (lower(name) like %s) or (lower(ingredients) like %s);", ['%' + search + '%', '%' + search + '%']) 
-    # curs.execute("select fid, name from food inner join labels using (fid) where name like %s or ingredients like %s;", [('%' + search + '%'),('%' + search + '%')]) 
+    curs.execute("select fid, name from food inner join labels using (fid) where lower(name) like %s or lower(ingredients) like %s group by fid;", ['%' + search + '%', '%' + search + '%']) 
     menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
     for item in menu:
         fid = item["fid"]
         item['rating'], item['sumRankings'] = avgRating(conn, fid)
