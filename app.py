@@ -298,14 +298,19 @@ def profile(username):
         username = session['username']
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
+        curs = dbi.cursor(conn)
+        curs.execute('''select filename from proPics where username = %s''',
+                    [username])
+        filename = curs.fetchone()[0]
+        print(filename)
         if request.method == "GET":
             diningHall = info['favoriteDH']
             if diningHall == None:
-                return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
+                return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename=filename)
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile")
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename)
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
@@ -321,8 +326,8 @@ def profile(username):
                     [username, filename, filename])
                 conn.commit()
                 flash("Upload successful. (If you don't see your new profile picture, hold down shift and refresh your page.")
-                return render_template('profile.html', username=username, info=info, title="Your Profile")
-        return render_template('profile.html', username=username, info=info, title="Your Profile")
+                return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
+        return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
     except:
         flash('Please log in to continue.') 
         session['username'] = ""
@@ -442,22 +447,25 @@ def username_error():
 def user(user):
     # allows user to look at other people's profile
     try: 
-        username = session['username']
-        conn = dbi.connect()
         if request.method == "GET":
+            conn = dbi.connect()
+            curs = dbi.cursor(conn)
+            curs.execute('''select filename from proPics where username = %s''',[user])
+            filename = curs.fetchone()[0]
+            print(filename)
             info = query.get_user_info(conn, user)
             name = info['name']
             year = info['classYear']        
             diningHall = info['favoriteDH']
             if diningHall == None:
-                return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
+                return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename)
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
                 favoriteFood = info['favoriteFood']
                 allergens  = info['allergies']
                 preferences =  info['preferences']
-                return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile")
+                return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename)
     except:
         session['username'] = ""
         session['logged_in'] = False
