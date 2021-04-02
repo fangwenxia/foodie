@@ -332,7 +332,7 @@ def profile(username):
         
 @app.route('/update/<username>', methods = ["GET", "POST"])
 def update(username):
-    try:
+    # try:
         username = session['username']
         conn = dbi.connect()
         info =  query.get_user_info(conn, username)
@@ -341,25 +341,37 @@ def update(username):
             name = info['name']
             year = info['classYear']        
             diningHall = info['favoriteDH']
+            print('THERE')
             if diningHall == None:
+                print('hmmm')
                 return render_template('update.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
             else:
+                print('oooooh')
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
                 favoriteFood = info['favoriteFood']
                 allergens  = info['allergies']
                 preferences =  info['preferences']
-                return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile")
+                print('weeeee')
+                names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
+
+                return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile", names=names)
         elif request.form["submit"] == "update":
+            print('HERE')
             if  request.method == 'POST':
+                print('toot')
                 name2 = request.form['name']
+                print('beep')
                 year2 = request.form['year']
+                print('boop', year2)
                 diningHall2 = request.form['diningHall']
+                print("YOOOOO", diningHall2)
                 dh_name = query.DH_name(conn, diningHall2)
                 DH = dh_name['name']
                 favoriteFood2 = request.form['favoriteFood']
                 allergens = request.form.getlist('allergens')
                 str_all = ", ".join(allergens)
+                print("ALLERGIES,", str_all, type(allergens), allergens)
                 preferences = request.form.getlist('preferences')  
                 str_pref = ", ".join(preferences)
                 query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
@@ -369,13 +381,17 @@ def update(username):
                                 username=username, 
                                 info=info,
                                 cas_attributes = session.get('CAS_ATTRIBUTES'),
-                                dh_name=DH))
+                                dh_name=diningHall2,
+                                allergens=allergens))
             else: 
                 flash('Update failed {why}'.format(why=err))
                 return render_template('update.html', username=username, info=info, title="Update Profile")
-    except:
-        flash('Please log in to update your profile.') 
-        return redirect(url_for('create'))
+    # except Exception as err:
+    #         flash('Update failed {why}'.format(why=err))
+    #         return 
+    # except:
+    #     flash('Please log in to update your profile.') 
+    #     return redirect(url_for('create'))
 
 @app.route('/user_logout')
 def user_logout():
