@@ -118,7 +118,7 @@ def updateFoodLabel(conn,allergens,preferences,fid):
         curs.execute(sql,[allgns, fid])
         conn.commit()
         print('allergens updated')
-    elif len(preferences) !=0: 
+    if len(preferences) !=0: 
         curs = dbi.dict_cursor(conn)
         prefs = ','.join(preferences)
         sql = ("update labels set preference = %s where fid = %s;")

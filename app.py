@@ -625,10 +625,10 @@ def adminFoodUpdate():
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
         food_id = request.form.get('food-update')
-        print(food_id)
+        print("food info: ",food_preferences,food_allergens,food_id)
         entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
         flash('You successfully updated a food item.')
-        # return redirect(url_for('food',fid=int(food_id)))
+        return redirect(url_for('delete'))
 
 
      
