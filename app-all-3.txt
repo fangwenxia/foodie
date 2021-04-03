@@ -1,0 +1,2996 @@
+from flask import (Flask, render_template, make_response, url_for, request,
+                   redirect, flash, session, send_from_directory, jsonify)
+from werkzeug.utils import secure_filename
+app = Flask(__name__)
+
+import cs304dbi as dbi
+import menuUpdates as menuUp #module to update foodie database from the menu page
+import random   
+import sys
+import pymysql
+import feed_queries
+import query
+import bcrypt
+from flask_cas import CAS
+import entry
+
+from datetime import date,datetime
+
+CAS(app)
+
+app.config['CAS_SERVER'] = 'https://login.wellesley.edu:443'
+app.config['CAS_LOGIN_ROUTE'] = '/module.php/casserver/cas.php/login'
+app.config['CAS_LOGOUT_ROUTE'] = '/module.php/casserver/cas.php/logout'
+app.config['CAS_VALIDATE_ROUTE'] = '/module.php/casserver/serviceValidate.php'
+app.config['CAS_AFTER_LOGIN'] = 'profile_error' 
+# the following doesn't work :-(
+app.config['CAS_AFTER_LOGOUT'] = 'home'
+
+app.secret_key = 'your secret here'
+# replace that with a random key
+app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
+                                          'abcdefghijklmnopqrstuvxyz' +
+                                          '0123456789'))
+                           for i in range(20) ])
+
+# This gets us better error messages for certain common request errors
+app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+# file upload content 
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
+
+def today():
+    """Returns a tuple with the string for the current day and time (SQL format)
+    and a string for the day/time for display purposes. This is used to primarily to query the database according
+    to the lastServed date for a given food item.
+    """
+    now = date.today()
+    return now.strftime("%Y-%m-%d"), now.strftime("%A, %B %d")
+
+@app.route('/pic/<int:fid>') 
+#route to image for food photos, can later be generalized and applied to other photos too
+def pic(fid):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from foodPics where fid = %s'''
+    curs.execute(sql, [fid])
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except Exception as err: #in the case when there is not yet a photo uploaded
+        return None
+
+@app.route('/')
+def home():
+    # the base template needs only one filler
+    return render_template('home.html',title='foodie.')
+
+@app.route('/mainmenu/')
+def mainmenu():
+    '''Page with menu and form without any filters'''
+    conn = dbi.connect()
+    menu = menuUp.lookupMenuList(conn, today()[0])
+    return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+
+@app.route('/menu/', methods=["GET"])
+def menu():
+    '''route for menu that is filtered in some way, either through a specific tag or a search'''
+    conn = dbi.connect()
+    if request.method == 'GET':
+        # mealtype = ""
+        dh = request.args.get('dh-filter', "")
+        mealtype = request.args.get("type-filter", "")
+        preference = request.args.getlist("preference")
+        now = today()[0]
+        if preference:
+            preference = ",".join(preference)
+        else:
+            preference = ""
+        if dh:
+            dhName = menuUp.lookupDH(conn, dh)[0]
+            waitTime = menuUp.getWaittime(conn, int(dh))[0]
+        else:
+            dhName = ""
+            waitTime = ""
+        # IMPLEMENT SEARCH BY LABEL label = ""
+        search = request.args.get("query", "")
+        # the variable date = today()[] generates the current date to display on the menu page
+        if dh == '3' or dh == '4':
+            flash("So sorry to be the bearer of bad news, but {} is closed today.".format(dhName))
+        if dh or mealtype or preference: #if given a dining hall request and mealtype
+            menu = menuUp.filterMenuList(conn, dh, mealtype,preference,now)
+        elif search:
+            menu = menuUp.searchMenu(conn, search)
+            print(menu)
+            if len(menu)==1:
+                # if there's only one matching result, redirect directly to the food page 
+                fid=menu[0]['fid']
+                return redirect(url_for('food',fid=int(fid)))
+            elif len(menu)==0:
+                flash('''The name you entered does not match any dish in the database
+                    Would you like to add a new food entry? ''')
+                print(search)
+                return render_template("dataentry.html", food_name=search)
+                # return redirect(url_for('addfood',food_name=search))
+        else: #if not given a dining hall request or a mealtype request
+            menu = menuUp.lookupMenuList(conn, today()[0])
+        names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh, preferences = preference, names =names)
+
+#for beta: how do I pass in the fid for processing too? 
+@app.route('/autocomplete',methods=['GET'])
+def autocomplete():
+    conn = dbi.connect()
+    # keyword to search: q is from jQuery, looking for 'q'
+    search=request.args.get('q')
+    # returns a list of dictionary of fid and food name
+    dishes=menuUp.searchMenu(conn,search)
+    #gets only the food name list 
+    results=[entry["name"] for entry in dishes]
+    # jsonify makes the list of food names in a JavaScript format
+    return jsonify(matching_results=results)
+
+@app.route('/food/<int:fid>', methods=["GET", "POST"])
+def food(fid):
+    conn = dbi.connect()
+    if request.method == 'GET':
+        # dictionary containing a food's name, ingredients, preference, allergen, type
+        item = menuUp.lookupFoodItem(conn, fid)
+        #average rating and number of ratings given to a food item
+        avgRating, totalRatings = menuUp.avgRating(conn, fid) 
+        # list of dictionaries for each comment for a given food item and with the comment's rating and user
+        comments = menuUp.lookupComments(conn, fid)
+        filename = pic(fid)
+        return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating, title = item["name"], filename = filename)
+    else:
+        menuUp.updateLastServed(conn, fid, today()[0])
+        return redirect(url_for('food', fid = fid))
+
+@app.route('/updateFood/<int:fid>', methods=["GET","POST"])
+# name, type, rating, description, preference, label
+def updateFood(fid):
+    conn = dbi.connect()
+    if request.method == "GET":
+        try: 
+            username = session['username']
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+        except:
+            flash("Please log in to update food")
+            return redirect(url_for("create"))
+
+    elif request.form.get("submit") == "update":
+        try:
+            ingredients = request.form["ingredients"]
+            menuUp.updateFoodItem(conn, fid, ingredients)
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            return render_template('food.html', food = item, comments = comments, fid = fid, rating = avgRating)
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+    else:
+        try:
+            item = menuUp.lookupFoodItem(conn, fid)
+            flash("Thank you for updating {}, we really appreciate it!".format(item['name']))
+            avgRating, totalRatings = menuUp.avgRating(conn, fid)
+            comments = menuUp.lookupComments(conn,fid)
+            f = request.files['pic']
+            user_filename = f.filename
+            ext = user_filename.split('.')[-1]
+            filename = secure_filename('{}.{}'.format(fid,ext))
+            pathname = os.path.join(app.config['UPLOADS'],filename)
+            f.save(pathname)
+            curs = dbi.dict_cursor(conn)
+            curs.execute(
+                '''insert into foodPics(fid,filename) values (%s,%s)
+                   on duplicate key update filename = %s''',
+                [fid, filename, filename])
+            conn.commit()
+            flash('Upload successful.')
+            return redirect(url_for('food', fid = fid))
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            item = menuUp.lookupFoodItem(conn, fid)
+            return render_template('foodUpdate.html', food = item, title = ("Update " + item["name"]))
+
+@app.route('/updateWait/<int:did>', methods=["GET","POST"])
+def updateWait(did):
+    '''Update waiting time at a given dining hall'''
+    conn = dbi.connect()
+    dh = menuUp.lookupDH(conn, did)[0]
+    if request.method == "GET":
+        return render_template('waittimeUpdate.html',did = did, dh = dh, title = ("Update " + dh + " Wait Time"))
+    else:
+        try:
+            waittime = request.form["waittime"]
+            menuUp.updateFoodItem(conn, did, waittime)
+            flash("Thank you for updating {}'s wait time, we really appreciate it!".format(dh))
+            return render_template('menu.html',date=today()[1], menu = menu, title ="Menu")
+        except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return render_template('waittimeUpdate.html', dh = dh, did = did, title = ("Update " + dh + " Wait Time"))
+
+# Gigi's Stuff!!
+@app.route('/create/', methods=["GET", "POST"]) 
+def create():
+    if request.method ==  "GET":
+        return render_template('create.html', title="Login")
+    else:
+        username = request.form['username']
+        passwd1 = request.form['password1']
+        passwd2 = request.form['password2']
+        conn = dbi.connect()
+        # next helper function checks to see if username is already in database and prompts user to log in instead 
+        if query.username_exists(conn, username): 
+            flash('''This username already exists. If this is you, please log in.
+                If not, please enter your Wellesley email username.''')
+            return render_template('create.html', title="Login")
+        
+        # if username doesn't exist, user is added to database and can now log in
+        else: 
+            # checks to see if paswords match
+            if passwd1 != passwd2:
+                flash('passwords do not match. please try again.')
+                return render_template('create.html')
+            else:
+                hashed = bcrypt.hashpw(passwd1.encode('utf-8'),
+                                    bcrypt.gensalt())
+                hashed_str = hashed.decode('utf-8')
+                curs = dbi.cursor(conn)
+                query.add_username(conn, username, passwd1, hashed_str) 
+                session['username'] = username
+                session['logged_in'] = True
+                flash('Profile was created successfully! You can post, review and more!')
+                return redirect(url_for('profile', username=username)) 
+
+# allows user to log in
+@app.route('/user_login/', methods=["GET", "POST"])
+def user_login():
+    if request.method ==  "GET":
+        return render_template('create.html', title="Login")
+    else:
+        username = request.form['username'] 
+        passwd = request.form['password'] 
+        conn = dbi.connect()
+        curs = dbi.dict_cursor(conn)
+        # helper function checks to make sure username exists in database
+        if query.is_admin(conn, username): 
+            # query finds password saved in database to compare with user input
+            curs.execute('''select username, hashed 
+                                from student 
+                                where username = %s;''', [username])
+            user = curs.fetchone()
+            # checks if user input matches password on file
+            hashed = user['hashed']
+            hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
+                                    hashed.encode('utf-8'))
+            hashed2_str = hashed2.decode('utf-8')
+            if hashed2_str  == hashed:
+                flash('Successfully logged in.')
+                session['username'] = username
+                session['logged_in'] = True
+                info =  query.get_user_info(conn, username)
+                return redirect(url_for('profile', username=session['username'], info=info))
+            else:
+                flash('Incorrect login. Please try again.')
+                return redirect(url_for('user_login'))
+        else:
+            flash("Only administrators can use this form. Please login through Wellesley portal.")
+            return render_template('create.html', title="Login")
+
+# allows user to see their profile
+# how to get actual text instead of values for DH and Classyear 
+@app.route('/profile/<username>', methods=['GET','POST'])
+def profile(username):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute('''select filename from proPics where username = %s''',[username])
+    filename = curs.fetchone()
+    try: 
+        username = session['username']
+        info =  query.get_user_info(conn, username)
+        if request.method == "GET":
+            diningHall = info['favoriteDH']
+            reviews=feed_queries.user_reviews(conn,username)
+            if diningHall == None:
+                return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename=filename,reviews=reviews)
+            else:
+                dh_name = query.DH_name(conn, diningHall)
+                DH = dh_name['name']
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename,reviews=reviews)
+        else:
+            if request.form['submit'] == 'upload':
+                f = request.files['pic']
+                user_filename = f.filename
+                ext = user_filename.split('.')[-1]
+                filename = secure_filename('{}.{}'.format(username,ext))
+                pathname = os.path.join(app.config['UPLOADS'],filename)
+                f.save(pathname)
+                curs = dbi.dict_cursor(conn)
+                curs.execute(
+                '''insert into proPics(username,filename) values (%s,%s)
+                    on duplicate key update filename = %s''',
+                    [username, filename, filename])
+                conn.commit()
+                flash("Upload successful. (If you don't see your new profile picture, hold down shift and refresh your page.")
+                return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
+        return render_template('profile.html', username=username, info=info, title="Your Profile", filename=filename)
+    except Exception as err:
+            flash('Update failed {why}'.format(why=err))
+            return redirect(url_for('create'))
+    # except:
+    #     flash('Please log in to continue.') 
+    #     session['username'] = ""
+    #     session['logged_in'] = False
+    #     return redirect(url_for('create'))
+
+        
+@app.route('/update/<username>', methods = ["GET", "POST"])
+def update(username):
+    # try:
+        username = session['username']
+        conn = dbi.connect()
+        info =  query.get_user_info(conn, username)
+        if request.method == "GET":
+            info = query.get_user_info(conn, username)
+            name = info['name']
+            year = info['classYear']        
+            diningHall = info['favoriteDH']
+            if diningHall == None:
+                return render_template('update.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
+            else:
+                dh_name = query.DH_name(conn, diningHall)
+                DH = dh_name['name']
+                favoriteFood = info['favoriteFood']
+                allergens  = info['allergies']
+                preferences =  info['preferences']
+                names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
+                return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile", names=names)
+        elif request.form["submit"] == "update":
+            if  request.method == 'POST':
+                name2 = request.form['name']
+                year2 = request.form['year']
+                diningHall2 = request.form['diningHall']
+                dh_name = query.DH_name(conn, diningHall2)
+                DH = dh_name['name']
+                favoriteFood2 = request.form['favoriteFood']
+                allergens = request.form.getlist('allergens')
+                str_all = ", ".join(allergens)
+                preferences = request.form.getlist('preferences')  
+                str_pref = ", ".join(preferences)
+                query.update_profile(conn, username, name2, year2, diningHall2, favoriteFood2, str_all, str_pref)
+                info = query.get_user_info(conn, username)
+                flash("Successfully updated your profile!")
+                return redirect(url_for('profile', 
+                                username=username, 
+                                info=info,
+                                cas_attributes = session.get('CAS_ATTRIBUTES'),
+                                dh_name=diningHall2,
+                                allergens=allergens))
+            else: 
+                flash('Update failed {why}'.format(why=err))
+                return render_template('update.html', username=username, info=info, title="Update Profile")
+    # except Exception as err:
+    #         flash('Update failed {why}'.format(why=err))
+    #         return 
+    # except:
+    #     flash('Please log in to update your profile.') 
+    #     return redirect(url_for('create'))
+
+@app.route('/user_logout')
+def user_logout():
+    session.pop('username', None)
+    session['logged_in'] = False
+    return redirect(url_for('cas.logout'))
+
+@app.route('/propic/<username>') 
+#route to image for food photos, can later be generalized and applied to other photos too
+def propic(username):
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    sql = '''select filename from proPics where username = %s'''
+    curs.execute(sql, [username])
+    try:
+        filename = curs.fetchone()[0]
+        return send_from_directory(app.config['UPLOADS'],filename)
+    except: #in the case when there is not yet a photo uploaded
+        flash("This user either doesn't exist or doesn't have a profile picture")
+        return redirect(url_for('profile', username=username))
+
+@app.route('/profile/', methods = ["GET", "POST"])
+def profile_error():
+    if 'CAS_USERNAME' in session: 
+        #check to see if logging in using CAS
+        #if in database:
+        username = session['CAS_USERNAME']
+        session['username'] = username
+        conn = dbi.connect()
+        curs = dbi.cursor(conn)
+        if query.username_exists(conn, username):
+            return redirect(url_for('profile', username=username))
+        else:
+            flash("Looks like you're new here. Your account has just been created. Welcome to Foodie.!")
+            query.add_username(conn, username, "NONE", "NONE")
+            return redirect(url_for('profile', username=username))
+    elif 'username' in session: 
+        #if in database:
+        conn = dbi.connect()
+        curs = dbi.cursor(conn)
+        username = session['username']
+        if query.username_exists(conn, username):
+            return redirect(url_for('profile', username=username))
+        else:
+            return redirect(url_for('create'))
+    else:
+        flash('Please log in.')
+        return redirect(url_for('create'))
+
+
+@app.route('/update/', methods = ["GET", "POST"])
+def username_error():
+    if 'username' in session: 
+        conn = dbi.connect()
+        curs = dbi.cursor(conn)
+        username = session['username']
+        if query.username_exists(conn, username):
+            return redirect(url_for('update', username=username))
+    else:
+        flash("Please log in to update your profile2.")
+        return render_template('create.html', title="Login")
+
+
+@app.route('/user/<user>', methods= ['POST', "GET"])
+def user(user):
+    # allows user to look at other people's profile
+    conn = dbi.connect()
+    curs = dbi.cursor(conn)
+    curs.execute('''select filename from proPics where username = %s''',[user])
+    filename = curs.fetchone()
+    reviews=feed_queries.user_reviews(conn,user)
+    try: 
+        username = session['username']
+        info = query.get_user_info(conn, user)
+        name = info['name']
+        year = info['classYear']        
+        diningHall = info['favoriteDH']
+        if diningHall == None:
+            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename, reviews=reviews)
+        else:
+            dh_name = query.DH_name(conn, diningHall)
+            DH = dh_name['name']
+            favoriteFood = info['favoriteFood']
+            allergens  = info['allergies']
+            preferences =  info['preferences']
+            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename, reviews=reviews)
+    except:
+        flash("Please log in to view other profiles.")
+        return redirect(url_for('create'))
+
+
+
+# Fangwen's Part
+## Here's the route to entering a feedback form
+@app.route('/reviews/<int:fid>',methods=['POST','GET'])
+def reviews(fid):
+    conn=dbi.connect()
+    if request.method=='GET':
+        # get the form to display 
+        try: 
+            username = session['username']
+            name=feed_queries.search_fid(conn,fid)['name']
+            title="Reviews"
+            return render_template('feed.html',title=title,name=name, fid = fid, username=username)
+        except:
+            flash("Please log in to add a review")
+            return redirect(url_for("create"))
+    else:
+        # get the input form values from the submitted form
+        username = session['username']
+        rating=request.form['rating']
+        comment=request.form['comment']
+        time=datetime.now()
+        #checking duplicate feedback on one dish published by one person
+        if len(feed_queries.feedback_duplicate(conn,fid,username))!=0: 
+            flash("You have already commented on this food, Please try commenting on another one.")
+            return redirect(url_for('feed'))
+        # stored form info into the database here
+        feed_queries.feedback(conn,username,fid,rating,comment,time)
+        return redirect(url_for('feed'))
+
+@app.route('/feed/')     
+def feed(): 
+    conn=dbi.connect()
+    feedbacks= feed_queries.recent_feedback(conn)
+    top_rated=feed_queries.food_rating(conn)
+    for item in top_rated:
+        item['avg']=str(item['avg'])
+    title='Feed'
+    return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
+
+# Leah's code
+
+# NOTE: the query.is_admin function returns the opposite result of what's expected (i.e. false when it should be true) in my code 
+# for some reason. I mitigated this by negating query.is_admin(...) in the addfood(), delete() and adminFoodUpdate() functions
+
+
+# route for adding a food item to the database (inserts the food item into the food & labels tables)
+# Note: because I made my insert statements thread-safe, they don't protect against duplicatesâ€“
+# while it should protect against exact duplicates, if a user enters in a dish that already exists in the same dining hall on a different date, 
+# then it will still be added to the database because the 'lastServed' is different. 
+@app.route('/addfood/', methods=["GET", "POST"])
+def addfood():
+    # redirects user to login page if they are not logged in 
+    try: 
+        username = session['username']
+        if request.method == 'GET':
+            return render_template('dataentry.html',title='Add Food')
+        elif request.method == 'POST':
+            conn = dbi.connect()
+            food_name = request.form.get('food-name') 
+            food_category = request.form.get('food-type')
+            food_hall = request.form.get('food-hall')
+            food_preferences = request.form.getlist('preferences')
+            food_allergens = request.form.getlist('allergens')
+            food_ingredients = request.form.get('food-ingredients')
+
+            # error-handling: if any of the form elements aren't filled out, don't submit the form
+            if len(food_name)==0: 
+                flash("Please enter in the name of the food.")
+                return render_template('dataentry.html',title='Add Food')
+            if len(food_ingredients) == 0: 
+                flash("Please enter in the food's ingredients.")
+                return render_template('dataentry.html',title='Add Food')
+            if len(food_preferences) == 0 or len(food_allergens) == 0: 
+                flash("Please make sure that all boxes in the form are checked.")
+                return render_template('dataentry.html',title='Add Food')
+            
+            # # not thread-safe, but duplicate-checking works
+            # test_bool = entry.exists(conn,food_name,food_hall)
+            # if test_bool == True: 
+            #     flash("Food already exists in database.")
+            #     return redirect(url_for("mainmenu"))
+            
+            # inserts food and associated label into table in a hopefully thread-safe way. duplicate checking doesn't work
+            try: 
+                food_date = today()[0]
+                entry.insert_food(conn,food_name,food_date,food_category,food_hall)
+                entry.insert_label(conn,food_allergens,food_preferences,food_ingredients)
+                success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name) #doesn't successfully defend against duplicates. 
+                flash(success_message)
+                return redirect(url_for("mainmenu"))
+            except pymysql.IntegrityError as err: 
+               flash('Unable to insert {} due to {}'.format(name,repr(err)))
+               return render_template('dataentry.html',title='Add Food')
+    except:
+        flash("Please login before accessing the add food page")
+        return redirect(url_for('user_login'))
+
+# route for deleting a food or comment from the database
+@app.route('/delete/', methods=["GET", "POST"]) 
+def delete(): 
+    # check if user is logged in before allowing access to delete food webpage
+    try:
+        username = session['username']
+        conn = dbi.connect()
+        if request.method == "GET": 
+            # retrieves food and comments from database
+            all_foods = entry.get_all_food(conn) 
+            all_comments = entry.get_all_comments(conn,username)
+
+            # the 'entered' DateTime object, when added as an value/id element on the webpage, naturally has spaces in it. 
+            # this is bad for HTML validation, so I am changing the formatting of the date here.
+            # I am iterating through the dictionary of comments, and manually replacing the DateTime object with one that 
+            # is seperated by dashes instead of spaces, so once a comment is added to the webpage, it will 
+            # be in the YYYY-MM-DD-HH-MM-SS format, and not seperated by spaces. 
+
+            for i in all_comments: 
+                val = i['entered']
+                i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
+            return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
+        
+        if request.method == "POST":
+            print('hello')
+            food_id = request.form.get('food-dlt')
+            comment_entered = request.form.get('comment-dlt') 
+            print(food_id,comment_entered)
+            
+            # check if a user is an admin: 
+            # error handling (if food isn't selected, or user isn't part of team foodie)
+            # note: because the user can select a food item OR a comment to delete, it doesn't make 
+            # sense to require both to be selected. 
+            if food_id == 'none' and comment_entered == 'none': 
+                flash('Please make sure you have selected a food item or comment to delete.')
+                return redirect(url_for('delete'))
+            elif query.is_admin(conn,username) and comment_entered != none:   
+                flash('Sorry, you are not authorized to delete food items from the foodie database.')
+                return redirect(url_for('home'))
+            print('doing good!')
+
+            # I think this is thread-safe, obtaining the food item's name isn't dependent on anything else
+            if food_id != 'none': 
+                food_name = entry.get_food(conn,food_id)
+                print(food_name) 
+            # deletes comments, labels and food table entries associated with a specific food item
+                entry.delete_comments(conn,food_id) 
+                entry.delete_labels(conn,food_id)
+                entry.delete_food(conn,food_id)
+                flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
+            if comment_entered != "none": 
+                entry.delete_comment(conn,username,comment_entered)
+                flash('Your comment was successfully deleted from the foodie database')
+            return redirect(url_for('home'))
+    except:
+        flash("Please login before accessing the delete food page")
+        return redirect(url_for('user_login'))
+
+#updates a food item's allergens & preferences, a task an admin can only do. 
+@app.route('/adminFoodUpdate/', methods=["POST"]) 
+def adminFoodUpdate(): 
+    username = session['username']
+    print('username',username)
+    print(type(username))
+    conn = dbi.connect()
+    truth_bool = query.is_admin(conn,username)
+    print('boolean returned',truth_bool,query.is_admin(conn,username))
+    if not query.is_admin(conn,username): 
+        if request.method == "POST": 
+            food_preferences = request.form.getlist('preferences')
+            food_allergens = request.form.getlist('allergens')
+            food_id = request.form.get('food-update')
+            print("food info: ",food_preferences,food_allergens,food_id)
+            entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
+            flash('You successfully updated a food item.')
+            return redirect(url_for('home'))
+    else: 
+        flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
+        return redirect(url_for('home')) 
+
+
+     
+@app.before_first_request
+def init_db():
+    dbi.cache_cnf()
+    dbi.use('foodie_db')  
+
+if __name__ == '__main__':
+    import sys, os
+    if len(sys.argv) > 1:
+        # arg, if any, is the desired port number
+        port = int(sys.argv[1])
+        assert(port>1024)
+    else:
+        # port = os.getuid()
+        port = 7739
+    app.debug = True
+    app.run('0.0.0.0',port)
+import cs304dbi as dbi
+
+# helper function to add new user into student
+def add_username(conn, username, passwd1, hashed_str): 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''INSERT INTO student(username, password, hashed)
+                VALUES (%s, %s, %s);''', [username, passwd1, hashed_str])
+    conn.commit()
+
+
+# helper function to check if username already exists in database
+def username_exists(conn, username): 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select username from student where username = %s;''', [username])
+    return len(curs.fetchall()) != 0
+
+def is_admin(conn, username):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select * from admin where adminname = %s;''', [username])
+    print('is_admin result',len(curs.fetchall()) != 0)
+    return len(curs.fetchall()) != 0
+        
+
+# helper function to access all users info from student table
+def get_user_info(conn, username):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select student.name, username, classYear, favoriteDH, favoriteFood, allergies, preferences
+                    from student
+                    where username = %s;''', [username])
+    return curs.fetchone()
+
+# helper function to get diningHall name
+def DH_name(conn, id):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select name
+                    from diningHall
+                    where did = %s;''', [id])
+    return curs.fetchone()
+
+# is supposed to allow user to change/update information
+# doesn't crash but doesnt update ?!?!
+def update_profile(conn, username, name, year, diningHall, food, allergies, preferences):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''UPDATE student 
+                    SET name = %s, classYear = %s, favoriteDH = %s, favoriteFood  = %s, allergies = %s,
+                    preferences  = %s
+                    WHERE username = %s;''', 
+                    [name, year, diningHall, food, allergies, preferences, username])
+    conn.commit()
+    return 
+
+
+    #module to update foodie database from the menu page
+
+import cs304dbi as dbi
+
+def avgRating(conn, fid):
+    '''compute average rating for a given food item, return tuple containing average rating and number of ratings
+    Implemented this using Python rather than MySQL because of an issue when joining the table 
+    that contains the list of food items and the table that contains the ratings and reviews for 
+    those items. Essentially, because not every food has a rating (ie does not exist in the 
+    feedback table), by using MySQL, only food items that have been rated are returned. 
+    Hence, the complex code that manually adds a rating value to the dictionary.'''
+    curs = dbi.cursor(conn)
+    curs.execute("select rating from feedback where fid = %s;", [fid])
+    ratingsList = curs.fetchall()
+    if ratingsList:
+        ratingSum, numRatings = 0, 0
+        for rating in ratingsList:
+            ratingSum += int(rating[0])
+            numRatings += 1
+        avg = ratingSum/numRatings
+        return avg, numRatings
+    else:
+        return 0,0
+
+def lookupMenuList(conn, now):
+    '''
+        return list of dictionaries of food name, dining hall, fid, ranking for all food matching 
+    '''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select fid, food.name, diningHall.name as dh from food inner join diningHall 
+    using (did) where lastServed = %s;''', [now])
+    # curs.execute("select food.fid, name, avg(rating) as rating from food inner join feedback using (fid) group by feedback.fid;")
+    # ^^ The above code was removed because it then only displays menu items that have a rating
+     # where lateServed= %s [now];
+    menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
+    return sorted(menu, reverse = True, key = lambda i: i['rating'])
+
+def filterMenuList(conn, dh, mealtype, label, now):
+    '''
+        return list of dictionaries of food name, dining hall, fid, ranking for food
+    '''
+    curs = dbi.dict_cursor(conn)
+    preference = ["%" + label + "%"]
+    if label: #case where a user filters by label and the value of label is not null
+        #case where a user filters by label, dining hall, and meal type
+        if dh and mealtype: 
+            sql = '''select food.fid, name from food inner join labels using (fid)
+             where did = %s and type = %s and preference like %s and lastServed = %s;'''
+            values = [dh, mealtype, preference, now]
+        #case where a user filters by label and dining hall
+        elif dh: #if the value for mealtype is null
+            sql = ("select food.fid, name from food inner join labels using (fid) where did = %s and preference like %s and lastServed = %s;")
+            values = [dh, preference, now]
+        #case where a user filters by label and meal type
+        elif mealtype:
+            sql = ("select food.fid, name from food inner join labels using (fid) where type = %s and preference like %s and lastServed = %s;")
+            values = [mealtype, preference, now]
+        #case where a user filters by label only
+        else:
+            sql = ("select food.fid, name from food inner join labels using (fid) where preference like %s and lastServed = %s;")
+            values = [preference, now]
+    #case where a user does not select a preference to filter by
+    elif not label:
+        #case where a user does not select a preference to filter by, but filters by dining hall and meal type
+        if dh and mealtype: #if the values are both not null
+            sql = ("select food.fid, name from food where did = %s and type = %s and lastServed = %s;")
+            values = [dh, mealtype, now]
+        #case where a user does not select a preference to filter by, but filters by dining hall
+        elif dh:
+            sql = ("select food.fid, name from food where did = %s and lastServed = %s;")
+            values = [dh, now]
+        #case where a user does not select a preference to filter by, but filters by meal type
+        elif mealtype:
+            sql = ("select food.fid, name from food where type = %s and lastServed = %s;")
+            values = [mealtype, now]
+    #case where the user clicks the filter button without selecting any filters
+    else: 
+        sql = ("select food.fid, name from food where lastServed = %s;")
+        values = [now]
+    curs.execute(sql, values) # where lateServed= %s [now];
+    menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
+    return sorted(menu, reverse = True, key = lambda i: i['rating'])
+
+def lookupFoodItem(conn, fid):
+    '''
+        return dictionary of a food's name, type, description, preference, label given an id
+    '''
+    curs = dbi.dict_cursor(conn)
+    sql = '''select fid, food.name, ingredients, preference, allergen, 
+    lastServed, type, diningHall.name as dh
+     from food inner join labels using (fid)
+     inner join diningHall using (did)
+     where food.fid = %s'''
+    #  the following code only renders results for food items in the feedback table
+    #  '''select fid, food.name, ingredients, preference, allergen, 
+    # lastServed, type, avg(rating) as avgRating, count(rating) as countRating, diningHall.name as dh
+    #  from food inner join labels using (fid)
+    #  inner join diningHall using (did)
+    #  inner join feedback using (fid)
+    #  where food.fid = %s
+    #  group by (feedback.fid);'''
+    curs.execute(sql, [fid])
+    # curs.execute("select name, ingredients, preference, allergen, lastServed type from food inner join labels using (fid) where fid = %s;", [fid])
+    return curs.fetchone()
+
+def lookupComments(conn, fid):
+    '''
+        return a list of dictionaries for each comment for a given food item and with the comment's rating and user
+    '''
+    curs = dbi.dict_cursor(conn)
+    curs.execute("select username, rating, comment from feedback where fid = %s;", [fid])
+    return curs.fetchall()
+
+def lookupDH(conn, did):
+    '''
+        return name of dining hall based of off did
+    '''
+    curs = dbi.cursor(conn)
+    curs.execute("select name from diningHall where did = %s;", [did])
+    return curs.fetchone()
+
+def updateFoodItem(conn, fid, ingredients):
+    '''
+        edit food item and commit changes
+    '''
+    curs = dbi.dict_cursor(conn)
+    curs.execute("update labels set ingredients = %s where fid = %s;", [ingredients, fid])
+    conn.commit()
+
+def updateFoodItem(conn, fid, waittime):
+    '''
+        Update dining hall's wait time
+    '''
+    curs = dbi.cursor(conn)
+    curs.execute("update diningHall set waitTime = %s where did = %s;", [waittime, fid])
+    conn.commit()
+
+def updateLastServed(conn, fid, now):
+    '''
+        Adding a food to today's menu by updating last served date
+    '''
+    curs = dbi.cursor(conn)
+    curs.execute("update food set lastServed = %s where fid = %s;", [now, fid])
+    conn.commit()
+
+def searchMenu(conn, search):
+    '''Returns the food items that match the query of all the entries in
+the food table, as a list of dictionaries.
+    '''
+    curs = dbi.dict_cursor(conn)
+    curs.execute("select fid, name from food inner join labels using (fid) where lower(name) like %s or lower(ingredients) like %s group by fid;", ['%' + search + '%', '%' + search + '%']) 
+    menu = curs.fetchall()
+    '''The following for loop is used to ensure that every value in the food table has a rating
+    to display on the menu page, even if the food item does not yet exist in the feedback table.
+    In this way, the default rating can be set to 0 rather than NULL as is done with an outer join in MySQL'''
+    for item in menu:
+        fid = item["fid"]
+        item['rating'], item['sumRankings'] = avgRating(conn, fid)
+    return menu
+
+def getWaittime(conn, did):
+    curs = dbi.cursor(conn)
+    curs.execute("select waitTime from diningHall where did = %s", [did])
+    return curs.fetchone()import cs304dbi as dbi
+
+'''
+search food name by fid
+@ param: food id 
+@ return: dictionary of food name
+'''
+def search_fid(conn,fid):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select name from food where fid = %s',[fid])
+    return curs.fetchone()
+
+'''
+temporary function: search if the username exists 
+delete later when Gigi's stuff is linked 
+'''
+def search_user(conn,username):
+    curs= dbi.dict_cursor(conn)
+    curs.execute('select username \
+        from student where username = %s',[username])
+    return curs.fetchall()
+
+'''
+insert into the feedback table
+@ param: username, fid, rating, comment, time
+'''
+def feedback(conn,username,fid,rating,comment,time):
+    curs = dbi.cursor(conn)
+    curs.execute('''insert into feedback\
+        (username,fid,rating,comment,entered)\
+        values(%s,%s,%s,%s,%s)''',[username,fid,rating,comment,time])
+    conn.commit()
+
+'''
+displaying the most recent 10 comments 
+@ return: a list of dictionary of the most recent 10 comments 
+'''
+def recent_feedback(conn):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select username,entered,rating,comment,name,fid \
+        from feedback inner join food using (fid) \
+        order by entered DESC limit 50')
+    return curs.fetchall()
+
+'''
+displaying the top 10 rated food
+@ return: a list of dictionary that includes food name and avg rating of top 10 food entries 
+'''
+def food_rating(conn):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select name,round(avg(rating),2) as avg \
+        from food inner join (feedback) using (fid) \
+            group by fid \
+                order by avg DESC\
+                    limit 10')
+    return curs.fetchall()
+
+'''
+return a list of dictionary with the fid and username
+used for checking duplicates when submitting a feedback form
+@ param: fid, username
+@ return: a list of dictionary pubulished by username on fid
+'''
+def feedback_duplicate(conn,fid,username):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('''select username,fid from feedback\
+        where username=%s and fid=%s''',[username,fid])
+    return curs.fetchall()
+
+'''
+return all reviews published by this profile person 
+@ param: username
+@ return: a list of dictionary of reviews with username,entered time, 
+        rating, comment, food name that this user has published 
+'''
+def user_reviews(conn,username):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select username,entered,rating,comment,name \
+        from feedback inner join food using (fid) \
+            where username=%s \
+            order by entered DESC',[username])
+    return curs.fetchall()import cs304dbi as dbi
+
+# given a connection and the properties of a meal, inserts the food into the food table. 
+def insert_food(conn,name,date,category,dhall): 
+    curs = dbi.cursor(conn)
+    sql = '''insert into food(name,lastServed,type,did) 
+                  values (%s,%s,%s,%s);'''
+    vals = [name,date,category,dhall]
+    curs.execute(sql,vals)
+    conn.commit()
+
+# given a connection and name, returns the given food's fid
+def get_food_id(conn,name): 
+    curs1 = dbi.cursor(conn)
+    sql = '''select fid from food where name=%s'''
+    curs1.execute(sql,name)
+    food_id = curs1.fetchone()[0]
+    return food_id
+    
+# given food information, inserts a label into the labels table
+def insert_label(conn,allergens,preferences,ingredients): 
+    curs2 = dbi.cursor(conn)
+    sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
+    prefs = ','.join(preferences)
+    allgns = ','.join(allergens)
+    last_id = use_last_insert_id(conn)
+    labelvals = [allgns,prefs,ingredients,last_id]
+    curs2.execute(sql2,labelvals)
+    conn.commit()
+
+# checks to see if the name of the food already exists in the database
+# test w/ Chicken Tikka Masala, Tower
+def exists(conn,name,did):
+    curs = dbi.cursor(conn)
+    sql = '''select * from food where name=%s and did=%s'''
+    vals = [name,did]
+    curs.execute(sql,[name,did])
+    food_name=curs.fetchone()
+    print(food_name)
+    return (food_name is not None)
+        
+# gets all the food in the database
+def get_all_food(conn):
+    sql = '''select fid,food.name from food'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql)
+    return curs.fetchall() 
+
+# # get all the username and full name for students from the database
+# def get_all_students(conn):
+#     sql = '''select username,student.name from student'''
+#     curs = dbi.dict_cursor(conn)
+#     curs.execute(sql)
+#     return curs.fetchall()
+
+#get a student's comments from the database, given a specific username
+def get_all_comments(conn,student):
+    sql = '''select comment,entered,fid from feedback where username = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,student)
+    return curs.fetchall()
+
+#deletes a label for the associated food item
+def delete_labels(conn,fid):
+    sql = '''delete from labels where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    conn.commit()
+    
+#deletes a food item from the food table, given the food id
+def delete_food(conn,fid):
+    sql = '''delete from food where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    conn.commit()
+
+#deletes a comment given the username and the time the comment was entered
+def delete_comment(conn,username,entered): 
+    sql = '''delete from feedback where username = %s and entered = %s'''
+    curs = dbi.dict_cursor(conn)
+    vals = [username,entered]
+    curs.execute(sql,vals)
+    conn.commit()
+
+#returns the name of a food given the food id
+def get_food(conn,fid): 
+    sql = '''select food.name from food where fid=%s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    food_name = curs.fetchone()
+    food_name = food_name.get('name')
+    return food_name
+
+#deletes comments associated with a specific food item
+def delete_comments(conn,fid): 
+    sql = '''select * from feedback where fid = %s'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute(sql,fid)
+    comments = curs.fetchall()
+    if comments is not None: 
+        sql = '''delete from feedback where fid = %s'''
+        curs = dbi.dict_cursor(conn)
+        curs.execute(sql,fid)
+        conn.commit()
+#check if this works 
+def updateFoodLabel(conn,allergens,preferences,fid): 
+    if len(allergens) != 0: 
+        curs = dbi.dict_cursor(conn)
+        allgns = ','.join(allergens)
+        sql = ("update labels set allergen = %s where fid = %s;")
+        curs.execute(sql,[allgns, fid])
+        conn.commit()
+        print('allergens updated')
+    if len(preferences) !=0: 
+        curs = dbi.dict_cursor(conn)
+        prefs = ','.join(preferences)
+        sql = ("update labels set preference = %s where fid = %s;")
+        curs.execute(sql,[prefs, fid])
+        conn.commit()
+        print('preferences updated')
+
+def use_last_insert_id(conn): 
+    curs = conn.cursor()
+    curs.execute('select last_insert_id()')
+    return curs.fetchone()[0]
+    
+
+
+    
+
+    
+
+
+    
+
+    {% extends "base.html" %}
+{% block content %}
+<p>You will be redirected shortly. Thank you!</p>
+{% endblock %}<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name=author content="The foodie. Team">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel='stylesheet' href="{{url_for('static', filename = 'style.css')}}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{url_for('static', filename = 'apple-touch-icon.png')}}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{url_for('static', filename = 'favicon-32x32.png')}}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{url_for('static', filename = 'favicon-16x16.png')}}">
+    <link rel="manifest" href="/site.webmanifest">
+    {% block headstuff %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+</head>
+<body>
+<nav class="navbarCustom navbar navbar-expand-sm navbar-light" >
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{{url_for('home')}}"><span style="color: #5CB88D; font-weight: 800; font-size:25px;">foodie</span><span style="color: #fd8953; font-weight: 800;">.</span></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <!-- UPDATE ACTIVITY!! <a class="nav-link active" aria-current="page" href="#">Menu</a> -->
+            <a class="nav-link" href="{{url_for('mainmenu')}}"><span style="color: #fd8953; font-weight: 800;">menu</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{url_for('feed')}}"><span style="color: #fd8953; font-weight: 800;">feed</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{url_for('addfood')}}">+</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{url_for('delete')}}">-</a>
+          </li>
+        </ul>
+      </div>
+      <a class="nav-link" href="{{url_for('profile',  username=username)}}"><span style="color: #fd8953; font-weight: 800;">profile </span><img src="{{url_for('static', filename = 'foodieEmoji.png')}}" alt = "profile" width="30" height = "30">
+        </a>
+    </div>
+  </nav>
+
+
+
+
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<div class="messages">
+  {% for msg in messages %}
+  <p>{{msg}}</p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+
+
+{% block content %}
+<h1>{{title}}</h1>
+
+<article>foodie.</article>
+
+{% endblock %}
+
+{% block extra%}
+
+{% endblock%}
+
+
+{% block footer %}
+<footer> 
+    Copyright foodie. 2021
+</footer>
+</body>
+</html>
+{% endblock %}
+<!-- # like movie insert  -->
+{% extends "base.html" %}
+
+{% block head_stuff %}   
+ <title>Create Profile</title>
+{% endblock %}
+
+
+
+{% block content %}
+
+<h1>Create Profile</h1>
+<div class="login_forms">
+<p>If you are admin, please log in using the form on the right. Otherwise, login through Wellesley portal.</p>
+
+<form class="create_forms" method="POST" action="{{url_for('create')}}"> <!--FIX THIS URL-->
+<fieldset class="fieldset">    
+<legend class="legend">Create Account</legend>
+    <table>
+    <!-- <tr><td><label for="name" accesskey="n">Full Name:</label></td>
+        <td><input type="text" name="name" id="name"></td></tr> -->
+    
+    <tr><td><label for="create_username" accesskey="u">Wellesley Username:</label></td>
+        <td><input type="text" name="username" id="create_username"></td></tr>
+    
+    <tr><td><label for="password1" accesskey="p">Password:</label></td>
+        <td><input type="password" name="password1" id="password1"></td></tr>
+    
+    <tr><td><label for="password2" accesskey="p">Password again:</label></td>
+        <td><input type="password" name="password2" id="password2"></td></tr>
+    </table>
+    <p> <input class='button' type='submit' value='Create Account'> </p>
+</fieldset> 
+</form>
+
+
+
+<form class="create_forms" method="POST" action="{{url_for('user_login')}}">
+<fieldset class="fieldset"> 
+<legend class="legend">Administrator Log In</legend>
+        <table>
+        <tr><td><label for="login_username" accesskey="u">Admin Username:</label></td>
+            <td><input type="text" name="username" id="login_username"></td></tr>
+        
+            <tr><td><label for="password" accesskey="p">Password:</label></td>
+            <td><input type="password" name="password" id="password"></td></tr>
+        </table>
+        <p> <input class='button' type='submit' value='Log In'> </p>
+</fieldset>  
+</form>
+
+{% if session['username'] %}
+
+<form method="GET" action="{{url_for('user_logout')}}">
+    <p class="login_button"><input class='button' type='submit' value='logout {{session["username"]}}'> </p>
+</form>
+{% else %}
+<form method="GET" action="{{url_for('cas.login')}}">
+  <p class="login_button"><input class='button' type='submit' value='login through wellesley portal'> </p>
+</form>
+
+{% endif %}
+
+</div>
+{% endblock %}
+{% extends "base.html" %}
+{% block headstuff %}
+<style> 
+    body {
+        background-color: #5cb88d32;
+        
+    }
+
+    .addfood {
+        border: 20px solid white;
+
+    }
+</style>   
+{% endblock %}
+
+{% block content %}
+<h1>Add Food to Database</h1>
+<!-- add something to action -->
+<div class="d-flex flex-column row addfood card">
+    <form method=post action="{{url_for('addfood')}}">
+        <h2>Food Information:</h2>
+        <div class="d-flex-inline">
+            {%if food_name %}
+            <p><label for="food-name"><b>Name:</b></label>
+                <input type="text" name="food-name" id="food-name" value="{{food_name}}" required>
+            </p>
+            {%else%}
+            <p><label for="food-name"><b>Name:</b></label>
+                <input type="text" name="food-name" id="food-name" required>
+            </p>
+            {%endif%}
+            <p><label for="food-type"><b>Food type:</b></label>
+                <select id="food-type" name="food-type" required>
+                    <option value="" selected disabled hidden>select</option>
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="all day">All-day</option>
+                </select>
+            </p>
+            <p><label for="food-hall"><b>Dining hall:</b></label>
+                <select id="food-hall" name="food-hall" required>
+                    <option value="" selected disabled hidden>select</option>
+                    <option value="1">Bates</option>
+                    <option value="2">Lulu</option>
+                    <option value="3">Pom</option>
+                    <option value="4">Stone-D</option>
+                    <option value="5">Tower</option>
+                </select>
+            </p>
+            <p><label for="food-ingredients"><b>Food Ingredients:</b></label>
+                <input type="text" name="food-ingredients" id="food-ingredients" required>
+            </p>
+            <p><b>Food Preferences: </b>
+                <input type="checkbox" value="none" id="none" name="preferences">
+                <label for="none">none</label>
+                <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
+                <label for="gluten-sensitive">gluten sensitive</label>
+
+                <input type="checkbox" value="vegan" id="vegan" name="preferences">
+                <label for="vegan">vegan</label>
+
+                <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
+                <label for="vegetarian">vegetarian</label>
+
+                <input type="checkbox" value="kosher" id="kosher" name="preferences">
+                <label for="kosher">
+                    kosher
+                </label>
+                <input type="checkbox" value="halal" id="halal" name="preferences">
+                <label for="halal">halal</label>
+            </p>
+            <p><b>Allergens:</b>
+                <input type="checkbox" value="none" name="allergens" id="allergens">
+                <label for="allergens">none</label>
+
+                <input type="checkbox" value="eggs" id="eggs" name="allergens">
+                <label for="eggs">eggs</label>
+
+                <input type="checkbox" value="fish" id="fish" name="allergens">
+                <label for="fish">fish</label>
+
+                <input type="checkbox" value="milk" id="milk" name="allergens">
+                <label for="milk">
+                    milk
+                </label>
+
+                <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
+                <label for="peanuts">peanuts</label>
+
+                <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
+                <label for="shellfish">shellfish</label>
+
+                <input type="checkbox" value="soy" id="soy" name="allergens">
+                <label for="soy">soy</label>
+
+                <input type="checkbox" value="tree-nut" id="tree-nut" name="allergens">
+                <label for="tree-nut">
+                    tree nut
+                </label>
+
+                <input type="checkbox" value="wheat" id="wheat" name="allergens">
+                <label for="wheat">wheat</label>
+            </p>
+
+            <p> <input type='submit' class="button" value='Add New Meal'> </p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer>
+    daily menu provided by students like you. thank you!</footer>
+{% endblock %}{% extends "base.html" %}
+{% block headstuff %}
+<style> 
+    body {
+        background-color: #5cb88d32;
+        
+    }
+
+    .addfood {
+        border: 20px solid white;
+
+    }
+</style>   
+{% endblock %}
+{% block content %}
+<div class="card addfood">
+    <h1>Remove Comment or Food</h1>
+    <p>Select a meal, comment, or both to delete from the database.
+        <br> <i> Note: If you are not an administrator, you will not be able to delete meals from the database. </i>
+    </p>
+    <form method="post" action="{{url_for('delete')}}">
+        <p>Select the food you wish to delete:
+            <select name="food-dlt">
+                <option value="none">Select Food</option>
+                {% for food in allfoods %}
+                <option id='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <p>Select the comment you wish to delete:
+            <select name="comment-dlt">
+                <option value="none">Select Comment</option>
+                {% for fback in comments %}
+                <option value='{{fback.entered}}' id='{{fback.entered}}'>{{fback.comment}}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <input type="submit" name="submit" class="button" value="remove">
+    </form>
+</div>
+
+<div class="card addfood">
+    <h2>Update Food (Admin-only)</h2>
+    <form method="post" action="{{url_for('adminFoodUpdate')}}">
+        <p>Select the food item you wish to update:</p>
+            <select name="food-update">
+                <option value="none">Select Food</option>
+                {% for food in allfoods %}
+                <option id='update-{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
+                {% endfor %}
+            </select>
+        <p><b>Food Preferences:</b>
+            <input type="checkbox" value="none" id="none" name="preferences">
+            <label for="none">none</label>
+            <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
+            <label for="gluten-sensitive">gluten sensitive</label>
+
+            <input type="checkbox" value="vegan" id="vegan" name="preferences">
+            <label for="vegan">vegan</label>
+
+            <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
+            <label for="vegetarian">vegetarian</label>
+
+            <input type="checkbox" value="kosher" id="kosher" name="preferences">
+            <label for="kosher">
+                kosher
+            </label>
+            <input type="checkbox" value="halal" id="halal" name="preferences">
+            <label for="halal">halal</label>
+        </p>
+        <p><b>Allergens:</b>
+            <input type="checkbox" value="none" name="allergens" id="allergens">
+            <label for="allergens">none</label>
+
+            <input type="checkbox" value="eggs" id="eggs" name="allergens">
+            <label for="eggs">eggs</label>
+
+            <input type="checkbox" value="fish" id="fish" name="allergens">
+            <label for="fish">fish</label>
+
+            <input type="checkbox" value="milk" id="milk" name="allergens">
+            <label for="milk">
+                milk
+            </label>
+
+            <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
+            <label for="peanuts">peanuts</label>
+
+            <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
+            <label for="shellfish">shellfish</label>
+
+            <input type="checkbox" value="soy" id="soy" name="allergens">
+            <label for="soy">soy</label>
+
+            <input type="checkbox" value="tree-nut" id="tree-nut" name="allergens">
+            <label for="tree-nut">
+                tree nut
+            </label>
+
+            <input type="checkbox" value="wheat" id="wheat" name="allergens">
+            <label for="wheat">wheat</label>
+            <input type="submit" name="submit" class="button" value="update">
+        </p>
+</form>
+</div>
+{% endblock %}{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+<div class="d-flex flex-column align-items-center card">
+<h1>Review {{name}}</h1>
+<form id="feedback-form" method ="post" action="{{url_for('reviews', fid = fid)}}">
+    <table class ="table">
+        <tbody>
+        <tr><td><label for="username">Username</label></td>
+            <td><span>{{username}}</span></td>
+        </tr>
+        <!-- Search the food item function here -->
+        <tr>
+        <td><label for="rating">Rate {{name}}: </label></td>
+        <td><span class="starRating">
+            <input id="rating5" type="radio" name="rating" value="5">
+            <label for="rating5"></label>
+            <input id="rating4" type="radio" name="rating" value="4">
+            <label for="rating4"></label>
+            <input id="rating3" type="radio" name="rating" value="3">
+            <label for="rating3"></label>
+            <input id="rating2" type="radio" name="rating" value="2">
+            <label for="rating2"></label>
+            <input id="rating1" type="radio" name="rating" value="1">
+            <label for="rating1"></label>
+          </span>
+        </td>
+        <!-- <td><input type="range" min="1" max="5" value="3" name="rating" id="rating"></td> -->
+        <!-- Modified from W3 schools tutorial -->
+    </tbody>     
+    </tr>
+        </table>
+             <textarea name="comment" rows=5 cols=50 placeholder="Write your review here..."></textarea>
+         <p><input type="submit" value="post" class = "button"></p>
+    </form>
+</div>
+{% endblock %}
+
+{% block footer %}
+<div class="d-flex flex-column align-items-center">
+<footer>Want to see changes? Tell us what your think!</footer>
+</div>
+{% endblock %}{% extends "base.html" %}
+{% block headstuff %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{%endblock%}
+{% block content %}
+<!-- name = name of food 
+    labels = list of labels food contains
+    description = list of ingredients/etc
+    rating = rating
+    preference 
+-->
+
+<div class = "card d-flex flex-column align-items-center">
+{% if filename %}
+<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('pic',fid=fid)}}" alt="{{food.name}}"></p>
+{% endif %}
+<!-- {% if rating == 4 %}
+    checked = "checked"
+{% endif %} -->
+
+<h1>{{food.name}}</h1> 
+<!--  -->
+<a href="{{url_for('reviews', fid = fid)}}">
+<div class="Stars" style="--rating: {{rating}};" aria-label="Rating of this product is {{rating}} out of 5."><div></div></div></a>
+<form method = "POST" action = "{{url_for('food', fid = fid)}}">
+    <input class = "button" type = "submit" name = "update" value = "add to today's menu"> 
+</form>
+<!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
+<p>{{food.name}} is served during {{food.type}} at <strong>{{food.dh}}</strong></p>
+<p>Ingredients: {{food.ingredients}}</p>
+<p>Preference: {{food.preference}}</p>
+<p>Contains the following allergens: {{food.allergen}}</p>
+
+<!-- <p>Description: {{description}}</p>
+<p>When {{name}} is usually served: {{type}}</p>
+<p>Preference: {{preference}}</p>
+<p>Contains:     
+    <ul> {%for label in labels %}
+    <li class = "label"> {{label}} </li>
+    {%endfor%}
+</ul>
+</p> -->
+{% if comments %}
+<div class = "comment card">
+<h3>reviews from the feed</h3>
+<table class="table">
+    <tbody>
+{%for comment in comments %}
+<tr> 
+    <td class="Stars" style="--rating: {{comment.rating}};" aria-label="Rating of this product is {{comment.rating}} out of 5."><div></div></td>
+    <td>{{comment['comment']}} <a href="{{url_for('user', user = comment['username'])}}">@{{comment['username']}}</a></td>
+    <!-- <td><a href="{{url_for('feed')}}"> {{comment['comment']}} @ {{comment['username']}}</a></td> -->
+</tr>
+        
+{%endfor%}
+</tbody>
+</table>
+</div>
+<!-- {%for comment in comments %}
+    <p> {{comment['rating']}} Stars || {{comment['comment']}} </p>
+    <p>{{comment['username']}}</p>
+    <p>________________________________________________________________________________________ </p>
+    {%endfor%}
+</div> -->
+{% endif %}
+<h3><a class="addReview" href="{{ url_for('reviews',fid=fid)}}">Review {{food.name}}</a></h3>
+<!-- Connect to page fangwen writes?? -->
+<a class = "button" href="{{ url_for('updateFood', fid = fid)}}">Edit
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+  </svg> </a>
+</div>
+
+{% endblock %}
+
+
+{% block footer %}
+{% endblock %}{% extends "base.html" %}
+{% block headstuff %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{%endblock%}
+{% block content %}
+<!-- name = name of food 
+    labels = list of labels food contains
+    description = list of ingredients/etc
+    rating = rating
+    preference 
+
+-->
+<div class="card">
+<h1>{{food.name}}</h1> 
+<div class="d-flex flex-md-column align-items-center"></div>
+<h4>(Last Served at {{food.dh}} on {{food.lastServed}})</h4> 
+<!-- fid, name, ingredients, rating -->
+<h2>Update Ingredients</h2>
+<section id="form">
+    <form id="update" method ="POST" action="{{url_for('updateFood', fid = food.fid)}}">
+        <label>
+        <textarea name="ingredients" rows=5 cols=50>{{food.ingredients}}</textarea></label>
+        <p><input name = "submit" type="submit" value="update" class = "button"></p>
+    </form>
+</section>
+
+<div class="d-flex flex-lg-column align-items-center">
+    <form method="post" action="{{url_for('updateFood', fid = food.fid)}}" enctype="multipart/form-data">
+        
+            <h2>Upload Image</h2>
+            <p><i>note: file size must be smaller than 1MB</i></p>
+        <p><input type="file" name="pic">
+        </p><p><input name = "submit" type="submit" value="upload" class = "button"></p>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+  <title>Foodie Feedback Form</title>
+  <meta name="author" content="Sara Clark and Gigi Gabeau">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    @import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
+    @import url(https://fonts.googleapis.com/css?family=Montserrat:100,100italic,200,200italic,300,300italic,regular,italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic);
+    body {
+        background-color:white;
+    }
+    h1 {
+        color: #4f9976;
+    /* color: #5CB88D; */
+    font-family: Nunito;
+    font-size: 70px;
+    text-align: center;
+    margin-bottom: 0pt;
+    }
+    h2 {
+    font-family: Nunito;
+    color: rgb(236, 110, 65);
+    
+    }
+    #subtitle {
+    font-style: italic;
+    text-align: center;
+    margin-top: -.5em;
+    }
+    p {
+        font-family: Montserrat;
+        color: #427c61;
+
+    }
+    #form {
+        font-family: Montserrat;
+    }
+    footer {
+        font-family: Montserrat;
+        color: #5CB88D;
+        text-align: center; 
+        font-size: 10pt;
+    }
+    .button {
+        background-color: rgb(236, 110, 65);
+        color: black;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        font-family: Nunito;
+}
+
+</style>
+</head>
+<body>
+    <h1 id="foodieLogo" >foodie.</h1>
+    <h2 id="subtitle">a guide to the best eats at Wellesley College</h2>
+
+    <p>Please share your thoughts about today's menu items.</p>
+
+    <section id="form">
+        <h2 >Feedback Form</h2>
+        <form id="feedback-form" method ="post" action="https://cs.wellesley.edu/~cs304/cgi-bin/dump.cgi">
+        <!-- Fix action!! -->
+        <table>
+            <tr><td><label for="username">Your Username</label></td>
+                <td><input id="username" name="user" required></td>
+            </tr>
+            <tr><td><label for="food">Name of Food Item</label></td>
+                <td><input id="food" name="food" required></td>
+            </tr>
+            <tr>
+                <td><label for="diningHall">Dining Hall</label></td>
+                <td><select id="diningHall" name ="diningHall" required> 
+                    <!-- Numbers correspond to id for dining halls in our database -->
+                    <option value= ""> select</option>
+                    <option value= 1> Bates</option>
+                    <option value= 2> Lulu</option>
+                    <option value= 3> Pom</option>
+                    <option value= 4> Stone-D</option>
+                    <option value= 5> Tower</option>
+                </select></td>
+            </tr>
+            <tr><td>Allergens</td>
+                <td><fieldset><legend>Check All Known Allergens</legend>
+                    <label>
+                        <input type="checkbox" name="allergen" value="peanuts">
+                        peanuts
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="eggs">
+                        eggs
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="fish">
+                        fish
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="milk">
+                        milk
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="shellfish">
+                        shellfish
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="soy">
+                        soy
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="tree nut">
+                        tree nut
+                    </label>
+                    <label>
+                        <input type="checkbox" name="allergen" value="wheat">
+                        wheat
+                    </label>
+                    </fieldset>
+                </td>
+            </tr>
+            <tr>
+            <td><label for="rating">How much did you like this item?</label></td>
+            <td><input type="range" min="1" max="100" value="50" class="rating" id="rating"></td>
+            <!-- Modified from W3 schools tutorial -->
+             </tr>
+            </table>
+             <label>Any comments?
+                 <textarea name="comment" rows=5 cols=50></textarea></label>
+             <p><input type="submit" value="Send Feedback" class = "button"></p>
+        </form>
+    </section>
+    <footer>
+        <p>designed by Sara Clark and Gigi Gabeau for CS304 HW5</p>
+    </footer>
+</body>
+
+</html>{% extends "base.html" %}
+
+{% block content %}
+<h1>FAQ</h1>
+<p>how to help our users</p>
+
+{% endblock %}
+
+{% block footer %}
+daily menu provided by students like you. thank you!
+{% endblock %}{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center">
+<h1>foodie<span style="color:#fd8953">.</span></h1> 
+<h2><i>your guide to the best eats at wellesley college</i></h2>
+</div>
+<!-- dh = request.args.get('dh-filter', "")
+        mealtype = request.args.get("type-filter", "") -->
+<div class="d-flex flex-column align-items-center homePage">
+  <form method = "GET" action = "{{url_for('menu')}}">
+    What's for
+    <select name = "type-filter" class = "form-control">
+      <option value = "" selected disabled hidden>Meal</option>
+           <option value = "breakfast"> Breakfast </option>
+           <option value = "lunch"> Lunch </option>
+           <option value = "dinner"> Dinner </option>
+           <option value = "all day"> All Day </option>
+  </select>
+  at
+    <select name = "dh-filter" class = "form-control">
+        <option value = "" selected disabled hidden>Dining Hall</option>
+             <option value = 1> Bates </option>
+             <option value = 2> Lulu </option>
+             <option value = 3> Pom </option>
+             <option value = 4> Stone-D </option>
+             <option value = 5> Tower </option>
+    </select>
+    ?
+<input class = "homeButton" type = "submit" name = "filter" value = "view menu"> 
+</form>
+</div>
+
+{% if session['username'] %}
+
+<form method="GET" action="{{url_for('user_logout')}}">
+    <p class="login_button"><input class='button' type='submit' value='logout {{session["username"]}}'> </p>
+</form>
+{% else %}
+<form method="GET" action="{{url_for('cas.login')}}">
+  <p class="login_button"><input class='button' type='submit' value='login/create account'> </p>
+</form>
+
+{% endif %}
+
+<div class="d-flex flex-column align-items-center ">
+  <h1>Hours of Operation </h1>
+<h2>Bates + Lulu + Tower</h2>
+<p> Monday - Friday <br/>
+    Continental Breakfast: 7:00 AM - 7:30 AM <br/>
+    Breakfast: 7:30 AM - 10:00 AM <br/>
+    Lunch: 11:30 AM - 2:00 PM <br/> 
+    Dinner: 5:00 PM - 7:30 PM <br/>
+    <br/>
+    Saturday - Sunday <br/>
+    Continental Breakfast: 8:30 AM - 10:30 AM <br/>
+    Brunch: 10:30 AM - 2:00 PM <br/>
+    Dinner: 5:00 PM - 7:30 PM <br/>
+    
+</p>
+
+<h2>Lulu Late Night</h2>
+<p> Monday - Sunday <br/>
+    Late Night: 8:00 PM - 11:00 PM <br/>
+</p>
+
+<h2>Stone-D and Pom are closed until further notice</h2>
+</div>
+
+{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{location}} {{type}} menu for {{date}}</h1>
+<div class="d-flex flex-md-column align-items-center">
+{% if location%} 
+<!-- if the page is given a location -->
+<h2>Wait Time at {{location}}: </h2>
+{% endif %}
+    
+<form method = "GET" action = "{{url_for('menu')}}">
+    <select name = "dh-filter">
+        <option value = "">Location</option>
+             <option value = 1> Bates </option>
+             <option value = 2> Lulu </option>
+             <option value = 3> Pom </option>
+             <option value = 4> Stone-D </option>
+             <option value = 5> Tower </option>
+    </select>
+
+    <select name = "type-filter">
+        <option value = "">Time of Day</option>
+             <option value = "breakfast"> Breakfast </option>
+             <option value = "lunch"> Lunch </option>
+             <option value = "dinner"> Dinner </option>
+             <option value = "all day"> All Day </option>
+    </select>
+    <!-- IMPLEMENT FILTER BY PREFERENCE IN ALPHA -->
+    <br>
+        <p>Filter by Dietary Restrictions</p>
+        <input type="checkbox" id="vegan" name="preference" value="vegan">
+        <label for="vegan"> Vegan</label>
+        <input type="checkbox" id="vegetarian" name="preference"value="vegetarian">
+        <label for="vegetarian"> Vegetarian </label>
+        <input type="checkbox" id="kosher" name="preference" value="kosher">
+        <label for="kosher"> Kosher </label>
+        <input type="checkbox" id="halal" name="preference" value="halal">
+        <label for="halal"> Halal </label>
+        <input type="checkbox" id="gs" name="preference" value="gluten sensitive">
+        <label for="gs"> Gluten-sensitive </label>
+    <br><p><label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+      </svg>
+        <input type="text" name="query" size="50" placeholder="Search"></label></p>
+        <br><input class = "button" type = "submit" name = "filter" value = "filter"> 
+    </form>
+</div>
+<div class="d-flex flex-md-column align-items-center menuList">
+<ol>
+    {%for item in menu %}
+        <li> <a href="{{url_for('food', fid = item['fid'])}}">{{item['dh']}} {{item['name']}}, Rating: {{item['rating']}} stars</a></li>
+    {%endfor%}
+    </ol>
+</div>
+    
+<div class="d-flex flex-md-column align-items-center">
+    <div class="button">
+<h2><a class="text-add" href="{{url_for('addfood')}}">add new food</a></h2>
+<a href="{{url_for('addfood')}}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" fill="currentColor" class="bi bi-plus-circle-fill text-add" viewBox="0 0 16 16">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+      </svg></a></div>
+
+<h2>Hours of Operation Lulu & Bates & Tower</h2>
+<p> Monday - Friday <br/>
+    Continental Breakfast: 7:00 AM - 7:30 AM <br/>
+    Breakfast: 7:30 AM - 10:00 AM <br/>
+    Lunch: 11:30 AM - 2:00 PM <br/> 
+    Dinner: 5:00 PM - 7:30 PM <br/>
+    <br/>
+    Saturday - Sunday <br/>
+    Continental Breakfast: 8:30 AM - 10:30 AM <br/>
+    Brunch: 10:30 AM - 2:00 PM <br/>
+    Dinner: 5:00 PM - 7:30 PM <br/>
+    
+</p>
+
+<h2>Lulu Late Night</h2>
+<p> Monday - Sunday <br/>
+    Late Night: 8:00 PM - 11:00 PM <br/>
+</p>
+
+<h2>Stone-D and Pom are closed until further notice</h2>
+<!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
+ 
+</div>
+{% endblock %}
+
+{% block footer %}
+daily menu provided by students like you. thank you!
+{% endblock %}{% extends "base.html" %}
+
+{% block headstuff%}
+<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet">
+<script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
+<script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
+<script>
+$(function(){
+    // jQuery autocomplete function
+    $("#autocomplete").autocomplete({
+        // source provides available tags to choose from 
+        source: //input a list here
+        function(request,response){
+            //request: get the appropriate food item to display
+            $.getJSON("{{url_for('autocomplete')}}",{
+                q:request.term,
+            },
+            //response: 
+            function(data){
+                response(data.matching_results);
+            });
+        },
+    })
+})
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-row-reverse foodBackground">
+<form method = "GET" action = "{{url_for('menu')}}">
+    <label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+      </svg>
+        </label>
+    <input class = "search" type="text" name="query" id="autocomplete" size="40" placeholder="Search">&emsp; &emsp;
+    <select name = "dh-filter">
+        <option value = "" selected disabled hidden>Location</option>
+             <option value = 1> Bates </option>
+             <option value = 2> Lulu </option>
+             <option value = 3> Pom </option>
+             <option value = 4> Stone-D </option>
+             <option value = 5> Tower </option>
+    </select>
+
+    <select name = "type-filter">
+        <option value = "" selected disabled hidden>Time of Day</option>
+             <option value = "breakfast"> Breakfast </option>
+             <option value = "lunch"> Lunch </option>
+             <option value = "dinner"> Dinner </option>
+             <option value = "all day"> All Day </option>
+    </select>
+    &emsp; &emsp;
+        <strong>Dietary Restrictions: </strong>
+        <input type="checkbox" id="vegan" name="preference" value="vegan">
+        <label for="vegan"> Vegan</label>
+        <input type="checkbox" id="vegetarian" name="preference" value="vegetarian">
+        <label for="vegetarian"> Vegetarian </label>
+        <input type="checkbox" id="kosher" name="preference" value="kosher">
+        <label for="kosher"> Kosher </label>
+        <input type="checkbox" id="halal" name="preference" value="halal">
+        <label for="halal"> Halal </label>
+        <input type="checkbox" id="gs" name="preference" value="gluten sensitive">
+        <label for="gs"> Gluten-sensitive </label>
+
+        <input class = "button" type = "submit" name = "filter" value = "filter"> 
+    </form>
+</div>
+
+<div class="d-flex flex-column align-items-center">
+    <h1>today's {{location}} {{type}} menu</h1>
+    <!-- <h1>{{location}} {{type}} menu for {{date}}</h1> -->
+    
+    {% if location%} 
+    <!-- if the page is given a location -->
+    <h2><a class="text-waittime button" href="{{url_for('updateWait', did = dh)}}">Wait Time at {{location}}: {{waitTime}} minutes</a></h2>
+    {% endif %}
+    </div>
+<div class="d-flex p-2 menuList flex-column align-items-center">
+    <table class="table">
+        <tbody>
+    {%for item in menu %}
+    <tr><td><a class = "menuItem" href="{{url_for('food', fid = item['fid'])}}"> {{item['dh']}} {{item['name']}}</a></td> 
+        <td><a href="{{url_for('reviews', fid = item['fid'])}}">
+            <div class="Stars" style="--rating: {{item['rating']}};" aria-label="Rating of this product is {{item['rating']}} out of 5."><div></div></div></a></td>
+    </tr>     
+    {%endfor%}
+</tbody>
+
+</table>
+</div>
+    
+<div class="d-flex flex-column align-items-center addButton">
+<a href="{{url_for('addfood')}}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" fill="#fd8953" class="bi bi-plus-circle-fill text-add" viewBox="0 0 16 16">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+      </svg></a></div>
+
+<!-- <img src="{{url_for('static', filename = 'wellesleyfreshhours.jpg')}}" alt="Wellesley Fresh hours"> -->
+ 
+{% endblock %}
+
+{% block footer %}
+<footer> 
+    daily menu provided by students like you. thank you!
+</footer>
+
+{% endblock %}{% extends "base.html" %}
+
+{% block headstuff %}   
+ 
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="card">
+
+<h1>{{info['name']}}</h1>
+
+{% if filename %}
+<p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('propic',username=username)}}" alt="{{info['name']}}, profile picture"></p>
+{% else %}
+<p><img class ="mx-auto d-block" src="{{url_for('static', filename = 'foodieEmoji.png')}}" alt="Default Profile Picture" width="150" height = "150"></p>
+{% endif %}
+
+<div class="profile">
+<p>username: {{username}}</p>
+<p>class: {{info['classYear']}}</p>
+<p>favorite dining Hall: {{dh_name}}</p>
+<p>favorite food: {{info['favoriteFood']}}</p>
+<p>allergies: {{info['allergies']}}</p>
+<p>preferences: {{info['preferences']}} </p>
+</div>
+
+<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
+    <p> <input class='button' type='submit' value='update profile'> </p>
+</form>
+{% for entry in reviews %}
+<div class="reviews">
+    <table class="table">
+        <tbody>
+    <tr> 
+    <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div class=ratingName>{{entry.name}}</div></td>
+</tr>
+<tr>
+    <td>{{entry.comment}}</td>
+</tr>
+<tr>
+    <td><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}}</a> ({{entry.entered}})</td>
+</tr>
+    
+</tbody>
+
+</table>
+</div>
+{%endfor%}
+
+
+{% endblock %}
+
+
+{% block extra%}
+
+
+</div>
+
+<div class="propic">
+    <form method="post" action="{{url_for('profile', username = username)}}" enctype="multipart/form-data">
+
+    <h2>upload new profile picture</h2>
+    <p><i>note: file size must be smaller than 1MB</i></p>
+    <p><input id="file" type="file" name="pic" class="button">
+        <label for="file" class="sr-only">Upload</label>
+    <input name="submit" type="submit" value="upload" class="button">
+
+</p>
+</form>
+</div>
+{% endblock%}
+
+
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+
+   <!-- Displaying the most recent feedbacks-->
+   <section>
+   <!-- Displaying the top rated food items -->
+    <div class="top-rated">
+    <h2>Most Popular Meals on foodie.</h2>
+    <ol>
+        {% for dish in ranking %}
+        <li>
+            <span><b>{{dish.name}}</b></span>
+            <span class="Stars" style="--rating: {{dish.avg}};" aria-label="Rating of this product is {{dish.avg}} out of 5."><div></div></span>
+        </li>
+        {% endfor %}
+    </ol>
+    </div>
+   <span class="d-flex flex-column align-items-center">
+        <a class="button" href="{{url_for('mainmenu')}}">Find a food to critique</a>
+    </span>
+    <h1>Trending Reviews</h1>
+
+    
+    {%for entry in feedbacks %}
+    <div class="reviews">
+        <table class="table">
+            <tbody>
+        <tr> 
+        <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div class=ratingName>{{entry.name}}</div></td>
+    </tr>
+    <tr>
+        <td>{{entry.comment}}</td>
+    </tr>
+    <tr>
+        <td><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}}</a> ({{entry.entered}})</td>
+    </tr>
+        
+</tbody>
+
+</table>
+</div>
+    {%endfor%}
+{% endblock %}
+{% extends "base.html" %}
+
+{% block headstuff %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{%endblock%}
+
+{% block content %}
+
+<h1>Update Your Profile!</h1>
+<div class="cardLeft">
+<!-- beta version: condense code by using for loop -->
+<div class="d-flex flex-column align-items-center">
+<form method="POST" action="{{url_for('update', username = username)}}" autocomplete="on">
+    <table>
+      <tr>
+        <td><label>Username</label></td>
+        <td>{{username}}</td>  
+      </tr>
+      <tr>
+        <td><label for="name">Name</label></td>
+        <td><input id="name" name='name' value="{{info['name']}}" required></td> 
+      </tr>
+      
+  <tr>
+    <td><label for="year">Class Year</label></td>
+    <td><select id="year" name="year" required>
+            {% for year in ['', '2021', '2022', '2023', '2024', 'Davis Scholar'] %}
+                {% if year == info['classYear']%}
+                <option selected> {{year}}</option>
+                {% else %}
+                <option> {{year}}</option>
+                {% endif %}
+            {% endfor %}
+        </select></td>
+</tr>
+
+<tr>
+    <td><label for="diningHall">Favorite Dining Hall</label></td>
+    <td><select id="diningHall" name="diningHall" required>
+            {% for hall in ["", 1, 2, 3, 4, 5] %}
+                    {% if hall == info['favoriteDH'] %}
+                    <option value= {{hall}} selected> {{names[hall]}}</option>
+                    {% else %}
+                    <option value= {{hall}}> {{names[hall]}}</option>
+                    {% endif %}
+            {% endfor %}
+        </select></td>
+</tr>
+
+    <tr>
+        <td><label for="favoriteFood">Favorite Food</label></td>
+        <td><input id="favoriteFood" name='favoriteFood' value="{{info['favoriteFood']}}" required></td> 
+
+    </tr>
+    <tr>
+        <td><label>Food Allergens</label></td>
+        <td>
+                {% for al in ['none', 'eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree-nut', 'wheat'] %}
+                        {% if al in info['allergies'] %}
+                        <input type="checkbox"  value={{al}} name="allergens" checked>
+                        <label class="pro_checks"> {{al}} </label>
+                        {% else %}
+                        <input type="checkbox" value={{al}} name="allergens">
+                        <label class="pro_checks"> {{al}} </label>
+                        {% endif %}
+                {% endfor %}
+            </td>
+    </tr>
+
+    <tr>
+        <td><label>Food Preferences</label></td>
+        <td class="pro_checks">
+                {% for pref in ['none', 'gluten-sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'] %}
+                        {% if pref in info['preferences'] %}
+                        <input type="checkbox" value={{pref}} name="preferences" checked>
+                        <label> {{pref}} </label>
+                        {% else %}
+                        <input type="checkbox" value={{pref}} name="preferences">
+                        <label> {{pref}} </label>
+                        {% endif %}
+                {% endfor %}
+            </td>
+    </tr>
+    
+    </table>
+    <input class= "button" type="submit" name="submit" value="update">
+
+  </form>
+</div>
+</div>
+{% endblock %}
+{% extends "profile.html" %}
+
+{% block extra%}
+
+{% endblock%}{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex flex-md-column align-items-center">
+<!-- fid, name, ingredients, rating -->
+<h1>Update {{dh}} Wait Time</h1>
+<h3>How long did it take you to get your food in {{dh}} just now?</h3>
+<section id="form">
+    <form id="update" method ="POST" action="{{url_for('updateWait', did = did)}}">
+        <label>
+            <input type="text" name="waittime" size="30" placeholder="Current wait time in minutes"></label>
+        <input name = "submit" type="submit" value="update" class = "button">
+    </form>
+</section>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}‰PNG
+
+   IHDR   ´   ´   =Í2    IDATx^í}	xTÕİ÷ïÜ™I2Ù÷•°‘$ (X ˆe	
+¼j…ZlëÖåmí×¾µïg}Zûu±j«UÜZQ\7BU
+TE²°Ë–ì“m–{¾ç’`–IæÎäÎIrÏóøX›sÏ=çw~÷ÌÿüW½)B€o_ˆH9aA!°ØCh—SÁ1`C 0 @Ìà`l{‰-àhP œW‚¡`% ¿†K`R!Z5ZPßÜ€©-ÚÑ¢h¢ƒ¼äëïqùü‹•fšÒ 6ÆƒaÀ– Hˆ‡	 a¨ ƒ2jÀP	p"{)8ÎCÆq€‡Ã|š]¿™>
+½uA@­è×Àò·WWaBHD˜<Y ›ÎcÀàW‹ã°‚1"úpdƒKŸ£¡¶q6¶j³Ã¯æêƒÉZBóİs‚`	“c*À2!cğˆ"‚¶Ä­WÚVÎOBÂA€çÀfÈGSm›»§Ù­‘HçAGh·0vÃp8›(ä]ÆLà\ê×{Ê˜ÎmB.gü(xFÇ6–¾£¢_¯ËÍÉxBs>Çˆı‘C`Ó!ñ…  HUQîurÍº“<^àcÈlRfÔ\fl]³øàE–ĞB.NkÊ€}À\0Cˆ¸r¦ÆÀÁÑ  vÃÄ7â´9w ÊÛjs9DÂ¾ı‘0ÓÁØ½`ŒNã°ÁÄ_k­çƒóõ°Ûó0sFcÊ
+ë]¡yÎŠ$Àº·‚³Ì6]p¿ØM’díp¼la™ï•øhª¾¶ßšçdƒƒˆü€´A «J ¡÷NƒãQ0la™Ùj¿@Ëñú%¡9ÉÁùc!›òZ@šp2rèÍc˜?¤lÛ1uÇFòw?kıĞBN>˜7ÀÜÏ0÷÷é’22Æ´ôÏú›|İo-ˆœ—?\~`k á#¡7ï!ĞğWÁ¤g>õX!v¿ 4ÿâæh<`-€á ú·Ä{$T{dÒ~ºo¬ÖgØõU©ıµÇókBóœ0Ìğ,8nĞ/|jo¿âñèÖ²Üq?Pv’eæ’EÒ/›ßš^»ã~p~€x¿DoğMªŒ=£áY6ùır\¾_šZ”»a€éºxáw´!1ä ŒµlÊöÓş6;¿"4?³0uÆµàx Çy½ù1—ÀğÂíØÿ	>ğBó¼¥Épğ?‚á ¡~¼‘úÔ¾FÀ``¿`é[‹ıŸZ¨ãòs'‚Kƒóùş Š>7`l'˜ü¦fõµzÏ§„æ»ç¶vüÀ(]^v“HşÓäês0â×¨®Íõ‹ªÏ-ü”óÃ×€Ëƒ³(ÿÙ}&#Àx5˜ô¦Ö½ê+¿kŸºÍPòs d,Ñåeä—Z <«õÏ¾0ÄhNhş|†	Ép ¢¦õ6ğ ÃËKÈ-ş1û¶FÍÍ)ÔÿğÂØM‚sòÅhÏU1ğ¶S_!`c¯Âh{“w±V7U¯7í}lQ"ZÏ ly¿Hõú¶Pà.øût<È&l/ÕbU^'´8™-J@³ñi€ßªûch±­~õ¢À»²ÿ¶—yû¤ö>¡/»ñ)p¬ĞÉìWDÓr2äÜôŒöŸ°É;.{óÅ^%´¸ f¦¬ğ]Ìğæ6öƒ±…øWSt¯7/Š^#t›j&ßÓ/€ı€pÚL‘r‚¼«õ×ŞRéy…ĞÂh’ö[ ?ÓUsÚ0¥½…TzAFıÿzÃø¢:¡…9;"|dNºfİhÒ˜¦áT-ØQ[÷ªÚfrU	-çİ_¯›³5¤G|™Éì^LNGM‡&u	·d2d¶À˜şˆ±>gÍ8‰¯déÛ«õfÕ-ü™96€óyº×œZÛ3àÇ‘ÁØ.0¬UËŸZB‹H“ãK` ÄˆzÓpˆ´ß£Fä‹:„ÎÍú>8ş¢_İÛG½÷U,`øËÈ~¡¯˜ô™Ğm­Ÿè1€}İŠAÿü%7õ5ğ¶O„©lö- fúíĞPı0—õ%E‚Ç„I`XÊÃàüõK {©€.‰¿/zÌÓd6} ô¢‰€a§F'¢Ê”ù,sûQOÆõˆĞÂO#0`8fyòRı^`ø-Öeø{¸MhaÌÍû5€ßèî :1½„ E·üé¿s×Šè>¡s—Nçïé¥ÅèÃê`l9ËØzÄ8Ü"tëéœ»`ëô‹ ;0ë}=@€Â·^FFÆ½îœÒŠ	-Ê@Ìº>Ò“{°=ú# Ğ7cZö§JËc('4U`•$jPf½éh…À^HöåJ+â*'tÎÒµ N¯i¢Õ>êïiC 	`÷±Ì­”^ÙeSDhQ:|ÀæºQï # :|7À–()9§ŒĞ³ncôÒiªï”> "˜œ¯eÓ²ßtÕİ%¡[+´Úv¸ÆÕ`úßu¼ˆÀ)À4×UÅÛ^	İ¦¦û>ÀÕ(^Ü*}h%p€ßŒŒzSãõNhaâ6mgz"r%ë}¼‹ ã;Ñb[İ›I¼wBX<’D1‚‘Ş©>º€"j Ë+ÙôÉ)Îië‘Ğüí•ŒhÚÆ(ŞtüÎßÅyój¶j³ÃÙ„z&ô¡%Óagô%„ùÇJôYèêaäóÙ”mZd>Ê	{?ÔAÔğ;8FfıOe^rzBó}·‡Ñ‘†	~·}B:Ç`7d±™PòNÍ9¡,]‰“©QOå¥ÓÇ°@fkÙô­ï)#tNÖ‹`Xò°Ó›€¿!ÀÀÁñ2ËÌ¦Ì¶½ŸĞ¼Õ«.GOKào»¨Ï§— Ù3»záu;ù%wCb/ë–A@~ ‡Ì×±éÛşÙqÍwÏ	Bxh¶nôó­Ô§×Š Yë,YlîævH:zÿ²q0Ê» $è˜éôÊ`—æ±[N8'tî’;Á…¸ØsuŠ™Ãn—awÈpˆ8d™Jz ’$Á``0$é£ƒ48îºƒ —0¾el{½¡…©{Tóã û‘¿ø‘9G]}Ê*,¸T\‹ŠªFX¬°4´ ÅêÄ&‚S#Ó?F„ 4Ø„˜è`O‰DB\("ÂÁØÀ 8çµõ-(-¯Ç…¢ZTU7ÂÒhƒ¥ÑŠ«½õ£ïˆ‹p1 4$¡!ˆ	Á0KÂBü—Ö:ˆÃ¹ ‡ÚMáWwRÈÏ¡a;Áü3fP–9›m8©_æáÔù+‚Ô6IbbÇŒÅuS‡`ä°(AúşvzÓ)Ld-¸H¸\ÆÉ‚+°X¬ Ş“Fßvd¸cGÅ`Úä‰à /¿l{a©Ÿß.GMèËR!ñ|€ÇøÓÄéD)(¬Æ±“å8vºåW,°µ2jÍÓd2 !&cGÇbÒØŒHB@€A­á½2ÕêÀùÂj9Y†“g¯ ¬²6›Sßo2JˆÅ„´xL‘©Qâ×Î¿«„Ì¦²é[
+Å=±}r\„YáU)ÁFçKeU#>Üu‡N”¢©ÙúIõf#Ñ#ÀdÀäq‰XòÍ4$Ä†xóu]v¥Ûş}‡O”Âjsh‚‹9Èˆ)ã±x^šÙüè¼¶ƒcM{xÖ×„ÎÉzÀí£¬ÒƒDÙÚºfä)ÆıPQÙ ÒÈîaÆ7o!~v#ÃƒÜ{ØK½kêšqğpş½÷<ªk›¼ô–Ş‡‹	ÁœÃ‘9)áAşBì7YföWOhşÅJ3ZÎ<É'(uxéÅ¢Z¼»ı8
+.U«.Z¸»6úÉ=<·/›ˆ„Xß¹µĞSIy=ŞÊ>†‚‹U~ËÈ¡Q¸uÑxK‰pV/ôg%°b×on'4ÿrÉdHì ¼ğ6ECÒ¥H¼áC(÷Ñ©ÜÓDé$Z·*i#£5¿ù.ÇN•ã•w¡¡ÑªK­:ÅÅcÍŠ)5<Ú·—iºOg×m;ÜFè¬;`ÀU]V€´¿‡6-ÿx	ŞŞvô³ê-6:·-‡)ã’ •–NæC'J°)û¸ÏDW{ˆ[Ãô))¾Õ„8p'».ûVBÌz¿r5yoüdæc'Ëğ·óÑØDUsı»ıàÎLLŸèõ“š.ÀùÇKñüëä'æßÍdÂ=ÿ•	×Äûn¢¿gÓ²f|ûÂ@ÄÉÁCó!mi0^{ïˆj?§¤V2š`645ÛĞÔÒjTP£EGšñİUS1f„wµ›¤O~åíCªÌ­¸Aä£›\S“M-6Õp	ÄÚ[§`|Zœ×?ööñM”Ûïf"€é_¤ù¢‹Îs¯©¡<m´A£†EaâØŒLDHp ’ÉĞªÀqÈ2vÆ&+.ÕáÄÙ
+œ9_‰:‹çF™ø˜`üdİLÄD{:í^Ÿ«¬nÄ/íÃ•ªFÇ'£}tãFÇaø›`è`ö—\`CrùùË58zªç.TõéW21.÷~{’â}qæ»aµİÆøÑe©h‘ÿ`œÇèyğ ù\¼öşìÏ+„»êå¨ˆ Œ™©54
+AAFH
+[zùyœ¹P…}¹…8{¡
+UµM 9ŞF˜ï¬œ"> 5ì•Í‡„ÁÄF–¼è³ĞÊ.c†G?…°]6éúÏ]ª¸\ªBu­{÷z×ŒôTÜµ|’ğÑ¸@ ô-Æ÷-¾Fi7˜¶v¤O%†;V¿ @#fM*LÕt¤/ÄÒ
+öç_:ow,môî;o™„éCú2…nÏîÏ»Œ×?8"&JY:I7<£—¾Zóèİ„™Ò??x	Í-v¥S©:×Ş6Eèï5me°ËsÏ[š	Î?×ÎÃHüÇõŸ£°¨VÑšéô!=ğÊÅãpíè8ÕoÓä÷@¾ofEQIâ_Œi“’±î¿ÒU“é”|ù­<<R¬:S“"°:k‚ğEQú+¥hpª±&s|u¶BhŸH,Tj©MM
+Ç/˜-¼5k-`lã¹K–ƒ³w´,1A²áŸû\‘K›4uB’PÑ…LéO¨»@’(RTV‡ìONâğWåŠ6oHb8şçY0ûöKÑ>W»İÿ÷÷Ïq¹´Îåô	‡É×&bÙ‚±HJóšÅp¹Rİˆw·ŸÀá¯J‰f¤·øÁÙˆÓÔÂ*ƒñÛÏYòc€=©eÈUUMşğìgÂÕÑU#KÔık¦kf~&1ä¥M¹8t¼ÔåIM'Ñ¯œ-dU5Éö¿æ3–ôNhºîNïß™	“J“«ù×7´ˆü¹‹Õ®º
+—Üÿy`6È}@ÃFÉÿ›ñœ¬?xHÃ¹ùÉ—öáÜÅª^_K·eº5“¼¬e£ò›òPTZßëkIN\·šDufG§!½÷Àá¢^LIÃİ«ÒA”–­´Ü‚g_;àR+5jX4şû™BÖ¸=N'ôF€İ©ñ‹ñÕ™
+üıµ°Ùœë‡éøíå“´¿\ìÈ9rãŸoçƒü5ºÒüè‚ªf£‹ØÆ÷{¾’¿öİ«¦"cR²ê2³’uìË»Œ7·>ØÎšÉ$á»¦ãÚ1qJ†S¹ñƒK>óMºÜì§°kïyá¸ßŞè´
+4afú!±}ÑH­¸}÷ìşâ<ºX0)àúÌT,¿y¬
+P³QŞÿè$¾È)ìFš³	s¯EsÇøB-&–I†*r]¥ù‘a¦£Ê•æİ0Yó}”Ÿó$rä˜ªæ¦(«¥Å.ú¤Â#5©›†&GÓrÚÈXŸ‘¹}ş¤¾:r¢_äŠp/†ÄøPLŸœ"|¦)|ÉÂÈÈ×ùÀ¡Ë(­ £áb3¦¦bò¸„>«+û:g
+.8uî
+r—àRQ­0Ğ$Å‡!sb2&^@B ò‰Ğ Fôu‘úó:~€Ày"t€X?˜Œ>¾"p…ñÜ,8ü3Ö¨¯ËÓŸ\04Ğ	M72uo6ƒF}µşƒ€íWÿL^Ÿ‰@7tBë¤Pè"Ç€ÚÎA¿»~)ô@ ´]
+uµİ ÚÓA¾”+ºae3`€-_V|fú``êËñ=ù>uNòıúõ(Z“|ã>: €Ôã'û¨üıdõú4ÂÁ_ó¬‡£¾"?@ -ËA²~°x}
+¶ Y¤1xXê+ò9WÓø(ÑŒÏĞ'0°¸šhÆG©Àšújü ¶T`>LÖØÅ¨QjÊÌCÅzúšâËÀS ˜KÚ;&µÖ¦ñAÚ‚8·'kôa:]
+Í?VŒÜc¥"m,¥JŒAæÄL— m*©AAAuIu )xøà‘"‘£ƒˆ‚	×Äaê„d¯»˜}k:]êä«„ç[?9…ıç¬¨şÚ±Qå×ù³FaÙM×ø,\_­x£™·~r;?/{;ï›„o}c4–Şäƒ4í	Ï¡¿Ô¾$%:§Ä„=eÙ6›p×ŠÉHŸàó:F•}XQŞ±¼öŞáóH“èA	,©œ¦­SI
+‹‘hñ§õ{EáÈŞrß]Ó4ÅEYïP~;:Œzk#R#ñóÌ5Ö5iİŠi\Ö2Ôÿ²ºHÖHYèõÀl¯eÊ×ìôÚ·ßÿı3QW½·Få)~yß,÷­KY7!vhXxSi:]ªìJ9¡¿yÃÈD‹ş»”ï-ÀæO¸L5L•±~qß,På0ZçÂ›mCÍJ#ÓÅâ±§?Cq™ë<È”N—2YŠb7zó”Ó2ÆRaTWÒ‚ıú‡7jU¼‡ÒÈ¯ß±ç>øè¤+l‘ïûv&®¥'wr	–;P.»ç6æˆd®Ú¢yiBC¥Më©xıî9AÛ	†´˜%=ä	*\Ô{-;H´lÁ5ª•~Ğb}édğÚòq«ŠÕUY
+Òr<ò“9Ú‰{a©ŸÏæî¾.^ÿöJF5?°sM2U¯ßxP—tÕ†‰b‡¯Rëºšß@ÿ;"qãÂå—K¥ò!÷Ş™é²Ÿ*“ş7œzˆ­Ú,NÆNz»äNpö2 M¡œ#Å¢„™ÍŞû)M–¨ï®N×uÒª°ÀıAH÷L•\U,£j\w¯œ‚Œ‰Éî¿Ä³'ZÀø:–±íjYïÎ„Ş¿lŒò.@›o¤íxæÕ()ë½ô­•
+ãüâŞôË¡gïñS$3ÿqı^E{”œ†ÖL×NÜ •r“æ±[N´/°3¡IÍ×&£?™¼ßşğ8öì»àp’¥ÉrH™ó5R×»œÓ@ï@†mÊÔO–Ag²s03cd@*Y ªåZO7á¶%cµsW`|'ê,Yíòs7‘ƒş~`Éİ„Ø¡	oHôøó{]^in#‡F	Ë!é9õæ}¨|4Y.u·è&ã±"üfÄ¿®y4©ß¨3j’ÿ“CæëØômT§şjëFZ·0²1ÀPïCÖZ gã{‡ñE®ëÉTn÷¶Eã0ïz½à€{³ë‹óxgû‰NÎcD˜a¦!¸%ü&D":Mƒˆ<µa×W’×I}	’=“¥ï Ì_=ZœÒ9Y/‚a¸6§tqi|y¿¢Bœä´DJ{o×‚(ıádæşİÓŸvsB
+“B°*b1†šœ_ü˜ÄaPğ¹W¼Gj—Yfö÷ºbéT¬à–®€Ä7 Ğ¤@ é¢ßøà(öå*Úk**ô•Su5"´ÜïDjºW6ç;U©ÎŠù!³`d=Lbi5^¼rR[ ³µlúÖ÷”zß-Ãatdƒa‚ûpxöÄé‚+xú•Šdi_Ö0ôluıë)ªJFµ»­1DaMärD\üd&!é5½®F}RsƒİÅf~ĞM›àü„æsŒÈ	{?Ôj+È¥tãûÊdišÓ¤püô™	ĞjŠƒâ=V<ñÒ>\îR9€™°"ìf\4Z9»¡RÈÕª^9FfıOÛÓ­úgš~hÉtØÙN aÊWĞ·UµMxòÅ}(¯¤Ú|½7*Ğ9}ÊÜ¾t‚®›v–Â¿“ÎùÍ­ÇD}Ä5©>ãtó$Ü:&æ^9)Èëj2¥PÇş\#ŸÏ¦l;àlY=šLá#š6±[â¡J·{Î"û““=–$îøIb¸eÁXÜ4{èëÍsèò“ÏÎáƒOŠØÎ-B
+Åº¨Õˆ0xx¶Iá7V"xrmßIÍù»8o^İnêV$C·wâÏ‡$mé9Tî=I·ëŞÌÃÑ,í£FE˜±öÖ);:Fw^rê«½Éhròl%6¼{H+wlaR(nÿ†ô­¦¹dv ôú*O¨ë©k Ë+ÙôIrpÚz=Ö8¥84mÒÊrH3¤Ÿº¯ÎV`ıÆœ¤w]IL¤?¸#ÃR5ûî<¤>FåÉQ¬²¦3™I¼X:ÓÌ“DYè¾6)H2µÙSR“e°Å¶š]ÿQ•g„æHÈÍı>ÀÕÊrH¥Ÿ¼wwœÀî}ºE„÷´ÑÃ£±ö¶)ˆÑkˆºC<ò§yõİÃ8Up¥ÓcDàIAc±8l.™zo #|Ş]cé¬İh”Œñ~dd¼ÀØ£ÓtÄågÇsV$¶İ ´òØÓ# ÿñv>Î]ìñcì„ÉĞãÓâ±æÖÉºi\!KH£ñúGqèDI§”DækG`iØ|„Hê‡QBí½±æ4‹;§ Ó\–ù^IoËsIh!ÌºŒm ¸¦qP$z<ÿz®¢(‰öE’ëâË&‚lõÖ3–F+6‘FãpQ·N)ÆD¬\ŒÉÃK àIO¾ æÑ
+djfçkÙ´ì7]­ŒĞ9YÁ ß°¹®TóïäçñeşelÊ>®˜Ôäï1mr²ğùÑ˜œíGm}³v%?ç®I~¢¸%|0m«!7÷ÆC„ás® pd£Úğİ [Â2³]uT.éóœ¥kş ³š¤u5Ô¾·ã+ìú¢ “n´×ŸÆš†Ü™‰Øh]¦îˆUÙÖ¿v%–nxFJá¸+r9bQ®¶Eµ¿“:bq‡v¾vxAÀîc™[ÉÃeStB±£Õï}@›˜Ã3¯©kÆ?7çãäÙÎW«6$«—ŒÇÈ¡Ñ CÌ`n¤=:w©
+om=†Ââî‘Û‘<‹3=LRÇ¢oC˜á*z"õ^Höå]½êz[ñ6sò¼;˜u#$|¤UˆV'R×7ãÅ×sqVá%±ıÙ¨ˆ ,¿y,¦M2h/¤5:xø2Şûè$jjE,i§ÍC±Ì2ñ¶P˜""aLLÔ\§oˆ²!zY	èßZdÜŒiÙŸ2ò°SĞZœÒ­j¼õ [¢¼‚÷»ÕåRq-^z+e·0bñ¼1¸!sè »,R–£½9—ğá®3Nõúqr8[& Ñúµc¥1&Æ¸8ÍOjc¤Q·Ã&\4( öeddÜÛ›š®+Ü"´ uîÒIàœDÍÓÑ'Zp±
+Ï¿ƒZiÄº.”.‹¤«^8g4ÆS~ypëÓñŸÎ„ÕÉ³ W‚³ªœêóSä(Üd¹	ÖĞÎxHŒQQ0ÆÇk{R3óxØ•`^ Æ–³Œ­GÜAÕ}B‹S:ï× ~£¥±¥ã¢Îœ¯Äóoä¢ŞÒâÎZE_Ê1wæ,¸q”ğÔh²5ÉÊ¤_şøÓsØ½ï¼Sw\Ò^3%c™ñF×€;œGİR'$hzR“:/zULñÖG‘ş;wNgÚ_·	-NiaØYn3J…H&Ì?QŠ·¶UåÒígIhAÂqãuÃ0e|ÂˆÎº¾ÁŠCÇKğé—QXRç4°•¬~ƒ®ÁÁÓANG‹¶²2p«“ŒŒÁS|<´üò’››Ì×Ö\üİ·”E|tØ`-H³h"` '‘x8êöäPs¾°/¼™‹ê.>J3$M‰Àâyi7&®ß^é?q¦î:òË U§³À° ôLc»(ç`½|\vò‘:2¦ÄDI-bÌ×$½ş××”]Û×ÛBg˜ÀRçÿë‹bûH>Ü”}…%µŠõÔ]7›Ä´Ñ˜‘Š©QˆŒòûrDZÒXPíıy…8}¾ªÇh	RLñ˜2S¤ ÿîÚd‹ÖÒRç'5 ­/ŠØé°²Õ©›ŸTæûĞ¶ 	-NéÃËãa³o0Cé©¨v?ú”Ë¯X„3Ó±SåŠü¨{šiC¢#ƒÄå‘Lè#†D!(È=‡vµ××u¼æf;Î_®FîÑbqÙ«ªiîÕ+QC†y"nÎè¥İilÎ[Åâbç25]##[/Šè©9G—å[RŞúÛî`Ú'BRZ”»á­Òô´8ºmİy
+ûó.w‹…sö¾¤IŠEæÄd¡!¢›M"E¬VÁ$JØí2šZl¨®inµ9G‹QRnqé…HD6DavÈ4LLƒ¡— ÖøñƒHmseTœÔ±±`†ƒd=ÁÛÉ32ûeÒÆ'ÿìÎx}&´ ÊÛ9É  
+úIDATunÖ÷Áñ­¢Ä{Z`‹ÕÃ'Jñ¯=çP¤ ÷´ (cSpIˆ!ñ1ÁHNGJBRÃA™êƒŒªœÜlµ‹ÊE¥u(*«)¸($İØL>:½ÛHƒnÃäÀ±˜d‹XC”Û>úzØHüpFê6•).ğòIÍ9ÿ$iLä"öè£İb{Ú;u}fa jŒ/áÛJHâí>Uxes
+.Q€ƒ"“ÛS¢S:6*Xä¡œn©I"§[H°©µfŸI‚Ab`ŒNôÖáéÎÅ¹,Ä"›M2oC£M¸ÊÒ ¸¬±s¥ºÑ£y›˜	ƒÒ„£kwH'uKaaë¤´«Ú¯’šW"@¾6éŸOwJ&ÓÛZT!´8¥ó–&ƒc8ŸçËKbûb)Ÿ²1ıgÿQKÏÕÉæî†÷ÔŸD•„–ƒÔ¶é²,‹LQ	İÕÛÍİyĞ‰"™‘0SÌãjJrzésw\ê/dê.Ší*=/ŸÔ\bÓ’_{’2y)jªº•ÔK&Cfƒ8FÑÛ½Ü‰NçªÚflßu”kÂUru/OGõáÍ,éæñBG¹2ÜÈV2!"5©ôœÔ¨ô8Çšä7zMÉ\©º„&+âá¼ÛààëÁ™v>ˆ.VK§àñ3¢Xä…ÂÅ±ŠJAÔª]ô(Óg´1#L©‚ÌÑ†H·edwç+.Š%%>QéÉ`IşØ£=‡]u\ª„§ôî9FD„¯ÌÿêëKb×kh²j…I˜T^Ş’¯İ%Œ’ş‰Æx¤C’)^ÈÇ$f8Ó'+Ë“>â¤..ìNîg^UéñõŸY‹\µ¹5C¿«¦:¡©)óRnØoü€¦a[®Üş÷CÇKñáîÓ(¿Ò NlÊ¥Ãz¥_Š)k#oU5XÕ“‰Š‹bQ‘sR“ñ%:Zu=5{1Ézù>æKBR“¿G@Àï P†Hÿ²N´í&ùÜÅj=U†£'Ë…¶A«Ë£RBÑ¥ï›!×cVÈ4uåC¥èÒO‘JOEßø{òèˆùLäè¸~ş|†	™)ë|G«BDì‘¸¥Å“• œÈg/Tv+ÌîÉ¸j<c€„Åaóaîœ7³ÙĞ„ IÖ6º„Ö$dêÂBç¾tz‘ïG²:uVø^|˜ÁG2t×Mä‡İø8V¨}	Uƒ0]Ç •ZÅNTŠªOíºa’¿}!sÓ	=;<sb2a·ÃÛŒ€Ô&%ÛÀ«ƒP÷ï88j´—êzSé‘1 5R°
+)8_•ôÆ_ß¡}%ûíºÓ)Mš”c‹Ğl|à”'ÏëïT²pW}H¦vÈ²Hø][×J$YXT‡‹Å5(-· ²¦Ñk§8}OˆÅĞäŒ	±ˆ‡!X†!ƒµÊh.FİÇñ›½nŠîéÓ`sæ¥Ç’“aˆèœáßæNş.sÙ>>ùÍg\Whm{X3rñc‹Ñbx`ËıYüpz»xBfèÒŠa®¬j ù"“Õ> *SGú(¨?ı›€få”$s:YÉèB	"Ãƒ@9úb£Íˆ‹	A\tH›ÅÑèÚ™H}>õ»bá¨×şªâÌ÷ƒ­'´¹¯	øùFkÓÔQ›_p]YsBÓ^˜»éQp¾Æ_/Š®íìï$Š¨Bÿ&k ™µé¿‰Ì‚ØmæwÉÀ`Z›Ú	M–E:‘éÿ÷8zFœÔ!¨ßí#R“E±²¼¹Dfi;"#ÕğŸŞ”¸ñÉÛcŠÄÚÍNèv"ˆ‹bF2é¨ïñW•'¤öù3h9‚Úâ´?„Z‹ƒÛì`FƒZNK™áŞ”O½ä¶šºƒJïç ô7ã‹;àù]ßö“ú?1pÔjQTBÇÒø7:äÎ¸>!të=Çˆüğ5àòãşd&w<¿ì+Nê`Ô|˜ n×^¥§"&;Œõ«ã¶şÉu™á/õ¡©ÉL¶vf”?xé©¸!¾ŠH}!u$S÷Ï“ÚÆîHÜøäfÍb
+ÕÚ-‘¼&?w"¸ô88Ÿ¯Ö¸ƒ~œ6R×’J¯Qc•^ÁçàŸJ¦E‰?îºØN—wùô„î8áOíàÃ-º\İGFtxÜz!5ŸÄC¶ôRs Fr¿•øÖã_z‚‚ßZˆ ùRg\‡}£è	˜şúÉÔıDüàŒ³¿×WÛ³ãi÷³ùBm§dÓÛo)}êt]®V‚˜ë>Ö‹fToK·úõE±Àè˜÷ÖŸŠ]¯Èy¿:¡;‰ ”"Áî¸œßç«d6‚ê¯Ï]½(úÀ÷C&F†•qŸÊSĞ·Ç.~Kh!‚äd˜€„±`†gÁE^j¿o_6B“gé¢xÑŒ:©m~tRs^Iú^ÒÆ'ßî+ı‚ m¾Õd„Y`¸.†ômÛ­…fÔ’—^µ__ê9çª²ÿiÂæÍNì¹·Ö~AhqZ“z//¸ü ÀÈD/ âŞ^wêm½lFİ®XØ+}X\‰²#1ùÿ:¬†©›Ÿì±&…;Ëì7„n_” öÁ¼Ùğ€t­k¾¸®¿÷µW›„?µ­(\Ö”
+ô¶€ÿ,ÁZüÒğ*%xjº
+%RÒG”ÇÈ_Ù´×Ò,­KÎ)™gèã°Ğx(MGÃµrj¢c[8—ÿ4&*_ih•R,û%¡;iC¨äÇ20< M¿8*İú«ı88N7ÿ[İî¸EXÈ½Wn¤¿J´±ML%£ëjû=¡¯Š"¢â­•ˆ}+8Ë şîÛ5`<ï[¨BkùÊGB†Úo0#n—eÜ(1$ñ¾8ssşq ;isì«Oœq×?ÃOtÀúêÅqßşHé`ì^0¶ €÷Ê¡ºƒ´ÿô­çƒóõ°Ûó0sFM×²¥w=«uŒÒ|¬ g“Àx¸¿~V€u@şØÀ[™¡ñxBaBÛ£<é¢§p(BwEŞ^i@ZSlŒHÎÃpJ’¿S£rhà¸ `7L|#N›sÙ*e‰[øw	ª°V§Ê»–ƒMf),ŠsÅ JmJ%è›PÉ¯€Œ‰všä“Q¯<U£5Ô~s…ßõşÈ!0ÈéøB tj§ºqÚh½'j½Â–¨FÉÇÙ8¤<Ì¨¹ÌØÅ©i»N„B#7¯\)MgŠDmP­fªÓkoqØp4¯ˆk«Á)Ü@Ğİ6…*âÚK`Ààl¢µ3õçÀ]±FÆdpN’Â7`tlSZU­¯È×ã:B_½DîsÄH˜S–	ÓÀØX€Sì½öáÓ1Á0*.s’³ l†|4Õ°¹{º—Œõìıê©AKènòv\…	!q`ò,0dl8ƒMiN¸Äac• ßlpés4ÔV "Î¦T.îWus²:¡{ Œ±ÒCSÀÆCÂx0Œ 8Õ6K G$D‚‹D”"å†›¸÷Ôä^º¶Ú “è "nÀJÁq2©¿øq8Ì§Ùõ›U1«4o¿F­ğ›yk"|ûÂ@DÊ!
+ÅŠ@C¸œ
+¡ ğ$p$€±˜6xÌàÂç¤]„±ƒ¡DF
+ş¬ç•` Ò’)ø2.I…hq4 ÔhA}sj¤¶h‡GïŞÂÃ_ÇıÿéüqádYw    IEND®B`‚‰PNG
+
+   IHDR         óÿa  'IDAT8O•“İKSaÇ¿¿³—³á6GÚ6g‘AiE	µ…•`àUAu]E®*úú²QP,óªì¢{"¨/2k–ä‰‰©[n½Øv6vÎŞ~qçhkŠ«ç9Ï÷ûá÷J¨úøıáİ C @7ˆZÄ3ó€×àBˆö>ÿø·…–/üæ„æLÀY€Êÿ+ùÌ úµ^¤2ú›
+³I}BWuD5ïŒ!ä,‡tÈ ÜèÜšÌeß&ÿ³ •r]9ì•°Ìà‚8Üs óº¬XdDc
+Ì&	®F[…3ş#…l®¯ÛIZ.ßÒŸjM¦4ûßÂ^'CÕrp:,œòHh ŒÅ¤
+«l‚’ÖpéÌ>Øm²ü$ñèsüg±ï)ìÚæ¦¡‘¯Ø¿gƒ8˜GWÇ&qŸˆÁ½ŞWCŞ‚lğ,© ”Bd!‰oqşöæUYáO4¹ìhö8J)”Šø;©âjß0®\8£Qª	Éç‹è¿1‰ãG[ÑĞ¢kô".®hãã—H*NkU#3ãéà4vLwÂa“±îd”ÎŒ¯bŠÌ¸?8.ZÙİ¹½õ"’¹hSï4ìœİ§d‡Áá Y
+_<w®o©9ÊS3¿026…xJ :¼mØ:ç«ä	H²ÉbQšî]s¬y™rq3yQTJÄ½»ÁËÿlİjëœ«¨¼jl#’"îŞ'ğĞhäùÃF=†    IEND®B`‚‰PNG
+
+   IHDR           szzô  ÇIDATXGµ—kl“U€ŸÓ®íÌ²”1¹ÉÈ` A"HDç5àÔD“Áÿ`Fã%ˆÑxA¹ü!
+#™¢‘±häâ—ÂœaB@œlàºm¬-m×s¾1ìut¬œ__¾ó^óó¾ï9‚8‡´?aAšŠ,Y b<v[½ä? j‘F¸kDáÁ®xL‹»	É“Å“ÑéŞFˆRÀ|7ùÛó.¤ÜM ğ‰x¤æâ@:1¤}©ä«CœÃÅ| ·€X'
+÷»¢Ùˆ
+ kK&Ñ+¾E0í‡ªIêI’Ï‰‚êKáö" ¤½dˆ kBœÿoÄ²HVŸ¶ ­Ü/İçı>èå£Á‘¸ í¹äTÂÂ+|j;sûÏD@Éç Ö&8ì1ÌÉ¢°úM5©h©¦×ŸÂi,·¿?_¥hÀé’Q6X+C’—²\Ì©^)´
+‡©eEfH~ƒ”]àÎòôÒ—ìŠfÕãíåÂå6Úo¸1täŒMÃ–eàÊµ.¯vâõx`¤™)ÒI6&E×‘¼,¤}é×Àªp‰ãg®°÷@=.·/djrn:e/0Òb
+ùßÑéfgU-ÚCş›M–ç1¿p\4ˆíBÚKì fÏªkfÇî³KNbÁœqŒË¶pËÓKmıuÎÿå`tz
+ï¯~ìÎÊT¤>Üò+­íN¦N´2sZ&¦ä$šZº8zºIÓ]U:‹9	ƒgTÚ€ôàµr¥øÖë“1<D©ªºŸO4°~ÍãXG¥hs'|q„EórYQZ½›¯ßäÓmGµ…,&¢²·+€^@ì%x}~-áCJpßò¡B<ÔV™†Qº‹Š€Ñ G§‹˜ôGHÔ1Ã±q(&JDmAä!ìîñàhw2!gTB]nìÀšÂˆÔä¨‡0"+öıJÃkk'~(CeÆº‡™?ÛÆ«/Ì7µ=j!:fo¢b_O/šÈ²§¦Å?ßıxŸ~ià•ç§3¿Ğj«¯E–b•ï}vÇÏú5‹"ŠN¼D7ºÜ|ôåqV¦–’9MVÔz»ıiúJ±úŠÖŒÚ›øf_SLç²yèõºxıjr~€Íå'Èk›ÍÌayÚ?S^7–'}ıÍHˆÒU¾µËÎÙs×˜•ŸEÙŠ†rÈçóS^U‹ùb&KÒ†È™ftcYìğjÇ„=òB¢¶bëÎ“Z}“9œÒg§£zÁ@CÉîùş“;¦0·ÕJ²Í†ÎÚ7Ìùİ–wÊ_Svîz%S«©:PÏo'‘€-ÛÂŒ‡Fk]15Å¨±ô8½¨.øÇ…Vz[¥.d¼q,~§_s3Æ0	uÙ•›´”ˆûRªr¹æÈ%ş¼ä@•êğaÑgÙˆ%ämˆ ³1 z²*7iMfĞ×ò›N—opİÑƒÓåÕ¤˜ädŒbÒX+İGãi}@)ˆ€Ë…ÁÚÓ—²*7kùğ‡‰ô:÷gàiˆ]À¼›Y¹éã˜ }‡òŞŸfDu¿#!âP›÷jqşŞ½Şú÷ø§~±ûßm9uÒ£_.¹Z@îi÷¶líwÀûô<ÿıA·¢f¹;    IEND®B`‚‰PNG
+
+   IHDR  ô  ô   ËÖßŠ    IDATx^ìxTUşşß3“^HBè½#]˜	]šH‘L*v\×îZ×ÕÕı»Å-şÔÕ]±wWÁ²+*’‰"Eš€@& ]z¯ÒkÉœÿs& L¹÷Î½sßó<>¨œó-Ÿs'oÎs¾G€HÀ4äÜaÙğ«TƒtdC"YÈ„_dÂ!«@"B¤AÊ4 ) ’$A R&"@$œp '”ğC @ CˆRH”(pÀqR‚ÀAøÅ8ä>H¨öB`7„7a	;E—±»M€Í	œü ÛÓ'}	ÈÏ†;ÑäP# ¾€²¤¨:ğË:¢ k„ØZ­Û!åv8ÄVHl…›!Åf ã±6m½¸vŒú%‚H@GtáÒ´½È%ÃPr¸%D\sHÙ@3@6…!ÑÈ^4ÎÊV`=¤\ˆ5 VCˆUe«”ºB´sÌÖl˜<	hD€‚®Hš±9µOÒª´d[´†­!e+ JÄÙB'°
+B,‡”Ë ±KpèÀbÑwZYè¦8‚ìK€‚nß¹gæA¾á@i'ÀßB\
+‰ Ú1”]"'°!å€c8_¸ÇìÜ,-@l  Çæ¼2«0	H_~Àß9pP+o6óX$Š Ç<á7×<¡1ˆ.
+ztùÓ{	È%Ã«¢ôhHÑİ!Ğ@BC¢ëĞ	ƒÄÌ†³‘˜<K´³'t3AÖ'@A·ş2ƒ 	„Å•÷†”½\ cCÙÍZ øBLG™s:ÖYkòmø(èá³ãH“¨8*vôr@ôƒD¿Àkt6ûP¯ç¦ r
+Ö&Ç#tö{ì’1İ.3m“<eñVÎ€¼€ú‡¯Ğm2÷A¦©ÈMÄ$ˆò‰Âõõò Ç±	˜ İôSÄ +# çç÷G¹ÿJâ&¶ÊhñïÏ"°ßÂéøFt7™tHÀÊ(èV=›Æ.§öIBjzœÈ…D.€,›¢`ÚÚP¥mQB>X úNSåpÙHÀ2(è–™*{*—OÃÑ’ap ù,‘jï	´^öe?Æ!9i¬h;æõR`Äv#@A·ÛŒ[(ßŠRª%×@à*H\uÚ%#Ê‚¡Æ 	/!ñ%’’>g©Ú˜ÑM‚£kå´d±G½F¿~‡@’•saì1F@¢Œğ™pyc,;¦cqt‹O`¬„/çyr p¸ub%/æÃ¶ÂÿAâSÑÙ[Ã™25‹  [d¢b1Ì@¡gùÍò&Å¶QN³îâc”;?b!Í»ÉR¥ ›lBìôå · ò&;äËíF@|øG	wáD»eÎ|£K€‚]ş¶ñ^±/û5€[´±MâLÔÎ–ø åqÿáªİÎq¹SĞcmKOr^~w8Ëo‡·Ù “&E@È÷Qî|Ot7›@H@/t½ÈÚÜ®œ—w3„¼½l‚é“À)3 Å;¢sÁGÄBZ  kMÔÆöä‚¡™(/»BÜ‰F6FÁÔIàâÖCÊ·àŒ{Stüjq‘€(èZP´¹9÷Êp:~ˆ{yŠÍ¦*c€|åş×E—oV†:˜ıIàtt>aE¹á÷CbDØF8H ‚€Àhøå«"§p‘@8(èáP³ùéËëÈµ9
+¦Ozø
+/wÁT=ŒÓfì  ÇîÜj™,Îø†\SÊF$ 'oÇHá7AO7´;(è±3—ºe"‹óÁïÿ„è¯›&8?)'Ãáø—p|KD$p1t>$ çç÷‡ßÿ€ÄD$uáp</:›õH€)	PĞM9-ÑJåõ€¿‡”yÑ„ŞI€Î! Düø§È)˜E:$p:
+:Ÿ‡_H_~;Àÿ€‰…HÀô>Ï
+÷¸Å¦”B€‚nfs;‘¾«jC–=	!ï3w¤ŒHàR¼÷´p¹tìM€‚nãù—ÅyäYÆÆSÇ ñ¸
+ş!d,$ÄB'@AYLŒEy·Á!ÿÄ­11L‚*¨’²~ñw‘Sğ>‘Ø İfs(
+#åS¼4ÅfÏtíE@]#ÄS,Nc¯i§ Ûd¾åœÁõïü+¯1µÉ„3M¬Øåû8^şÑuüf‰}ôØŸcHŸçQHüI6H—)’ 	œN@¢nïÛ(è1<¿Ò—; R<w§ÉÔH€‚! áƒO
+wáÄ`º³õPĞ­7g•F,—ËÆáãÏ âÎJ;³	€ÍÈwÿÑjìn›%óéRĞclŠ¥/÷@< ;ÆRc:$@ÚØÈ'„»ğ]íLÒR´	PĞ£=ù—ÅCZç áÑÈ$Í 	Ä:/à\¸¾^ë©Ú!?
+zÌr`Óğ|¤ÂH€¢Cà1nš‹x-½RĞµ¤i°-Y”×Âÿ/@ô5Ø5İ‘ 	Ä9Òñ;‘S° æR³IBt‹N´ôy ¾+g# -	<!ÜŞç´4H[Æ  ÃY3/²hH[À1—kf”†H€Hàtßş‡EÎ×KÆ:(èÖ™+U æ /*6³‘ 	€¾Ô%/	·÷}İĞºV(Z‘ÔÑœ™WÉòeH\­£š& s	|£âAÑ³`+ñ˜› İÜóYì¹¯¨nòP	@ìø÷—÷³ØMÑú™QĞM<‡Ò—;™8D†F$`+ò%á.|ØV)[(Y
+º	'ëÄq´7 ÑÅ„á1$ [s!÷òx›ù
+ºÉæD{î‚Ä›Üøf²‰a8$@§¸G¸¼o‹yPĞÍ3E· p—‰Bb($@$pao‹ïİDdtÌƒœŸÛR¼‰„ÃH€H xEòNÑ©pağƒØSt=¨†`SyF@@İx”Â0v% 38‰;Dw´™‚²[,ô(Î¸,Ê}Bü>Š!Ğ5	 	hG@ÊŠœBU–š-
+(èQ€.—ËÆ‘²ÿğªÓ(À§K }	¨+YSâ~-Zİ­¯#Z?› İàgB.Èï¿ÿH47Ø5İ‘ 	€1VÁá¸Ut7Û‡ô¢PĞ|¤/ïW€üÀ@—tE$@Q$ nî‚£€­\SĞšn9ßóWøñgƒÜÑ	 	˜ƒ€¼1G0±İ€ù•ÅQa€+º  ó-\Ş[ÌXlEDA×q>åœÁõàŒû½ttCÓ$@$`~3P^v“è:~³ùƒµf„tæMúò» şO 4ÑÉÍ’ 	€Õ¬7
+÷¸¹VÜ
+ñRĞu˜%97wœâS ‰:˜§I °2R”ËD—Â±VNÂŒ±SĞ5éË½ohl–æH€H ÆÈ{…»P]DÅ¦
+ºF •éËû ÿ¦¡Iš" & ş,ÜáM‚®néó¼àAÌÑ	 	Ø…ÀËÂí}È.Éê™']º<–¦Dš °/kÓdî)è`”SûÄ¡J•/ e^f8”H€H@ˆ8pµè;­Œ0Â#@Aä‚¡™(/W»4û„i‚ÃH€H€Î$0Nç0Ññ«}:
+zèÌ gçÖE¢‰œ0†s	 	À…¡Tİ·Rh(è¡ñ‚ôn
+Ä} mˆCÙH€H 8K€²¡Â=~MpİÙK  ‡ğÈâ!­ Ç8^}4v% p¨+XáÏ®¯—‡3Üc(èAÎºôå·ƒğ@¢QCØH€H ë!yÂ=nq$fì2–‚ÄLËù¹à^ õƒèÎ.$@$@ÚØ‡ôˆN…µ3›–(è•Ìk…˜;
+Y/6fE$@f' 6ÃáÏ¥¨_|(èáxÍÿ×\™›ıÃÎøH€l@`àÂ×ïi
+úØœØ ÷¿3·Á	¦H$`ê;uø¯äF¹óOı<\GÓDÜxîf·ÆgœQ’ 	Øˆ€Úı.ËóHÛ¹sNA?‹I hL‚ø–çÌmô‚©’ 	XÀ“ƒX|æÌi£ ŸÆ#PÎÕ_>‘à¬öÙf¼$@¶# *Ê9œX&öÔÌSĞO°\´’>‰µÙm÷c	“ 	X—À4<x/t©˜@
+úIA/ÎÇ[Ó¬û©fä$@6% DpäÛ4û3Ò¦ à}æü( 	€…	ğ>u®Ğéó¼àA?ÊH€H xY¸½Ù„­WèÒ—÷'@şÍÎ s' Ø! ş,Ü|BËÄ¶‚.}¹÷ âĞp±7	 	€¹	È{…»ğMsÇ¨Ot¶t97wœâK}Ò*	 	@T	”Ë«D—Â±Q!
+Îm'èÒ—ßğOŞtI$@$ ?RÀÑ[¸ÇÍÕß•y<ØJĞåœÁõ§Ä¼‰y¦€‘ 	 	è@`-ÊÊz‹®ã7ë`Û”&í%èEéèeÊ™`P$@$@Ú˜!r¼½µ5j^k¶t57ïCÈÈH€H@76:£nA—ó=…Öí¡a  ópào¢“÷/æP›Èb^Ğ¥/ïW€ü@\´B$@$`MâVá.øĞš±uLº\ßåşYÁ¡`/  ˜&àtôÇÍÕcVĞåòaÙ8Rö$šÇêä1/  ¬BJ\7ÑjìîFY¦kì
+z±§ ËÌ% ĞŸ€€W¸¼yú;2ŞCL
+º,Ê}BüŞxœôH$@$`zRşSä>nú8C0æ]yF@`TˆØH€HÀN$n9ŞÑ±”rL	ºœŸÛ~1@B,Ms! ĞœÀ18dgÑ©p¡æ–£d0¶½Ø39QbI·$@$@V" P$\ŞÎV
+ùb±ÆŒ Ë"Ï[¸+V&†y 	 	@@âm‘ã½Û Oº»ˆ	A—Å» ñ–î´è€H€H öÜ-\Ş·­˜å]åu„Å ,Ÿ‹Õ&ÆO$@% !…Kä,°hü°-/‚Ò—;]¬<	ŒH€H Úä\á.ìí("ñoiA—¾Ü‘€x( K$@$@äKÂ]ø°UiXVĞe±çZHüÏªà7	 	€		\'\ŞÏLY¥!YRĞåÌ¼:H’?¨^i†ì@$@$@Áø%âRÑ³`kğCÌÑÓš‚^ìùW›!£  ˆ)_—÷«åd9A—>Ï ^¶hÆK$@$`)
+·÷+El)A—ECÚB8ÅÂî|+=$Œ•H€lH@BúÛ‹œ¯—X%w‹	ºg2.·
+\ÆI$@$`aß‰o«d`A—>ºêîY«€eœ$@$@1Aà	áö>g…L,!è'ªÁÍ·PÆH$@$c¤èd…*rÖt_î@ô±G„é 	 	X‚€œ*Ü…ıÌªé]ú<xŞì 	 	@LxL¸½/˜9CSº,Ò
+Ò±ÌÌ 	 	€Mkáúz¹Y³5¹ {
+ á1+<ÆE$@$`#^áòæ™5cÓ
+ºôåŞˆwÌ
+q‘ 	 	Ø‘€¼S¸ß5cæ¦t¹|X6—­ mFhŒ‰H€HÀ¶v#5®¥h5v·Ù˜SĞ}¹oâN³Áb<$@$@$ Èw„»ğ.³‘0 K_î @L0(ÆC$@$@§ÈÂ]8ÑLDÌ'èE"¸Í‰± 	 	À$|"Ç›c&*¦t97Ó£ÁXH€H€*!`ª³é¦t9gp=8ãVA ‰	 	 	˜€D	ÊËš‹®ã7›!Vózqî{â63@a$@$@$!ß®ÂÛƒê«s'Sºôåõäs¥y  Ğ€è'ÜSu0’Isz‘g:z…9;“ 	 	€HÌ9ŞŞÑ%ê‚.‹ònƒïEı“ 	 	@Ø¤¸]ä¼öxFUĞ¥„À|ÏZH4Ò š   èXNŞ&B@F'  º‚îËû ÿ­äé—H€H€´# ş,Ü×Î^h–¢&èÒwUmàøz 	¡…ÌŞ$@$@$`JÇ€øFÂıå¶hD=A/Ê{BŞ¤é“H€H€t! Åk"§à~]lWb4*‚.}ùí ÿ¢h$LŸ$@$@$ /G{á·X_çZ’ {>p£ÑÉÒ	 	 	@àáöŞd€Ÿ3\.è²(¯„œit¢ôG$@$@†¢§È)˜e˜?Da—»,Î)óŒL’¾H€H€HÀPBWA¾‘>]¡Ëùùıá÷O22Aú"  ¨p8®ÆM6Ê·±‚îóL 0À¨äè‡H€H€¢H`¢p{åß0A—Åyƒ åx££  ˆ:!WÁ·FÄaœ åN‚ıHŠ>H€H€HÀ¤œ,r
+¯0"C]ç„ôòŠĞèƒH€H€‚& ƒ„kœúÊY×f {ÆCb®™Ğ8	 	 	˜‘€À·Âå¬whººôåõä½¡}  0/ÑO¸¦êŸ‚î`¨IĞ6	 	 	˜œÀWÂí¦gŒº
+º,Êí!æê™ m“ 	 	€%HÙEäÎÓ+V}½Ø3
+#ô
+vI€H€HÀ2F—÷½âÕMĞåÜ+[Àé\¡Wà´K$@$@–#P^ŞRtùf¥që'è¾Ü‘€xH i“H€H€¬I@¾$Ü…ë».‚.ÍDyù 	zM›$@$@$`QÇàtÖ¿Ú§uüúº/÷	@<£u°´G$@$@Ö' ÿ Ü…Ïj‡>‚^ìY‰FZK{$@$@$`yë…ËÛXë<4t9/ïf8äh­¥=  ˆ~1Bt.øHË|´ô"ÏtôÒ2HÚ"  ˜" 1Cäx{k™“¦‚.çåw‡Ã?KË i‹H€H€b’€ßÑCt7[«Ü´ôâÜ÷ ÅmZG;$@$@$³„|_¸
+o×*?Í]Î–gÙ.­£  ˆyåqÕD—±»µÈS;A÷yğ¼AÑ	 	 	Ø„ÀcÂí}A‹\µô% Úhm 	 	€M,no[-rÕDĞ¥/w  &hm 	 	€½ÈÂ]81Òœ5ô¼ yS¤Áp<	 	 	Ø€øX¸n4ïˆ›á"' °=6ÇE.è¾¼‡ 9Òö“A $@$@$6ñ°p¼öp ‘z‘gr"	‚cI€H€HÀÖ$ŠD·s$"t9Ï“æE Ç’ 	 	 	 ğ£³èì-
+—Ed‚^äù7~®s#  8A@âE‘ã}$\‘	z±g$ê„ëœãH€H€H€NØ*\Şºáò[Ğe±'Şps	 	 	ÀY<Âå-‡K$‚>
+#ÂqÊ1$@$@$@ç! 0Z¸¼·„Ã&,A—K†'àhÉ~$…ã”cH€H€H€ÎC@¢ÉI¢í˜c¡ò	OĞ}|ª3ö'  ¨”ÀMÂíı¤Ò^ç¼­u YìùW‡1”CH€H€H€.F@àáò^*¤WèrÉğ4””Ğ¢(M¨Á²?	 	 	Ø€€DRRÑvÌ¡Pr]Ğ‹<# 0*'ìK$@$@$‰[Dwt#B/ıÊ×í¡àe_  ƒ@¯İCZ¡Ë©}’~@\áq	 	 	@pÊpğ`ºè;­$¸î!^Î"çy®…ÿÖ8û‘ 	 	 	„IÀëDgïgÁm…^ìa1™`É²	 	 	DB Ä"3¡	ºÏ³@V$ñq,	 	 	@Pö
+··jP=C9z&çç÷‡ß?)XÃìG$@$@$!‡ã
+ÑiÜä`¬½B—¼*5ìC$@$@ÚáJÕàİçY •vQÒ	 	 	@%–··u0”‚tY<¤¤C	:	œA ôX9JJ£¤´GKÊP¢ş)-Ã‘’Šÿ§ş‰s:”‡¤Ä8¤$ÅşTÿ$«ÿwâ¿ EÒ'S(÷ËŠç½äxÅçàÄ³ÿËç ¤eåş_ı_>I'>ÏD<œ¦ÌAE™€ğ·®¯—WEP?E¥/ï!@¬Ìÿ>ö8XŠ]{`÷¾#Ø½ç(öì;‚]ûb÷#Ø½÷—ù5IºJZ"ªf&#;+ÙYÉÿyêß““â5ñC#$£%Ç±G=÷{>¿üûŞŠ?p¨4³çŒ‰sT|ª¦ Z¦ú¨¯ø,TËJA•ôDMüĞˆÕˆ‡…»à¥Ê¢RĞ=ê²õ!•ãß[›Àá£Ç±vã^¬ß´7ğ§úG­4ÌĞ”È7k”æ²Ñ¨~&ê×®b†°CŒX¿yÖlØƒ5ês°a/öî?jŠLÕ/¶ÍW|×ÏB£zˆçªŞ“£o_·7·2•
+ºül¸MJ H¨ÌÿŞZ~Ş}«ÖíÁú-û°nÓ^lÜ²ß2	¤§%¢iÃ,4ª›‰†õ2ÑºyuËÄÎ@ÍG`éÊŸŸ%äêÏC‡C¾Š:*IÅÅ9âŞ°nFàsĞ¢q6ÒRù£:*“¡¯ÓcX›”"®S~17•º/w  &è+­E@‰ø’•;±ä§?c¥UÏNEÛ5Ğö’?ÙH 2§Ôç"ZJr<Z5¯6-ª£M³ÈÌHŠ…´˜C€€(Ü…#tÏ³ 'QëˆU¿ĞŒPÜ­û¬êy,Šø…˜©ïã[7¯ÖJÜ[TGõª©zã¥}}	<'ÜŞ'"ô"Ï<äè'­ëA`á²í(Z¸E‹¶èaŞ6ëÔHG§vµánWµk¦["f©-m;Â·x+æ/Ş†­;ÕİRöl9íë"§Cth]Ë ¬µD‘Èñv[ĞåÜaÙp–í²:;Å¿ÿ@	ŠmEÑÂ-ïÙNpµ«W»ÚP²Å>âÅ[Q¼xÔŸl§4ª—‰œu‘Ó¾2ªğ•¼¥ò¸j¢ËØİŠù¢ß¡Ëâ¼« å–JØ¦ÁnŞv ßÏÛrµ[íÂN®Úûõh‚Ôd‡‹¥gE=ûSf­µıj<˜9UÏ¾öË:7D=	Yôûqµp| û<êÜÛƒÑÏ‚\ˆÀ¾ı%˜2{¦ü°Ç_t$!E@}×~yÆèÛ­1ÙÄ ©?¬Ãw³Ö!V6¸5%êØ[¿nÑ¯{cn¢3
+zø~^nïCá
+ú| Ã÷Í‘zPâ­D\‰¹u¶ğ	¨ó¼}»7F—Kë†o„#£F`î[0uöºÀq3¶ğ	¨ñJÔ•¸ól{øu¹@¸½Bt¹dxU””\ğ]½ÎAÓüEÌ*Şˆ)³ÖA½fgÓ€:î6 WS´lZM;£´¤kvaâŒ51uüR7X!V¯ßûõhŒ®!ŒbWÃ$%e‹¶cÔUæç´~‡.‹s=¢À° é¨RªrÕ„ék°pùöJû²Cø”¨_Ù·9Xn6|†zTeX¿™º* ælúèĞªönŠ¦ƒ¾[¿`hù!ó„«Ğš û<Ï ¸è™726†€ªZ¥~xM˜±Ú‡ôØ$4¸ws¸;pG¼™ßÂ­?}ßN8){5¼¹b:¡_ÜÕ³ÂíıCh‚^ä™^¦IÁ¦Ì]°_OY…»Ù”@tÓîî®«¶‚*5Ë=û”`Ü¤Ÿ0Û·)zAØØsÍjiÒ¯9ºt¬gc
+&I]b†ÈñöMĞ}u}‹Gq¿üv9&Lçª<ŠSp]¿N†i–Møİz4æB}Å4vÂOPbØ¢K``ïf¸jP«èAïÇ„Û{ŞÆy¿C—¾ü.€¹E‡À]‡ñù×K±è§Ñ	€^Ï!àt:pÍ•­»€ÙŒ#P0i¾²Ò8‡ôT)ö—ÔÄ5CÚ f5–’­–n]…{ÜÜ³Í_@Ğ= xY·Xhø‚~\ºc¾^¸ƒœÍ|zunˆ‡¶ƒ•Şkd¾à-‘ZşÍ2î`7éœ©»Ù‡iƒKÛ°Œl”¦èAáö¾œ {FAbD”µ­[uöıÿ©£ÿlf&Ğ¶eÜuŒù·    IDATƒ‰‰qfÓ²±)1û“b[×]·Êäİ<¬} Ò›ÁF—÷–àİçY€_”8Gj³Ï‡_üh GºŠ„€*Fsß¯:#wOG‚ñœ±JÌ_ÿ¨;wÅÆu¦šÂ1©±¡/Áà>ÍM]Ì†µ\¸½­+té”ğVŸƒó6àã±‹ôHWZ¨‘ŠßŞÑU3“µ0g{JÌÿùÖ,á]–{®¸¬i`	›‘’2…{ÌşÓ=óE ôåõä#Ã²³/Uú¿KìŒÀÒ¹§$Çã‰ßô„:ÖÃ>%æOœ¾Œ:î®úøÕ5—F=û ú	wÁÔJ=÷@üË>P¢—é—ã—³XLôğkêùÉz¡AMmÚÅÅ<vfºc›Z¸çæœØIÈÔ™Èß	wá¿/.èÜgÈ¾ûßù«NÙb‡Àïïí¦X&3”İ¸e?~uF(CØ×äÚ´¬oíbò(c ¼ólŒ;Ï+wÏB íc ]Ó¦ğâ{?à§Õ»LŸÀŸêºµª„oÀF#ÕíhÏ¾>ÓFÛ'ÕÖÍ«ã¡ÛºÚ'áèdºH¸½.¸B—SûÄ!=ıxtb³‡Wu,MOc‹]ÿúã@Ö½®dz÷ì;Š?<79vfØù®vÀ³éHààÁxÑwZÙIg¬ĞeQ^GÉƒĞ:ñW…2&}Ï¢tÂk³ÙY)øÇ£ıàp°øÌù&¥¬Ü'™„ƒ‡™fÎˆ>n»¶#ë¿ëƒ¶ÂªDNÁ‚ºgFééß®¶¿›µŸ.µkú¶Ë»SÛÚ¸û&·íò&ág^ûë7ódl0¬b¡Ï}·tFûV5c!óå q‹Èñ>¿ óÊT]&L].ñú¨"]l›Áh•´ÄÀmdé‰Pÿ^%=é©ªÿ.=Vƒ‡J±ÿ`	*üûƒÇpàpià¿KKycd†t4‹¡o·Æ¸>¯­föbÁĞÛŸ£xÑÖXHåœTåÀÀóxö*>iIŸ‡´D$&8Ïûƒ¥8¨ıƒÏÿ~õßêÿR÷aÅf{ìîhÖˆFu˜İ3®R=ó•{qŞ8H™§ƒSÛšÜ²ı ^ù`öî?jyêf yãl´hœêUS?¤Ô°H›ôÀºÃ¥Ø¼õ ÖmÚµajûÏÖ¿2V]9™w¿GTÏH¬Ü¨
+
+5¬—‰f«¢~İ*®[ƒRÀ'áİµçVoØƒUëö>VoŠÙ½#rP§fºÕS1WüBWAş…VèêZ#ÖğÓpÊŞüØ‡K¶ihÑSñq4ªŸ…Æõ3Ñ´aÕ€ˆ«"*F6µ¢ß°y?6lÙ‡›÷aí¦}8|Äzß»ŞyƒîöuŒDg:_¾E[ñÎ§Å¦‹«²€Ô3¯~‘U5Ö­ñÌŒ¤Ê†iú÷%¥eX³a/ÖnÜøsõúİ8^æ×Ô‡Æ:¶­{ø5”Ö¨W	··Å9‚.—O@IIì¾óÑcö¦ÏYOÆ-¢§9ºÔ¨–ŠÎê¢qƒ,4©Ÿe¸€WF¡¼Üxß’­˜·`³e6UÙ½D¬ÚÑşâ»?`çnkÔgWõù;w¬W»ÚhT7êê\3µÓ~ŞÂ-–ª{c~;ôîÚÈL8­KRR¢h;&°Òùå•»ô]Ùp² ¸FÓ«.—ø×;³±ï@‰Fõ3Ó²iµ€w¾´.âú9ÒĞ²z59wÁæÀÀM[Ï(g¬¡íL)¶·_×I;ƒ²ôŞÿæcjÖ¯“.—ÖìÊÖâ«$#¦èØñò [%ì+Ö˜¿¶Ef•$üîÎîP‹6­”·îo+ÇS‚^œw¤üB+v·óÁ˜øaşfÓb.JÄ;Ô…ªìdå¦^çÎıq3-ßaê4Ô9µQÎNÍ
+w¨Ø].­gù¯E–®Øö¹·@ú¥i³nêáÖáMŸåâjá*øò¬ºçq ÏZ.læ{ÍSSĞ«sCä\ZuclƒÊš{0Ë·	³|MøT juòÿî¿éÆ~-jÄÿ½ú½ißRõp7@wıÀ‘Xj[vDÑ[ nq4ë“Û®ëxÂ¦	'„ÛûÜÙ‚ş€;41oc#‡ÇoÎÂÖMGAİ†4°w3ÔªÛ7ƒ-Xº¦¯6åîàÜË[ÀÓ¿¥é=òN^ÂïÔ>[s5u—½ú¨‹Db¹©S"ês0»x“éÒ¬S#ŞÓ©o´5mzW¸½w%è¹S ÑWûöµ2yÖZŒ1Y™Fõ2?ÀT±»4¿_âÛé«?ĞÔ&"³´jUSğ·Gúšn£•Ö|ÔÆ?ÿ{*Ôñ+³´¤Ä¸Àç`Pïf¶ªâ7É¶ÀçÀlÅ|®Üz55Ëãaá8äTá.ìw¦ {ÖA‚Û#œVµnåÚİZÑf¸*dqò˜Ùvêj“aåV6o;v3İlw÷ÍntjÛ¿\Í_ºo}ä«|‚ê‘Ó¡n@ÈëÕ¶çÅ9ê¬“¿àªBOfhj¡ñ‡û.3C(ÖA`½py›s›âägÃhRbeŒEñªß€UYK34µs}ø•­¡vî²!pï¼ºŞ­kÇzøõµ±½)è?Ÿ-ÀœæØzC^;ôéÆµŠzöÕ‰Æ.2Íjı©‡û vŒíå‰ÊÏ˜µIqâÚ1å‚îÜˆ[•@bÈé÷ó6â£±êöÙè6õÃëÚ!mbşµn¨”goÄ¨Ï£??êò–ÿûıå¡†o©ş|~
+~ŞısçÜÑê—[¶STQš·>*Ââ;£Eİw`§¯õ^ÖL¸Ç¯9!èy}9E?gö°¬ŠÈ¨b2ÑlJÈ/ïÙ$š!˜Ú·Ú(ôü[³p(Ê7}=ûDde$›šU¸ÁíÛ_‚ÇŸîpMÆUÍLÆ¿éi›á@3Ã[;åg®*#ú	wÁÔ“‚ş+@~Pù ö¸—ŞŸƒe«~$UVQ•Wd«œÀsoÌÄÚÑ«‘ıû{{ iƒØ:.u’úš{ğÏ7fU>	:õP—€¨Ë@Ø*'0}î|òUôê‰ÙéÔGå³Iq«p|X!èÅ'!ñHÌq,Íßxo¿¾S H[ğ¢¹Qİ—^=;6«eı¼û0şøBt^ø©ãPùmŸàöÄ²•?ã¥ÿÌ‰
+	
+ºFØş(\Ş§O®Ğß ä=™¶­™/Æ/ÃÄkÏ_}g®6ş°…N Z¢şòSƒ5¹+ôŒõ¡nÏ{ğ©ñú;:ËÅ<|äªÓ¨/Œß_BAÎÎ)Şî‚{O¬ĞymªX£ñ¡èÚ©~Í2ŠaOŸª	ÿê‡ó·¹ÕTÅ¸çşp…Qî¢âç‰g&a¯÷(1W×s²FxøÓ­êg¨:F¶›†¶G¯.t›¾N\£Z!èE"¸c3Sã²2úØZ«fÕñğí]K0F=­^¿/¾÷Êº’RÕ¿ï–Î1J³"­·?)Fñâ­†äçÀooïõİ9[dşõöl¬\g\XŞKÙL„8ZÂ'r¼9'_¹od½M°ûYTÁ†?ÿkŠaµ«Ÿ| Wàf¶È	L¹c¾^¹¡ ,Øá5£‘e_‡iƒş<ÙÄ“Wy—ŸVï
+ürkDSoªTÕÄÄÄ8#ÜÅ¸±Y¸êŸtÏq ¤ªÁ”õƒìæapYçDL'	¼ói1ÔÍmz7;ÓØ¶ã 9Mo”Òî¼Á¥»;9øjâO?u•î)Ûá[İ!rP&ÜŞx!çË†³ÌüéH&WFÜ0¥ÊXŞq½=ïÖdn*ûó#P¯÷î?ZY×°ÿŞÕ®îºÑ¤÷kwuÿwwuGõª)aÏŸÀ³¯ÏÔõr#»İ<hÈsVWMÈ†´B¼c™!mâä»™kñ™¯o_zj0ÔElÚĞûşîGîì–M²µÜ„W¬İ¿3[·ÈX”D7´P›E{z¢nX K´Çı­…,r¤c†æmmòÑEøqÙvÍ<øë®hÓ¢ºæviğ—Ş›ƒe«µ/dÇWŒz}ÕºYu<Ä¡º~l¿Ÿ·!P÷]ëviëZ	lş^Bú<CŒÕØ´íÍ©ïÕ+G-ïE·Ãîh3<8êÊÏ÷?[€5öh^µŸMëWïMfá¶k;¢zÕØ,Ì£ÙC§¡W?˜«iÍwu¼P}åÄY4˜œsM²Ès;ŞÕÅ¼Íj)êê¬¦:³Éf’ceøpÌPwIGÚì,æ'Ùi%êjuwëµ‘Ì¯œ"},ƒ¯ÕJb4òğ:JÜ¡Vèx><U%êj×h¸¯ßÕÍ\êUmwWıÊ\ñïu ğiÁbLû!üwöj†«·Ò!2ë™T××ªklÃmü¥6\r‘SÇÙ>·;v…wƒúElè€K¸2|*.fá1!‹=ÿ€Ä“úú¡uµQnÊë ^çÓÕËÔfï|i]¤§%3„}t" ¾¿x[H_ŸthU{7EÓ†,vrú´¨¯1&L_ƒ…Ëƒß_¢VvÚÕ†§Kf˜fƒ!pğP)æı¸ón	ú>õšÕRÑ»K#Ş àHû<-dQŞ«ò¾Hmq|pÔÄ‹–mÇÆ­ûqèÈ1>reå~¨_]Ö‘™Œf«òÖ´àpÚKU>[¾z6nÙ‡[öÿâ;ÎéüÒU%=­šVC—õP§fº¡±YÍ™*µ;gÁf¬Ù¸–B‰…úœlê{òúµ3'ÔWlæ"°`É6¬Z¿'pçı®İG°kï8¤¦Ä#-%MdáÒ6µms¢Ã³#Åkj…>
+#Lƒ   €ÀhõºÚá®vº³‘ 	 	 	X“ÀWBçM‚”ı­?£&  €“Õ
+]Uâç•]|H€H€HÀºæ(AW·Úó€³u'‘‘“ 	 	À"%è+4'   ËX¥}# V-±ì2p  À&ulm$j	 	 	€E	ìÒ—»Ma“ 	 	 	@îW¯ÜUqŞÒ   °,#JĞK$X6N$@$@$pL]ŸZ'Y 	 	 	X”€D¹Z¡«„ES`Ø$@$@$@€T‚.I‚H€H€HÀÚ(èÖ?FO$@$@|åÎH€H€¬O@rSœõ'‘ 	 	ØÀ‰Mq<¶f÷ù“ 	 	XÀ1–±ú2~   Ta–~å“@$@$@Ö& J¿òrkÏ!£'  ŠËYx}*Ÿ  °8MJĞWhnñD>	 	 	Ø™À*%è´·3æN$@$@'°H	ú ºZ<†O$@$@v&0GÈâ¼I²¿)0w  °4!&«úX C-ƒ'  {øJ[‰öæÀìI€H€HÀÂFY”÷*„¼ÏÂi0t  °7)^S+ô@âI{“`ö$@$@$`aO«ïĞğ¼…Ó`è$@$@$`w©ëSo‡À»v'ÁüI€H€HÀ²$îP+tµÃ]ítg#  °&aB¹Ò1Ãšñ3j   /!Ò
+ñeÄA$@$@$`QÇı­…œ;,Î²]Ma“ 	 	 	”ÇUŠ‚ôyˆ#   Ë(noü	AÏÛÈz–K“ 	 	€í	ˆÍÂ]P¿BĞ‹<EpÛ	 	 	€ÕHøD7§BĞ‹óÆAÊ<«åÀxI€H€HÀö„(®‚ü“¯Üß ä=¶‡B $@$@$`9âMá.¸÷Ä
+İó$$şa¹0	 	 	Ø€À…ËûôÉú¯ ùİ™0  °q«p|xRĞûrŠõ’`Ä$@$@$`w¢ŸpL=!èƒ›q«í„ù“ 	 	€õ”5îñk*ı³áN4))³^Œ˜H€H€lN`mRœ¸vLy@Ğ¢^ìY‰F6ÇÂôI€H€HÀ:Ö—·±
+ø” ûr§ ¢¯u²`¤$@$@$`wrªpö;KĞ=ï ¸Ãîh˜?	 	 	XˆÀ»Âí½ólAÀ³J‚¡’ 	 	€İ	<!ÜŞçÎôâ¼« åv'ÃüI€H€HÀ2„¸Z¸
+¾<k…~e;À¹È2I0P  °=òöÂıÍâ3}Éğ”””Ú 	 	€U$%%Š¶c!èê?¤Ï³@s«äÁ8I€H€HÀÆV	··ÅÉü9¶t^£jãç‚©“ 	 	XŠÀ‰kSÏ/è>Ï3 °TBöÈÑãØ°ú–#-%ukU±hF›HÀn6m; õ³ìd«_»
+R’ãí†!šù>+ÜŞ?œ_Ğ‹<# 0*šÑÅ²ï-Û`Î‚Í˜3óB~zÎÙY)¸¤i5¸ÚÖF›–5bs#° ¥+vbŞÂ-X±fö(9'ƒ¬Œd4i…­j¢Y£ldg%[0K‹„,q‹Èñ¾€ çu„ó-’ŠeÂ<tø&ÎXƒ	3B»ÿ¦kÇzèYS¨ßzÙH€H šÔj|ò÷k‹’PÚÀ^Í0 WS¤¥&„2Œ}ƒ! E'‘S°àü‚>µOÒÓO½?	Æ û\”@ñâ­7qvì:)õú*·_\Ş³IXã9ˆH€"%ğİÌµ(œ²òŒ×ë¡Ø¬Y-ùZÂÕ®N(ÃØ·2Æ‹¾Ó~¹XíŒMqj¬ôyh_™ş}å”˜¿ıIqåƒèán_wŞà
+¢'» 	€vŞùo1|·jbğ®]uMHŒ,no‡ÓÍ+èÅQ¡O{ZZ¶òg¼ôŸ9š&ß¿GÏm£©M# øoÁLıa¦€úuW´nQ]S›¶4&0Z¸¼·\\Ğ}¹ â_¶¤QÒ»÷Å+ÌÁ¶á½f¿X×iÃ×ïÍÍ 	\˜€zÍşÙ×K5GT»F¸µ+7ËELVşN¸ÿ]‰ çõä”ˆ}ÙØÀ›û°`É6]¨ïÔ¹³;7ÊéB—FI€µîßïÌû;óÊ(vl[÷Üä®¬ÿş¢D?á.˜Z‰ Ï Jö‘dxV¬İø èÙ.m]÷ÈÑÓm“ 	Ø˜À£‹ğã²íºP“–M²uõÛÆ“2…{Ìş‹
+ºúKéó,Ğ*¶aè“İè/b¦o£>ÆO³ú—‡û NÍtİıĞ	€½lİq9M÷¤{º`ÄÕgìéÒİg9X.ÜŞÖgçsÎ¦¸€ sc\Øóşø3“°ï<ÅÂ6xù.Á•}Yv_k®´Gv'ğÍÔU7ñ'İ1¤§%â…'èî'&œgCœÊóü‚îó< àå˜¡cRk7ìÅsoÎÔÑÃ)Óëgá‰ßô4Ä 	Ø‡À³¯ÏÄºM{I˜¯İÃÆü p{_	n…îËïøµ=svÜÖè¼…ß©ëŒiO>ĞêdãŒ^H€bÀÆ­ûñô+3Ë3÷òğôoi˜¿Øqäè*Üãæ%èª“ôyÔ­!¬ÕÂğñW‹0cî†FDÖuØÀVÔ§YdF8šH€NøvÚjŒ°Ü0½º4ÄMCYÇ,DàÇ„Û›x¾1ç}åô"Ïtô
+Ñ‘­»¿ùQ,Õwgèé€[6©†GîìfkæLH@;ÿ~ç¬X»K;ƒ•XêØ¦î¹™'vB.1Cäx{‡&è¼J5$Æªó«ÎÃâŸv„<.’}¤/jUO‹ÄÇ’ 	 ¶ÿ|ù÷Çšu§Òî’š¸ÿWu÷cÎ¸2õôÜ.¼B/Îõ@Š‚¡k:_Mü	ã§®ÒÕÇÙÆ¯ó´E¿îõIg$@±G`ÊìuøŸw‰¡‰îÛC\b¨OË;2O¸
+½¡­Ğ—¯Š’’İ–OŞÀ|‹¶âOµ¹Œ%Ø°Õİé¿½ƒ¯İƒåÅ~$@ç'ğâ»?à§5Æ½nWQ¨§ÔÅSl!HJÊmÇì	IĞUgéó¨»Ñ;†àÊÖ]*Å£OO4œÁã÷ôD“†Y†û¥C Ø `ä‘ÛÓ‰=÷ÄÈÌHŠˆÆd±@¸½.äê‚¯ÜOúK 4&ÎØğò¯wfcåZc_lèÕW>§hPl e$@ºøbü2Lœ±Fw?§;¨_'|€û®C„ş²p{
+OĞ‹ó®‚”_„èĞÖİÕUƒêÊA#[µª)øëoû".Îa¤[ú"ˆee~üåÅ©Øµçˆ¡ÙìİWb…ñ qµp| Ï–g™±_ª„”ù:«+SŸzÑØ¢ŠÂ×wBN‡ºæÂˆH€LM há¼û_õíª±UâÂà]WMt{ÁWÀ}å®ÜÉ"Ï<ğ `ìŸkV¯?ï…¬„ÖµSÛÚ¸›×†½I€ğÖÇ>Ì×éºçá­Y-û]?Ò…€D‘Èñ^ôŒ_å‚îó<àñPüÚ½oáä•ğ~·ÂPB<õÛ><“n(u:#kPgÏŸzq¤”†&Â}?aá~N¸½O\ld‚; ÂroÓA›·Àß_nxöC^‚Á}x›áàé,J`ü´Uøj‚ş7«G],¥.˜b…€(Ü…=FU¹ 6Ü‰&%j·ëº‡Àş•æbÉŠ!Œˆ¼kÃz™ø÷]¹!Z °ÿ{í{lØ¼ÏĞ\[7¯‡nëj¨Ïpvk“RÄµcÊ#Z¡«ÁÒç)0$ –Â÷ó6â£±ówÒÑƒ¿îŠ6-ªî—I€¬E`éÊŸñòŒ¿TsÄ°èÙ¹µ`E?Ú¯…Û›[Y•®Ğ+=ï!@¬ÌÿşC‡‚¨?l—unˆ›‡ñö"#™Ó	X‘ÀGcáûyÆİ©UIKÄSôEjr¼‘E1fñ°p¨º0mÁ	zñVe•ãßŸI@­ĞÕJİÈ––’€??Üé¬¾d$wú"+Ø°9‡»àèÛ­1®Ïkk%TæˆUø[××•Şk” W¬Ò=JĞY „éUß¡«ïÒnù.Á•}¹9ÎhîôGV!ğÍÔU7ÑøÍp<{Ö²\¸½A•^Ğ‹<ÿ†ÀoÃ
+ÇÆƒ}}&ÖmÚk(ª™Éøãƒ½ùZËPêtFÖ pøèqüãåéØ³ï¨¡7oœGïên¨Ï˜p&ñ¢Èñ>L.Áúüüşğû'c”}N˜<s-Æ|½Ôp$Wn…½šî—I€ÌM`ÂŒÕør|¥oo5O‚W=‡‰Ôá¸Bt79˜ÑAú‰×îªüCöDŸ½Jğ×§áhÉñFEŞUUbzòş^HLŒ‹Ü- 	ÄÒÒ2<ıêìØuØĞ|R’ãñ—‡û ³
+÷ö„~¯p{«;&4A/öŒ‚Äˆ`³_hlS~¯ÍmƒË{4á4 	@€Àw³Öâ³Bãßöp7À-Wwà,„J@`´pyo	vXh‚>Ïs-ø_°ÆÙ¯‚ÀòÕ?cä{ÆŸ÷¬[«
+¼ÿ28¼…Ï"	Ø@y¹O¿ú=¶l?`8ŠİmZÔ0Ü¯åúqèìı,Ø<Bô©}’~ ßãKøD¿h\Ø¢\ß4´=zuib´ìN$kfÌİ€¿Z¤iZN8‘âHB²#ñˆC9ÊPâ?†c8£şRHøÑ¨^&şÀ
+–áp/ÃÁƒé¢ï´’`‡$èÊ¨,ö|‰«ƒuÀ~¢qOºò[¿N~O$Ä;9$@6%pìx9şùæ,lÚº_3ÍÂÜMê#Aœª^?v—ïÅ†Ò-˜u´ƒ†4@Ÿn4ókC_—÷šPò]Ğ‹<# 0*'ì<TŠ¿¿<ª ƒÑ-ïŠ–Ò¯…ÑnéHÀ$¾²“´¹²N\Nïƒñu*ÍN­Ô³óv µii¥}Ùá,·ˆïèP¸„.èK†§¡¤D}	òØP‹Å¾ê¥>XF·¤Ä8<ş›¨S#İh×ôG$e[wÄs¯ÏDIiYÄ‘ôIíŠ¾©¡]¬"$2î@R3cwÖGœltH$%UmÇ
+%Œ°D™¯İCA|ª¯*äğWfà°ÁåUİ]õñ«k./p"°,?ÿ³‹7E¿@ßÔ.P‚N	~dÚ‰¤¦õ ø…ñº]ÙOĞ}|T`ìt/¿]	ÓWG…ÊonÉA‡Vµ¢â›NI€Œ'°pùv¼>ª(bÇ=R\ÙÕÌ%êƒw ±‰º›­7	·÷“P)…'èK†'àhÉ~°J@ˆÄwî>Œ§_™¡Éë¯]£yãªxô®¡c ‹xáíYXµNÕ¿¹“ÛáÊô>P;Ú#mD‰Ì¼mH¨glÙÙHã6t¼D	’“2DÛ1!ßœ– «ä$‹Ì„=ÇŸ½“f®{|$‡ç¶A›‰!Ç’€%Lµc","S/¾nÌÌGªHÖ,gG¢Y(Ò;    IDATWoE|Mn”;/Ô‹Éœn#AÏ…„W³Y¶‘¡m;Ê//óµ*½¨±eg¥î›I€Œ!°{ï‘À1µ}Â?U£Vä×eAËDí«M:âıÈ¶	uÃÏ’Qğ"à.oa8Ãô«ô-¨üìB8‘Åø˜ÿ,	œMFSgBoÈk×ôI$` OcÚë#òäJnOzÿğ6Zá9°R¿f+âkp¥ş.­Âå­¾,îÃ©^»óJÕ°émŞv ğ]º_Ê°mD2ğş_uF»KjFb‚cI€LH`ñO;ğê‡ó"Š,Õ‘‚û«@ŠC»WíçÈ‘RªÃ¶!¢^'„«RÏÇ3²ú<OˆìÉ‰è±³öàÇ.ÂŒy¢’DãYxì®î¬óútJúPõÚŸ{6ÖmÜ‘ƒ¼*—Ã•dÌ[<gj92ó·ñ;u5c~t½aKˆHĞ¿PyæA '¢§Ç¦ƒÕ*ı™×¿GY¾KWÈs/oOÿ–6¥Ï´I öx'¯@áw‘¯ªWwf]‡0îR'GZ9²‡o…33äİ±3‰E"ÇÛ9’„"t_ŞC€Ivûù7Ë0éû5QAàŞİM}İnTâ¤S Ê	¬Ù°/¼5;¢¯ñD<nÍºuãŒ¯WáH+Cöµ[áÌ8^y²1ÙC<,Ü/E’Zä‚>wX6œe»"	ÂÎcÕnÔg^Ÿ¨õ¦®4TW²‘ 	X›ÀËÿ™‹¥+wF”„ûÄF¸ˆŒD0ØY¥U¯ÙgFäej##:CËãª‰.cwGâ<bAWÎ¥/ï#@ŞI v«åÅ	ápäÙôp¨q	˜‡€gÎ³œ¸;ëF$;£šX\ö1dÛgºD]|,Ü7G
+^#AÏ ˆ	‘c×ñG|—¾sWtê§¦$^½óò»>ÌÛÊÔå+êU{$wD8…¹iıĞ)¹­)P¨¢3YyÛ¡^ÃÛ£ÉÂ]81Ò\5ôŠUºg	€6‘d×ñSf¯Ãÿ¼
+atZçuqûõ¢ãœ^I€Â&ğŞçcŞÂ-aWÕwæ·g‡SD^Ş5¢@NX©_µÎ´r­LšÕÎRáöjò›”–‚ş(€çÍJÌìqI)ñ¯}[öG-Ô_]})º»ëGÍ?“ 	„F`¶o>üâÇĞÕ»ª37eE5gVDvô_«YC·Ã‘Ó¢ş˜p{_Ğ‚Ÿv‚ÎÍqÏ‡ºâP]u­––š€oí‚†õ2£ı’ 	I`Ãæ}xùƒ¹8t8ü£^êUûÍCÑ$¡A^ï–P§™C·AU–‹É¦Áf¸“\4tePç¾)n‹Iè%õâ»?à§5Ñ;4 °=ôë.HLŒ3(cº!•@ii^úÏ\¨£j‘´Ş)]Ğ'­+ºx$ºScãë• êĞmñ1&êB¾/\…·kC)ÌûĞ/ä\ÎËï‡–VÁÙÑÎ‚¥ÛñæGa
+ÒYwÜruMlÑ	€öF}±³|#2\?¾nÈÈ…*ój…–Øè(2®Ü[+u¿£‡è<n¶Vü5]¡VéEéè¥U€v´óşg0wÁæ¨¦~ÍàÖ¸¢WÓ¨Æ@ç$@ç˜4c>¿,"4jE~gÖõ¨o­û’šFÆ€±ğú]b†Èñöh"Ï¬½ ÏË»9ZË ífkûÏ‡ğÂÛ³£Vlæ$ïûnéŒö­¬õ·Û³Â|íE`ÑòxmTd×g¨úW¤^†©.KÂKnuUúî²¾¨ûÅÑ¹à#-'AsA¬Ò‹=ë ÑHË@íf+ÚÇØïêÙ©Mr5ª¥Ú?ó%ÓPu*Ô&¸ŸwGV¯¢yB#Ü˜™oúïÍ/6I­"ãò]ÖıN]`½pykıé#è¾Ü' ñŒÖÁÚÍºQ]…ÍÖ¶e<p+KÃFsè›W>˜‹%+"+íšáLÇ]™×#Íiı_Ò+õş?CÄEç
+êÈJùá.|62çÖGĞÍDy¹R¢­¶“½µöâù·gÁïîÛ¿gÂšAvzö˜«¹Œùz)&Ï\QPñ"7gæ£Q|½ˆì˜ipò%‡ß©ÃİŸ‘!29§³¦èøÕ¾ÇUÚ]A¼v÷åÄC•FÀ% ÅuˆZ ¾yh{\Ö¥¡¦hƒH ßÏİ€¾ZÂˆów”ÖİR:FlÇTX©_±Şö!ù’p>¡‘ó×OĞç^ÙNç
+=‚¶“Mµ:W«tµZfs:î¹9‡›ä¢9	ôm;KWşØW^ÙùkWr[Iï'ÌSÚU³É@J»¨Òo ,°R//o)º|Ù¥õ€§› VéÅQ¡ÙÄÙÔú]}Ÿí–š{Fä Eãìh‡Bÿ$ó6o;€W>œ‹}ûK"ÊµaB]\•>™Îôˆì˜z° R]ûÖc·¹Wê£…Ë{‹^,õô¢ÜÎb®^ÁÛÉ®º¸Eí|vËÎJÁooïØÏF$ ‡Jñòûs°iÛˆ¤;Óp]•!¨_;";–,€ôî{âÚaÖïÔ¥ì"r
+u[é*èUºÏ3ÀPK<&òà¡ÒÀÙtuF=Ú­^í*øÓƒšÖCˆvJôO¦"ğÒûs°lÕÏÅ¤~¸«2’.‰È¥+Qï±©®½€Ãt‘%ÜŞazFe€ çõä=“°‹mU=NU‘3CkÖ¨*»»‡Ba$S´ªÙ;µú¥v‹)6A%#€*½v#¹ã>İ.¨ˆNtı„»`j(#BíkHº²Ø3ƒBıÏ%ğiÁbLûa½)ĞğŒº)¦AÄ1…K1yVdÇÓ¶‰-0<ãÊ"Z*ê•{zÏİHé½ë¨ÏˆXà[áò-‹Ğ{$èù!ıß†GœM@ívU·,­ˆâl§ÇÔµc=üúÚ;
+ÃÇ¢@àÛé«1öÛå{nšĞ #2‡A˜üµˆ­Ä€*8“ÖmRİš÷=tá$\ã&„>0´†º
+IåN‚ıC½ÏG °ûõƒ¹Øw ²İ¯ZÑÍ¿â\Ù¯¹Væh‡lG@İœ¦nP‹´Õ«…2=HwpÓªb©®[Më¾©Ñ\©K9Yä^éÜ3Ş8A/Î)ÇûTNÀ·p+Şùoqåêqçõ.¸;Ô1Èİ@ìĞâÂE£z\U\UeêÄÕˆ8d¢D=½Ï.¤´=¨µ0L1X¸
+yCm˜ Vé>zå0 $rf©"w24Uó]}¯ÎF$…Ë¶ãõÑEÁu¾H/u<-?½?ÔÅ+lçP¢1h'Ôõ«·‰Âíh”Oc}~~øı“ŒJÎ~Ô*]­ÖÍÒnÖ—un`–p	˜–Àøi«ğÕ„Ÿ"/NÄªÀuJâ}ƒ©D=3w‰˜yĞ+D§q“ƒîaGC=°J/Î)ó"Œ›ÃOØ°/ÿg.Ô÷êfiË["·³„Ã8HÀtşóÙÌY°Y“¸z¥vÆå©İ5±ëFD¢YCv ¡¡¢.DpäÉÔxA/Êë!g™d¬ûR;ŞÕÎ÷Hë=kÉI­ÒÕjHàL/¾û~Òè”Êåi=Ğ+%‡ˆC uÏv$Ô?Â¨0ºJÑSäÌ
+cdØCôÀ*İçùÀaGÍçPgÓÕu35õ}ú½7ç .Î|%›ÌÄ‰±ØƒÀ±ãåøç3#.çz’VßÔnè“ÚÅğ4ÎÒ™R*ƒw ±n¢ş‰p{oÒ8ìJÍEIĞóÛşÈï¬4={u0SÑ™“äU™XuK[õª)öšfK§Ø°yŞúÄ‡İ{µ).\‘v™ÍOšGöˆ9RË‘9htuG{ágø
++*‚X¥å½
+!ï‹lJ8útf+:s2¶´Ô„ÀJ]•‹e#»(^²£Æüˆ’ceš¤Ş5¥#ÔİæQûá­Iæ0âL+CÆàH¨§aM)^9÷G#Ã¨=ÒwUmà¸ªašÄcÕçÖñÚ‡ó°k¯›>B„xç.¸Ûó¬zˆØØİÂ¾Ÿ·¼`ÌI]ãÛb`R8’“-LÅ\¡;ÒÊ•¿ñ5JµìßH¸¿Ü¦…±PmDMĞ«t_ŞŸ ù·Pƒfÿ‹X¾úg¼6ªÇ—›Õğ!mĞ¿gÓÅÅ€H@kZ•r=Wwg;ôŞ×²´‰SÔ5œ0G•ãÈ¾Î*Ç#´*ş,ÜĞHØÃ£+èó=k!ÁjaOáùšéf¶³#ì×½1®ó´Õ8cš#óøŸw	¦Ì^§Y@=D;ôÚWòxÅk{át"¡AŠºf„gÖqd_¿$xVÖ£“·‰áˆ|TT=°J/Ê»B¾y*´p6‰3Öà‹ñËL	¦}«š¸ŞÓÙYÜ,gÊ	bPaØ½÷şë]UÎU«ÖíÑmo] üÌ7nu­Ÿ²_»U‡mƒ:Úr“âv‘Sğ~Èã4uA¯uÏtôÒ0/š:A@	ºv3¶Ú5Òp½§.iVÍŒá1&‰ÀO«wá¿ŞÅØ¶óPHã.Öù
+Ñ	î]Õ!åù}uÍPÿbHeËÌß‚¨KÌ9ŞŞÚGšEsº/¯/ §„:{KàıÏ@½‚7cs:¸ÁÓ—uihÆğ	Eàû¹ğ©w‰¦ÅòÑ­v¥WêŸ¢^)¢;¤´=€*ıFğG	D?á.˜²#˜BĞ«ôâÜ÷ ÅmçGs'Œ|oÔf9³¶Ë{6An¿HI7kˆŒ‹Î!päèqNY‰ïf®ÕŒºÇüjÙÍv*E]3üCê.õ*}w!¹m%µ…|_¸
+o×6‚ğ¬™GĞç®gÜ*$…—
+GUFà¯#§Ak3k«_»
+rû·Ä¥­k™5DÆE¿øqÙvN^¡Yå7e8N81¼¬'îM™4E=dd—Y†ÌÜíˆ«~‘ãl%(/k.º7Å+PÓz`•îó<
+àym§…ÖN'ğè?&ààác¦†ÂÕº©§ÇöÁé±*WPD<®-ëz{Ã/ÍAQ×öñLhpU¯Úˆn\L¸½/hë5|k¦ô€¨yŠ à?%¼U­ê¡¿Œ7=$®ÖM?E¶PU¹™(pÃ±¨µ?.b®õˆ2 €´n{Öeï¹F%|"Çkª›qÌ'è¾Ü€˜ á”ĞÔYvî:Œ?ıË{ûvkŒ½›"+ƒ•±ø GÀŞıG1aúLıA»³å'³Iu¤àæÒÈÚ¯]~uYÆû‘}ÃÄeŸıfSîÂ‰ÚyŠÜ’é=°J÷å¾ˆ;#O.D`Õº=xámCoö{2”˜+QWâÎFFP"®Ä\‰ºÖ-Û™‰«3£Ö¡DÛºUSóuíp&6:‚¬a§Ws•ïwá]ÚyĞÆ’9}ù°l.[ [›4iå|V¬İ¿3Û2pZ7«+z7…ú“ô&°lõÏ˜4}ÔŸz´&	p}Fnàu»jåûöQÔõ ­‘Í¬ümHl¸#c7RãZŠVcwkdZ33¦ô«ô; ñf™ÒĞy	XMÔU|Ï‡YOz¾^Wq«ci—¥æàòÔîç¤AQ×sf#³_ãª^¿	Â)ïîÂw#³¦ÏhÓ
+z@Ô‹=ğè“:­$`EQ¯š‘¸äEíˆg#­¨óä“g®Å^¯«Ó)¸<­:%µ¹`Èu­fS{;é=÷,L»wÔ¥Ú[ÖÆ¢É}H+H‡9‹‘kÃß4V¬(ê
+^Ó†UqEÏ&èØ¶¶iX2ëX°d&Í\‹5öè|İ¸ZèŸÖêU{e¢^¡èü½pÊõGB·<¿=:\Ü«©=°JçÙtÃ«Šº”Ó¡.\ÖêfÆ‹¬O`ã–ı˜øı-Ü¢k2í’Z¢oj7¨MpÁ6Šz°¤Œí'…¼§ÎG/½e¬×à¼™^Ğ+D=w
+ ú—{EB`ó¶øûËÓ#1µ±qNú_Ö}º6FVFm",àxïşL›³“¿_‹²ò.á17‡p WJgôHq
+Ç„Ú(ê¡3¤ÿ’RGY^£Ñ¯j†1Âğ­!èEy!äüsåğ 	8TŠ§^œ†ÃGÌ]QîBé¤¥$ ›«>z¸ê£vÍÊ/·»Å m;bVñ&üP¼	‡t~¾Õùò¼ôËqIbÓˆÈQÔ#Â§Ë`)ÄÃu>zñ%]ŒG`Ô‚^±J÷<àÙråĞ;^W>˜‹•kMw2#è,ÔŠ]	{÷NõÑ¤aVĞãØ1ö¬İ°³çW¹+ò“ä%ÔÃğ*ƒ‘æş‚•‹Q§¨›î™\ZòAõ>~Å5ÜOÒ±Œ D½È3—›njc8 Ñ_.ÄÌ¢–ÏĞİ¾N@ØÛ´¬aù\˜@ğ–®Ørß"m‹¶\(u$­oZWôLÉà¢'E=HÆu9.%î¯óÉÈ·sY¹'‹	ú¶E£œl†øüë¥À±ĞÔ®xu›[‡ÖµP³š6«§XàK9ìØu—m‡ª»®ç®õ³™eÇeaHZ_4b{¸¼)êá’ÓeÜÜZÍ2zŠ¿şµLëaµœ0JŸç /‡‘+‡D@ pòJx¿SÅûb£	‡À¥­j„½C«Z¼‡İâÓªn@[¸|{…/ßé¿àíXºdÚ&±y`{õ¸ªºØ?İ(E]wÄÁ:Ø¡µ?9-Øz÷³œ + ²Øó9$®ÖíŸI xñVŒ)\Š½Jb
+M•´Ä
+ao]íøJŞRs»xÅÎ€ˆ«ÔfN£[‚H€'½_`ã[8»ØÃ—¢.9­Ç‰çküâïµ¶®=k
+úÌ¼:H’?`Qïpg>Ìqj—ğ˜o–béJ}ê[‡–fÃjVKC»Kj ı%5Ñ²i5ÍìÒvV¬Ù…E?íÀâŸvbÇ®CÚÁ’úÁYñŠ½š$Ôa¤v])êÚ±Û’Ä¢ÚŸŒìöxZRĞO¬Ò¯…Äÿ4æAsAP+õÉ³bã{õ¥\¯v´kY3 ğê»w¶èPß…+_¼bT­„h¶d‘WJ[\–œƒ$Gb4Cá….Q¥ØÍUê/÷÷¯ûéË3£ŠòoYAˆº/w$ 2H;Æ0Ë·Ÿ.EI©iö„è6êe¢mËh\?Mdñ;wİHWVÏÔš{±vã,Y±ë7ïÓÙcpæëÄ×l|«_+¸ôâJİ ÈwñZíGŞõ(¬.è'D} º˜¦cPç{¿øvV¯×¯¶Ù¸ÆÅ9 ^ıÓ¼q6Z4Î¦ÀG8I§¸òÕëwãx™~ÜB7Õ‘Œ~©İ—ª¨êofkõèÍˆVÔùxä%Ñ‹à”gK¯Ğ‚^QE®8~91ÃNee~Œ°<pK•][ıÚUĞ¢i54m…&«"«
+KÏ^ìYP+×nØƒµÿ{g%E}çñï¯ª»ç¾æ`CĞˆŒºâ‘¨sÄlp“ÍæbM²IŞîf³¹4bŞÆ˜}‘óâµIxÂ€Él¢àA< /03 Š¢‚ˆÜ0ÀLwÏÕU¿}ÿ0Déî©êª®şÕ{óz€ÿÿw|~æ;Uõ?”xwxæüÃ1(€iÙ“03ÿc)ô–Ìÿ#õd¨ÙĞ‡C¿Q]Õ|¯ë‹Ò^Ğ-Qo«›†'7Ë·a¸¤	µyÇcOoÁhÚÄìT JĞ•°«êÆÖ(‘ÏìêÔ“œí»Ãú|¯Ãó+%”Ÿ‹çMÃğ@™u†y:\"ê®T‰ÁfmÕâùO¹âı§é1Jã Ä-u€0;¦ÒÄAJÌ•¨§jg.S±İôqq¯a¥y(/ËEyI®í~Ü4xğpEq #‚ıíáDÜÍ˜ñE!œ5Êz´>.4*m„üÄEÔ©¸=m5à—¿WôÃ9sæ¸úÈ7‚~ìN}=Sí)‘X
+õø]=†Wãå:=µÁÍ°’\Sâ^š‡a¥Ÿê´8uÈL^n9Ù‰ŸÒåóî~D¢ıÖ¡&ê´²ƒëiŒõ©Düp4åºØ•§r%àSrÎÇøĞh»ÌºfGD=åè×õÌ³`«›tøKĞ7ÔN†Ië„R^NqxõnôñçŞÂ›ï:C  ëÚâŸB~NÖg^Á uš¨§>õ ! iP}‚õgÍú³ºb¦	#fZ“ÍÃ<ög¶+Q¿x©Ïş~áHßÀW÷ÀçqW}üvHÇ˜àH\’;Åt?]"ê)­f7›úYÕK~åê;_	ºu—ŞRw3§´”âìŒ~q–¯Úu‡'—ğ*ƒÃpEîTœİƒ3×íà$¢nÅølf^P¹pşæøZ;ÓÊw‚> êµwƒÈ3Ûñ9Sºô²ª6YşüVy·^eóe´¥zfä]‚‰YçúVÈO,œˆzŠ†1¡¶jQã“)òvJ7¾tKÔÛê–Qç&\ñ}2Õm;ñÔÊ­8(3áex¤˜€ÚªõŠœi8?{<‚H±wwİ‰¨§‚?«ªiŞoRáét>ü+è[n(C4öW0Æ»	X|ŸLàÈÑ<õüV¼°v‡àP>9{ÆGfœËºãÃëowW.šûC¥ö¨¿Rô­ [wé.…a®NaIÅUÔq—+^~omwuIKÓt!§åbröy˜s!òµ¨uårAö~wr?Ò oŒYĞèÚ>Å¾tKÔ[ë¿ğ'ë(¶‡FàÅõïaÅËÛ±ÿ€;'g-zéí%Åz!&e“²>’’³É½”{¼±Èã÷xI%ÖNmkètåÈ‡çîI¬§}­}/è–¨o¨›·Û‡M,ÙM Úİ•«ßÅŠ5Û¡¾—KÄK@-=+Ò
+19û#Ö¹ä9öv0v"êƒJêßÃ:Ñ”á‹ænKª·2BĞ-Qo«{Œ›m`&&$ îÒÕİººk—Kœ€z.F«1>8£³jP¤°ˆ¨' +¾¦}¬áÂê…[âkn«ŒtKÔ[ê^ á
+û1ŠE»	¨÷êêıºzÏ.—P?¨”ˆê¬²697k,Ôor%O@D=yv§èih¤]T±èM¶ZMÀXf	úÚkk¼ `lŒ¤©‹6¿İ—[vbãæ}.F!®İ$0"X³'àœ¬1(Ö
+İÅ—¾EÔí*+³®ëøvYLÔNF	ºu—ŞÚ00•¨g%
+KÚ»GàÍm±ºu'Öorm¾‰{Ég¨ç±¡³pUş¥¨T¦ÉYgé[(u{jÇM­~dn«=Ö·’q‚n‰úºÚ ÓŸÇ%=Ü&°õİKØÿºa—Û¡ˆ	LÈ‡úü«£É¹òbş;Ó"ê6fš^µx®:OÄ•+#}àN½öV€îs…º82»àå–÷°vãë@¹üC L/ÁçŠk1\/óORi’‰ˆúĞ
+EĞ>VÙtÏÚ¡YI¾wÆ
+ú€¨×ßğÉã“nPçn·lÚ‹–M{°÷ı.·Ãÿ6¸®`&¦çL¶Á’˜H†€ˆz2ÔúÈ#÷äÙÙÒ“[ëæø-ÆÄˆ«Z^İc‰û¦7df¼«…‚óqké îÒår€ˆzRì™4s’›'®eôúñ’Éõ¤¯g;©Çñê½åÕ½8ÚÙãÙ8%°“	ŒFCáÕ(ĞòËDÔ.@?›ú¤ê%¿z3á6uA?’Ûê—‚¹Ş&®bÆ"İı–°¿úæûxı­vD$!Fà¢ìpuşåÈÑdÊ`¬Rñï"ê	Q–âÂå`c^5#€‚‚gÌpĞ˜v‰€Úîµ7ßÇæ·Úñæ;rŒKeÔ­ôúÂ+m'RGÀ	QWÑg-''u‰8ï©¦W=ÒèÚ1’r‡~B‘yã§‹aÏ€1ÕùÚ‹·ìŞ×	µaøm;:Ü
+Cü‚ÀùYç ¡ğª„w€‹šİØ›»Ãr‹Pt¸pí K–Õ	Q×‚A„Æ‘odh·©™—X8§[£À7$íÈkjG D0Ñ.›bÇ»ŞÛ}¯½Õ×ßnÇö‡½h†DVÏ^b½hĞŒr'z
+:Ùš‹€üâ  İ¯ s…Ğ2(À8!êòr‡O0Ï6_ŞÇ½7Z|Ÿk?HDĞO16¸õÚ³Aå`Œ÷ìĞ‘Àl' Ëo}÷Ş>öuä¨L¨³ò 	„o”ŞtÊÓL˜8L‡a–EP4&†ƒĞûíC·ãD7¢ó¹a©ß÷şœõÜóÎûà.À¿èê0ï¿üŞ^·‚úiÈsÛõçÚS`Œv«8â×]ïììÀ–­­wîJèåJº‚+­½ÛûÑ.#‚şÜ(r*c¨8WGÉh@Ëüx]f ¼º‘YşfwÕìõPÍè…ƒ?‘±;Ûí™æWª–Ìÿ½ív0(‚~XÜÚp`>	`dL¥©	ôÇLlÙvÀö]{;±{ßQtEú|˜©»)UW`BÕœ“5%•:j&éĞr“Û	c„ğËeˆlôX¸[–“¼Û)êÒR++=–aâáèDW_.ã  wIDAT4÷¥Ä{Ú×C}–¼¡v2Lí	€kìÃ.–ü@@=’ß½¿»öµ>Õd;õØ^®ø+ÍÃèšbŒYŒQ#Š¬ïƒA=¾Îq¶bÖ£÷î×å”¶8‘ÅİÌ.Q×ªñÁWcÜœá®
+'‚Çğuz\îÔã€•áMÔ¾òJØwíëÄ÷~{G2|ƒ›¢Âìñ>ö5ª¦y9ÁÔŒ&t®*Gt“ˆºİÀíõ`Eei¿oÿÁ@Vhì°ßıÒÕı§EĞãáÖãw2—É;õ8I³¿#ĞÓÃ¾ö.ìk òûtáıƒ_
+4”—æ¢¬$×ú,WŸ'|Ÿ“*ñ>-MBçeˆnÇïv¸¡ŠzÖØ±Ğ²ÓüT=ÂÊÊŞ¢k©y«ïáDĞİÇ&Ê-•Ùï	@“¦g$`2[¨#Šp¤‘^t…ûô¢3Ò‡®.õç^tEû‹™®Ò<Q Ë‰vYi%ÜEŞÿÌ^S†Hk±«ıè<YQ×óó:kTÚ#!àG•Mw¹ˆz‚°–´!ğ˜¬SOœ42î~Kì»¢½èë3`˜Ã0?øŒÅ¦iÂ0Æ±OõK€ú^½]SwÑÁ †`@G@}o}ğ}P·şN×ş~ ­†€ú> 9~/På"ëJ^/¢nw=’õĞ¨QĞóÒ}ß~f°v‰›ç ¯¥z£ÚÚ|&‹•å’€']„€Ë8¦!²®DDİ:$"ê²r+|±©Lg¬*G6Ïív iB&EĞÂõ·ÆÖ6±†ñ¨ìı$@é&\$`-iûk©<~w fO/bÀèì<¥u-7j‡8=¿Àï©7ÉÀêê¦ÆËSïùd"èC¨‚u KaáŸä”¶!@”®BÀ-&ĞõR9"2QÎ‘
+˜½½0»º`D¢ fPNô‚|h¹¹øsÅ(«ÄpGUÓ¼;]ñÿ!§"è6TAÎS·¢˜n°–´•!ºIf¿»?í}¢0i¦ŞŸ+–"è6(n­›à;6™3B@¤€µNıõ"÷‡+Â–ªE¼’Œº•àÖúÛ öÄ£ÓSBÀ÷ÔŞï]/ªuê2ûİ÷Å¶1Abşyåây?¶ÑäL‰ 	ßÉ¹µöV€î³Ù¬˜BÀa2QÎaÀ¾3O‡5p]ESãj¯¤&‚î@%x]íĞi	€,Ì‹I! "Àı„ğúRDdºC„ıc–—ª›¯ğRF"èUƒ[¦æb cr!f…€p€€u§¾¶D^u€­¯Lÿ jÑ¼»½”“ºƒÕàµ×Ö@4à©ßâLYL_`ƒ^#ëÔ}QLg’Ø	“®«Z2÷ugÌ'gU=9n	õ’em	á’ÆBÀÌcº¨%mì$
+ÏXPÕÔøeÏDs,ôU„7ÔÍ‰ÛSäNÜ!`5û=¢f¿‹¨ÛD4½ÍÑ~|ıˆE¼–‰z
++Â­õ_xA
+]Š+! l Ğõr©¼S·£L¡©ëñÕñËïíõZ>"è)®ol¸¦¹@`M1xq'†B€ğÚRk²œ\™K€Á=`¾¼zñü6/RAw¡*¼å†2Dc¿£Î÷âRd˜@x}‰u¨‹\™I€M½¡#_³`A	ˆ »Xn©½Dßw1q-„@Ôrİ¯¢sÅ°zISŸ05“§T,™÷ªWóAw¹2ÜRw3ÿ är(â^x0!ÒRŒ®Õr§.¿´aĞCŒ+¼uÎœ9¦WsA÷@exCíd0=ÆT„#!!0s`óõ^f¿ËÿN‡Mƒ&xä]^ÎFİCÕá–º@˜í¡$! NG@è¢f¿·‰¨ûyÀ&ÌoV7Í¿ßëyŠ {¬BÜV75p¤6«„#NE@M’¯SëÔå¿¬OGÈºûÇ]êåGíÇ¹Ëôàä–ú) ó>€¦{0<	Iˆ¬/‘wê¾Ô§‘1³bÑü5éº‡«Ä­µ }×Ã!JhB@#}µ+Ê…‡0pWuSãÒ%%tWŠÛênã× dŒÇk%áe8"mÅèz©,ÃAø&ıeÑ¾è-g7?x4]2AOƒJñËõÕÈáù`üc„+!
+Œ%À&İXµÿ»\iMà5ÒÌ/T.œ¿9²AO£jqkİ·Ì“	siT4	5ã°Iˆ¶!¼ºj#¹ÒÀQ"¾¥rÑ¼eé¹zšUŒ[®Ÿh \™f¡K¸B sß|fZÒ&?fÓ©ğúaeÓÜ_¤SÌÇc•‘–UÀ­uÿ -]š"—°…@Â¬ÍgÔ."ê	³s£ìÛıå‰ÍÍ}nøªOô¡t±ÿ±åm¿h¦‹aˆk! Î@`@ÔKeG9^1óŠ/«~ğ¨ÇC=mx"èéZ¹âæÖºïø¤")_¯/¶Ş©ËåY;MÍü‡çïôl„q&‚¤thÂm×ŸhwË‘¬éP-‰1ãXKÚJĞõ’èâÁÚ·“Æõ•ç­ó`l	…$‚.ï7æÖÚ¯¤Ş­Ëí€÷Ë%fkIÛY§î±’wøë•Móşà±¸’
+G=)lŞîÄ[n(C¤ÿ.€¾îíH%:!aˆn>vº,is¹øl0è¶ê¦Æ»\Ä6÷"è¶¡ô!n­½LÿÂÅŞ‹N"™K º©Ï—¦üvi˜ İ_Õ4÷[.ùwÄ­Œ&G°zË¨5iñ3²½™D#2—@ÏÖ|Y>0äÇpŠGA„	·W/j¼'Å~w'#ÉqÄŞpÀk¯­APŸ¦¯x#"‰Bş=9èx¬Ü§	Œ à3Ï®Z<¯9îRîB=åÈİuÈ­õ3Á|W¸‰xB@ˆ
+áÈˆu„ˆ³öjÀM«uãut÷Ø»ê™[ê¿oc´«ˆs! `tĞ¹rzßÍÎhƒÏV=Ò¸ÃóŞ°*‚î:¸3mõ?ø' äöÀ•*ˆS!0@ÀìÑİP‚pK‘L–³qP0è¡¼lü è·s;l4ëIS"è,KjƒâÖÏTc?±¯f|¦–¢xC' Öª÷íÈEçªaÖ]»\É `ˆîî*‰İ?şŞ{{“·”>=EĞÓ§VGÊ­ æ |Áqgâ@ÓPïÕÕ#ø¾=Ù²|2ã„ğ‚aàÎš%+“é®}DĞÓµrÆÍ-õ—AÃ÷Á\ï 1-„À¨™ïáu%èŞ\h=—+.ıºO7ÍŸW,™÷~\=|ÔHİGÅ´;ŞĞpLó?\c·m±'„@|úöf#üb9úögÉİúé‘©}÷Ş`?©^ÒøX|dı×Jİ5µ=#n«ÿLó?@t•íÆÅ g&ÀüœºçÀÜ1= í@–œ~X·oÙSôë™ÏÏ‰eòpAÏäê'˜;·5|lü@ŸL°«4B aü4HŸK-}úxWşéOµ÷·u]˜?càÂ„Mú«ƒÁD²É¸³4Í=µ«,"èv‘Ì ;Öæ4àï øt¥-©
+Tx ùtñ²U§sÈ3~ØWs¤Ø:€)Ã~Áæ€×?¶¸qÉ‹ˆ†‰zªş‹úĞ·ÔNƒFÿ
+ÆÍ>LOR©%@X“MSŸX¯ãı7/ÏŒÅ®&7ĞÀ€oßôkGo™ËY×~[YÛF²-‘:‰ 'BKÚ’ ¯»îèÚ7ú†lP#ƒD$D àû`˜¿¡éO½PÏï}G®Ö}äÓÀ—ˆ0Àø@Ü­½××ˆèO }YEÏ{;©¹ÙH–“ßû‰ û½Â)Ì7~ºFìVı‹l)›Bğâ*ıv€ùèûiÊcGìL ı–Ÿbæå }Áç (·Ó¾Ã¶ÔlõÃìÒ€U<î0V_Ã•­úP	JÿSßµ¯¯ÿ"ˆ¿.‡ÀÈ '`¼¦‡hÚ²ENsáÙ³ƒíÑì©ÌÚuş˜ÆAC6YNûNĞ¾ºãá=f~Ú$<[½°ñ9"Râ.WDĞ€%M'Àë.…n|UmMœôğâßÁĞKÓ–®q+«=_üî¹šIŸ ác >JÀYä P»Ö¤zçD˜ÍWˆiEPÇ“å·¸ÅÆ/~EĞıRIçÁën(ƒû2€p¾ÇÃ•ğ„€^° Fà÷4ıÑCv´ÓÆ¡›¾]ØàOgæI`œÂH Ãä}XHJ/Ô,tL ü1=£1ÙUm½øÁûíÌ)Óm%U L‡&ù ·Ö^h· |ÓĞ,Io!àEÔ˜ÓÅO<ãÅèNÏš¥oW
+Ê³A³Wœ¯iáº¦&×Ñp˜\¢JW30À0
+ÀP¹tP‡Ÿtè°	l'æıL¼‹¡½g²ñn^N{_¶«è™ÖCÍ7Ê¤6‡†ºC`ÅìàîÚ/‚ù&¦ŞCZ`´€¨	†¾È‹wãvPkŸõÍü¬Â¬PÔŒé~=`P,Û€f„Xëç@›F®£nÃˆ™f0ßè­~ğÁ¨~ÅFüDĞãg%-$Àëë¦‚ğyhø'0ªt%¦…€={aâ`,¡i·ØcT¬ä	ˆ 'ÏNz:D€ÛêjÜ³@ÈvÈ˜‰`ô@C3€?ÒE?‘¸é!œ# ‚î[±<D¼yV==Ÿá3`|INÊbÒ]0ãÏÈÎş?šØÜ'H„€	ˆ {±*ÓIxó¬|t÷Ü `4 &!à Kab)r²¥‰Ía}‰i!`t[0Š‘TàU3²‘WPµ`¨Çó%©ô/¾|Kà0OÀÀˆt-£™Ï÷ø6SIÌ—DĞ}YÖÌJŠ74\Ã¼„O8/³²—l‡H`®=E]úÜmIw!à*tWñ‹s»	pÛõçõk ¾€ú
+ÙíCì¥5õşûY€ÏĞEOÊîdi]N	şD"è2|K€ÿ8KÇØî+újËKYëîÛjŸ!1k8V¼ÛsVĞrZW&ƒLÈY=ª,9Z¬lÆÇÁüq ÿ `Š ñ% ^Ñˆé/øu£_VN’ô!á“ÎéL€7Ï*Eo÷e`ºŒKA¸DÑ§]EûÀXÂ¯AVÎjšØÜ‘vYHÀBÀ"è6@ş!À­Ósšõxq±L²ó\m·€Ğ
+õÚzºxé:ÏE(	—ˆ »^Ü¦nUô~0§€èB0&˜”Ñ§}”¯‚°	Ì¯ ÚF k]Ü|4í³’„€CDĞ+fıK€WÍ ¿ğ€'‚0DÀ¬–Ë÷oÖf¶D[Àüo ´áÎ×hæóê$/¹„€ˆ“€zœ ¤™ŒÀÀVµ‘sAñ`Vâ>à³A4ŒÑƒõ÷õ¿v€ù]€Ş°D[Á±­ÈÎ{K¶Rõuå%¹AO!lq•¹–Ğ…GÁ³ œâ0Õ€P“«ÕYÓ W¦á–¶1€öƒy?4ÚÆ^ïÓn ;şØ¿C–ŠeîØ—ÌSG@=u¬Å“”€µ´ÎìÊÁZe ”€P“Š¡q! Ês>€\ 9 ²AÈs@Aë†‚vÂ¡6†	‚ p?ˆzÁè ¶9íQÌaº`R'4>†úR[£™‡Ğ‡ƒĞBí²$lĞ’J!2ÿ/7ã›çÿÔ6    IEND®B`‚{"name":"","short_name":"","icons":[{"src":"/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],"theme_color":"#ffffff","background_color":"#ffffff","display":"standalone"}@import url(https://fonts.googleapis.com/css?family=Nunito:200,200italic,300,300italic,regular,italic,600,600italic,700,700italic,800,800italic,900,900italic);
+@import url(https://fonts.googleapis.com/css?family=Montserrat:100,100italic,200,200italic,300,300italic,regular,italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic);
+
+:root {
+    --blue: #6495ed;
+    --white: #fdfdfc;
+    --orange: #fd8953;
+    --lightorange: #ffb08c;
+    --lightgreen: #8fbc8f;
+    --green: #5CB88D;
+    --darkgrey: rgb(58, 58, 58);
+    --grey: #676967;
+    --lightgrey: #bebebe;
+    --star-size: 20px;
+    --star-color: #bebebe;
+    --star-background: #fddb53;
+    --navbarColor: #ffb08c21;
+    --pale: #f0f0f0;
+    /* --darkgreen: #6aa66a; */
+  }
+
+body {
+    background-color:var(--white);
+    padding-bottom: 70px;
+}
+
+.foodBackground{
+    background-color:var(--pale);
+    border-color: var(--lightgrey);
+    border: .01em solid var(--lightgrey);
+
+}
+h1 {
+    color: var(--green);
+    font-family: Nunito;
+    font-weight: 800;
+    font-size: 70px;
+    text-align: center;
+    margin-bottom: 0pt;
+}
+
+.profile {
+    text-align: center;
+}
+
+.profile_update {
+    margin-left: 2em;
+}
+
+
+.propic{
+    text-align: center;
+}
+
+.login_button {
+    text-align: center;
+}
+
+.login_forms{
+    text-align: center;
+}
+
+fieldset {
+    display: block;
+    padding: 1em;
+    border-width: 2px;
+    border-style: groove;
+    border-color: threedface;
+    border-image: initial;
+}
+
+.legend{
+    display: block;
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+    font-family: Montserrat;
+    color: var(--orange);
+    font-style: italic;
+    margin-top: -.5em;
+    width: auto;
+    float:inherit;
+}
+.sr-only{
+    position:absolute;
+    left:-10000px;
+    top:auto;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+ }
+
+.create_forms {
+    display: inline-block;
+    /* text-align: center; */
+}
+
+.navbarCustom {
+    font-family: Nunito;
+    font-weight: 700;
+    font-size: 25px;
+    text-align: left;
+    /* background-color: var(--navbarColor); */
+    margin-bottom: 10pt;
+    box-shadow: 0px 0px 5px 0px #bebebe;
+    background-color: var(--white);
+    
+    /* border-bottom: var(--orange); */
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px var(--orange); */
+    /* border-bottom-left-radius: .2em;
+    border-bottom-right-radius: .2em; */
+}
+
+nav {
+    font-family: Nunito;
+    color: var(--orange);
+    }
+    
+legend {
+font-family: Montserrat;
+    color: var(--orange);
+    font-style: italic;
+    margin-top: -.5em;  
+}        
+    
+label {
+    font-family: Montserrat;
+    color: var(--grey);
+}
+
+h2 {
+font-family: Nunito;
+color: var(--orange);
+
+}
+
+h4 {
+    font-family: Montserrat;
+    color: var(--grey);
+    
+    }
+#subtitle {
+font-style: italic;
+text-align: center;
+margin-top: -.5em;
+}
+li.label {
+    color:var(--orange);
+    font-family: Montserrat;
+}
+p {
+    font-family: Montserrat;
+    color: var(--grey);
+
+}
+#form {
+    font-family: Montserrat;
+}
+footer {
+    font-family: Montserrat;
+    color: var(--grey);
+    text-align: center; 
+    font-size: 10pt;
+    margin-bottom: .5em;
+    margin-top: 10em;
+}
+.button {
+    background-color: var(--lightorange);
+    border-color: var(--orange);
+    color: rgb(58, 58, 58);
+    font-size: larger;
+    padding: 8px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-style: solid;
+    border-radius: 1em;
+    font-size: 16px;
+    font-family: Nunito;
+    margin: 1em;
+    /* margin-left: 35%; */
+}
+.comment {
+    padding: 15px 32px;
+    font-family: Nunito;
+    margin-top: 1em;
+    margin-bottom: 2em;
+    border-radius: .6em;
+    border-width: .1em;
+    border-style: solid;
+    background-color: #f0f0f0;
+}
+h3 {
+    font-family: Nunito;
+    color: var(--orange);
+}
+
+.menuList {
+    /* margin-left: 30%;
+    margin-right: 30%; */
+    /* margin-bottom: 2em; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    text-align: center;
+    font-family: Nunito;
+    font-size:larger;
+    border-color: var(--green);
+    border-width: .4em;
+    border-style: double;
+    border-radius: .6em;
+    text-transform: uppercase;
+    width: max-content;
+    /* inline-size: max-content; */
+    height: max-content;
+    /* block-size: max-content; */
+    margin: 0 auto;
+    /* padding-top: 2em; */
+    /* padding-bottom: 2em; */
+}
+
+a:link.menuItem {
+    text-decoration: none;
+    color: var(--darkgrey);
+  }
+  
+a:visited.menuItem {
+    text-decoration:none;
+    color: var(--green);
+  }
+  
+a:hover.menuItem  {
+    text-decoration: none;
+    background-color: var(--lightorange);
+  }
+  
+a:active.menuItem  {
+    text-decoration: underline;
+  }
+
+.messages {
+    background-color: #f0f0f0;
+    font-family: Nunito;
+    font-size: large;
+    font-weight: 500;
+    text-align: center;
+    /* text-align: center;
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%; */
+}
+
+.reviews{
+    padding: 15px 32px;
+    font-family: Nunito;
+    margin-top: 1em;
+    margin-bottom: 2em;
+    border-radius: .6em;
+    border-width: .1em;
+    border-style: solid;
+    border-color: coral;
+    width: 60%;
+    margin-left: 20%;
+    background-color: var(--white);
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+.reviews a{
+    color:#5CB88D;
+}
+
+.top-rated{
+    font-size:smaller;
+    margin-top: 1em;
+    margin-bottom: 2em;
+    border-radius: .6em;
+    border-width:.1em;
+    border-style:solid;
+    border-color:#5CB88D;
+    width:50%;
+    margin:auto;
+    padding:10px;
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    background-color: var(--white);
+}
+
+.top-rated b{
+    color:#5CB88D;
+}
+
+.foodPic{
+    color: var(--white);
+    width: 25%;
+    border-style: solid;
+    border-color: var(--darkgrey);
+    border-width: 4px;
+
+}
+
+.text-add{
+    color: var(--white);
+    text-decoration: none;
+}
+
+.starRating:not(old){
+    display        :inline-table;
+    width          : 7.5em;
+    height         : 0em;
+    overflow-y      : hidden;
+    vertical-align : bottom;
+  }
+.starRating:not(old) > input{
+    margin-right : -100%;
+    opacity      : 0;
+  }
+.starRating:not(old) > label{
+    display         : block;
+    float           : right;
+    position        : relative;
+    background      : url('https://www.svgrepo.com/show/13693/star.svg');
+    background-size : contain;
+  }
+
+  .starRating:not(old) > label:before{
+    content         : '';
+    display         : block;
+    width           : 1.5em;
+    height          : 1.5em;
+    background      : url('https://www.svgrepo.com/show/161450/star-filled-fiveointed-shape.svg');
+    background-size : contain;
+    opacity         : 0;
+    transition      : opacity 0.2s linear;
+  }
+  .starRating:not(old) > label:hover:before,
+  .starRating:not(old) > label:hover ~ label:before,
+  .starRating:not(:hover) > :checked ~ label:before{
+    opacity : 1;
+  }
+
+.homePage {
+    font-family: Nunito;
+    color: var(--darkgrey);
+    font-size: 20pt;
+    /* background-color: #bebebe; */
+    background-color: #ffb08c;
+    /* border-color: var(--orange);
+    box-width: medium; */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    /* width: 80%; */
+    padding: 1em;
+    margin-left: 20%;
+    margin-right: 20%;
+    /* margin-left: 30%; */
+    text-align: center;
+    margin-bottom: 2em;
+    margin-top: 2em;
+    /* align-content: center; */
+}
+.homeButton {
+    background-color: var(--white);
+    color: var(--darkgrey);
+    font-size: larger;
+    padding: 6px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    border-style: solid;
+    border-color: #bebebe;
+    border-width: .1em;
+    border-radius: .5em;
+    font-size: 16px;
+    font-family: Nunito;
+    margin: .5em;
+}
+.homePage select {
+    width:max-content; /*hide original SELECT element: */
+    display: inline;
+  }
+
+.homePage select,option{
+    font-family: Montserrat;
+  }
+
+
+
+/* div.grow{
+    transition: .5s ease;
+    } */
+    
+div.grow :hover{
+    -webkit-transform: scale(1.1);
+    -ms-transform: scale(1.1);
+    transform: scale(1.1);
+    transition: .5s ease;
+    }
+    
+
+.search {
+    /* -webkit-box-shadow: 0 8px 6px -6px #999;
+    -moz-box-shadow: 0 8px 6px -6px #999;
+    box-shadow: 0 8px 6px -6px #999; */
+    
+    border-radius: .2em;
+}
+
+div.card {
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    text-align: center;
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
+    padding: 1em;
+    background-color: var(--white);
+  }
+
+  div.cardLeft {
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
+    padding: 1em;
+    background-color: var(--white);
+  }
+
+.hours {
+    width: max-content;
+    align-content: center;
+}
+
+.Stars {
+    --percent: calc(var(--rating) / 5 * 100%);
+    
+    display:inline-block;
+    font-size: var(--star-size);
+    font-family: Nunito;
+    padding: 0;
+    margin: 0;
+}
+.Stars ::before {
+      content: 'â˜…â˜…â˜…â˜…â˜…';
+      letter-spacing: 3px;
+      background: linear-gradient(90deg, var(--star-background) var(--percent), var(--star-color) var(--percent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
+
+.row {
+    display: flex;
+  }
+  
+.column {
+    flex: 50%;
+  }
+
+.menuList th, td {
+    border: none;
+  }
+
+.addButton {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    /* text-shadow:rgba(0, 0, 0, 0.23); */
+    margin-top: 1em;
+}
+
+.addReview {
+    /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
+    /* text-shadow:rgba(0, 0, 0, 0.23); */
+    margin-top: 1em;
+}
+
+a:link.addReview {
+    text-decoration: none;
+    color: var(--darkgrey);
+  }
+  
+a:visited.addReview {
+    text-decoration:none;
+    color: var(--orange);
+  }
+  
+a:hover.addReview {
+    text-decoration: none;
+    background-color: #f0f0f0;
+  }
+  
+a:active.addReview  {
+    text-decoration: underline;
+  }
+
+.ratingName{
+    font-family: Nunito;
+    font-weight: 400;
+    color: var(--orange);
+}
