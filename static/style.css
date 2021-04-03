@@ -476,13 +476,13 @@ div.card {
 
 .addButton {
     /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
-    text-shadow:rgba(0, 0, 0, 0.23);
+    /* text-shadow:rgba(0, 0, 0, 0.23); */
     margin-top: 1em;
 }
 
 .addReview {
     /* -webkit-text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23); */
-    text-shadow:rgba(0, 0, 0, 0.23);
+    /* text-shadow:rgba(0, 0, 0, 0.23); */
     margin-top: 1em;
 }
 
