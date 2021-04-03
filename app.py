@@ -279,8 +279,6 @@ def user_login():
                 return redirect(url_for('user_login'))
         else:
             flash("Only administrators can use this form. Please login through Wellesley portal.")
-            session['username'] = ""
-            session['logged_in'] = False
             return render_template('create.html', title="Login")
 
 # allows user to see their profile
