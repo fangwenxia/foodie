@@ -110,10 +110,12 @@ def menu():
                 flash('''The name you entered does not match any dish in the database
                     Would you like to add a new food entry? ''')
                 print(search)
-                return redirect(url_for('addfood',food_name=search))
+                return render_template("dataentry.html", food_name=search)
+                # return redirect(url_for('addfood',food_name=search))
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
+        names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh, preferences = preference, names =names)
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -346,7 +348,6 @@ def update(username):
                 allergens  = info['allergies']
                 preferences =  info['preferences']
                 names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
-
                 return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile", names=names)
         elif request.form["submit"] == "update":
             if  request.method == 'POST':
@@ -448,6 +449,7 @@ def user(user):
     curs = dbi.cursor(conn)
     curs.execute('''select filename from proPics where username = %s''',[user])
     filename = curs.fetchone()
+    reviews=feed_queries.user_reviews(conn,user)
     try: 
         username = session['username']
         info = query.get_user_info(conn, user)
@@ -455,14 +457,14 @@ def user(user):
         year = info['classYear']        
         diningHall = info['favoriteDH']
         if diningHall == None:
-            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename)
+            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename, reviews=reviews)
         else:
             dh_name = query.DH_name(conn, diningHall)
             DH = dh_name['name']
             favoriteFood = info['favoriteFood']
             allergens  = info['allergies']
             preferences =  info['preferences']
-            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename)
+            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename, reviews=reviews)
     except:
         flash("Please log in to view other profiles.")
         return redirect(url_for('create'))

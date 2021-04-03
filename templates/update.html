@@ -5,11 +5,15 @@
 {% endblock %}
 
 {% block content %}
-
+<style>
+  body {
+  background-color:#5cb88d32;
+}
+</style>
 <h1>Update Your Profile!</h1>
-<h2>Change Details</h2>
-
+<div class="cardLeft">
 <!-- beta version: condense code by using for loop -->
+<div class="d-flex flex-column align-items-center">
 <form method="POST" action="{{url_for('update', username = username)}}" autocomplete="on">
     <table>
       <tr>
@@ -86,5 +90,6 @@
     <input class= "button" type="submit" name="submit" value="update">
 
   </form>
-
+</div>
+</div>
 {% endblock %}
