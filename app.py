@@ -589,6 +589,7 @@ def delete():
             # I am iterating through the dictionary of comments, and manually replacing the DateTime object with one that 
             # is seperated by dashes instead of spaces, so once a comment is added to the webpage, it will 
             # be in the YYYY-MM-DD-HH-MM-SS format, and not seperated by spaces. 
+            
             for i in all_comments: 
                 val = i['entered']
                 i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
