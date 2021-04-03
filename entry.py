@@ -18,12 +18,13 @@ def get_food_id(conn,name):
     return food_id
     
 # given food information, inserts a label into the labels table
-def insert_label(conn,allergens,preferences,ingredients,id): 
+def insert_label(conn,allergens,preferences,ingredients): 
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
     prefs = ','.join(preferences)
     allgns = ','.join(allergens)
-    labelvals = [allgns,prefs,ingredients,id]
+    last_id = use_last_insert_id(conn)
+    labelvals = [allgns,prefs,ingredients,last_id]
     curs2.execute(sql2,labelvals)
     conn.commit()
 
@@ -125,6 +126,13 @@ def updateFoodLabel(conn,allergens,preferences,fid):
         curs.execute(sql,[prefs, fid])
         conn.commit()
         print('preferences updated')
+
+def use_last_insert_id(conn): 
+    curs = conn.cursor()
+    curs.execute('select last_insert_id()')
+    return curs.fetchone()[0]
+
+
     
 
     

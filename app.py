@@ -519,15 +519,17 @@ def feed():
         item['avg']=str(item['avg'])
     title='Feed'
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
-
-# route for adding a food item to the database
+# Leah's code
+# route for adding a food item to the database (inserts the food item into the food & labels tables)
+# Note: because I made my insert statements thread-safe, they don't protect against duplicates–
+# while it should protect against exact duplicates, if a user enters in a dish that already exists in the same dining hall on a different date, 
+# then it will still be added to the database because the 'lastServed' is different. 
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     # redirects user to login page if they are not logged in 
-    # try: 
-        # username = session['username']
+    try: 
+        username = session['username']
         if request.method == 'GET':
-            # add a way to dynamically obtain food preferences and allergens, in beta  
             return render_template('dataentry.html',title='Add Food')
         elif request.method == 'POST':
             conn = dbi.connect()
@@ -549,26 +551,26 @@ def addfood():
                 flash("Please make sure that all boxes in the form are checked.")
                 return render_template('dataentry.html',title='Add Food')
             
-            test_bool = entry.exists(conn,food_name,food_hall)
-            if test_bool == True: 
-                flash("Food already exists in database.")
+            # # not thread-safe 
+            # test_bool = entry.exists(conn,food_name,food_hall)
+            # if test_bool == True: 
+            #     flash("Food already exists in database.")
+            #     return redirect(url_for("mainmenu"))
+            
+            # inserts food and associated label into table in a hopefully thread-safe way 
+            try: 
+                food_date = today()[0]
+                entry.insert_food(conn,food_name,food_date,food_category,food_hall)
+                entry.insert_label(conn,food_allergens,food_preferences,food_ingredients)
+                success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name) #doesn't successfully defend against duplicates. 
+                flash(success_message)
                 return redirect(url_for("mainmenu"))
-            
-            # obtains date and inserts food into food table
-            food_date = today()[0]
-            entry.insert_food(conn,food_name,food_date,food_category,food_hall)
-            
-            # obtains food id for food recently inserted into food table
-            food_id = entry.get_food_id(conn,food_name)
-
-            # inserts related label into food database
-            entry.insert_label(conn,food_allergens,food_preferences,food_ingredients,food_id)
-            success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name)
-            flash(success_message)
-            return redirect(url_for("mainmenu"))
-    # except:
-    #     flash("Please login before accessing the add food page")
-    #     return redirect(url_for('user_login'))
+            except pymysql.IntegrityError as err: 
+               flash('Unable to insert {} due to {}'.format(name,repr(err)))
+               return render_template('dataentry.html',title='Add Food')
+    except:
+        flash("Please login before accessing the add food page")
+        return redirect(url_for('user_login'))
 
 # route for deleting a food or comment from the database
 @app.route('/delete/', methods=["GET", "POST"]) 
@@ -578,35 +580,41 @@ def delete():
         username = session['username']
         conn = dbi.connect()
         if request.method == "GET": 
+            # retrieves food and comments from database
             all_foods = entry.get_all_food(conn) 
             all_comments = entry.get_all_comments(conn,username)
 
-            # converts datetime object to one that doesn't have spaces. 
-            # each comment will be added to the HTML webpage, 
+            # the 'entered' DateTime object, when added as an value/id element on the webpage, naturally has spaces in it. 
+            # this is bad for HTML validation, so I am changing the formatting of the date here.
+            # I am iterating through the dictionary of comments, and manually replacing the DateTime object with one that 
+            # is seperated by dashes instead of spaces, so once a comment is added to the webpage, it will 
+            # be in the YYYY-MM-DD-HH-MM-SS format, and not seperated by spaces. 
             for i in all_comments: 
                 val = i['entered']
                 i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
             return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
+        
         if request.method == "POST":
             food_id = request.form.get('food-dlt')
             comment_entered = request.form.get('comment-dlt') 
             
+            # check if a user is an admin: 
             # error handling (if food isn't selected, or user isn't part of team foodie)
             # note: because the user can select a food item OR a comment to delete, it doesn't make 
             # sense to require both to be selected. 
             if food_id == 'none' and comment_entered == 'none': 
                 flash('Please make sure you have selected a food item or comment to delete.')
                 return redirect(url_for('delete'))
-            elif not entry.is_admin(conn,username):
+            elif not entry.is_admin(conn,username) and comment_entered != none:   
                 flash('Sorry, you are not authorized to delete food items from the foodie database.')
                 return redirect(url_for('/'))
+
+            # I think this is thread-safe, obtaining the food item's name isn't dependent on anything else
             if food_id != 'none': 
-
                 food_name = entry.get_food(conn,food_id)
-
             # deletes comments, labels and food table entries associated with a specific food item
                 entry.delete_comments(conn,food_id) 
-                entry.delete_labels(conn,food_id)
+                #entry.delete_labels(conn,food_id)
                 entry.delete_food(conn,food_id)
                 flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
             if comment_entered != "none": 
@@ -617,9 +625,14 @@ def delete():
         flash("Please login before accessing the delete food page")
         return redirect(url_for('user_login'))
 
+#updates a food item's allergens & preferences, a task an admin can only do. 
 @app.route('/adminFoodUpdate/', methods=["POST"]) 
 def adminFoodUpdate(): 
-    #add stuff here and redirect??
+    username = session['username']
+    if username is not is_admin(conn,username): 
+        flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
+        return redirect(url_for('/'))
+
     conn = dbi.connect()
     if request.method == "POST": 
         food_preferences = request.form.getlist('preferences')
@@ -628,7 +641,7 @@ def adminFoodUpdate():
         print("food info: ",food_preferences,food_allergens,food_id)
         entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
         flash('You successfully updated a food item.')
-        return redirect(url_for('delete'))
+        return redirect(url_for('/'))
 
 
      
