@@ -300,7 +300,7 @@ def profile(username):
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename)
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename,reviews=reviews)
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
