@@ -16,9 +16,15 @@
     <form method=post action="{{url_for('addfood')}}">
         <h2>Food Information:</h2>
         <div class="d-flex-inline">
+            {%if food_name %}
+            <p><label for="food-name"><b>Name:</b></label>
+                <input type="text" name="food-name" id="food-name" placeholder={{food_name}} required>
+            </p>
+            {%else%}
             <p><label for="food-name"><b>Name:</b></label>
                 <input type="text" name="food-name" id="food-name" required>
             </p>
+            {%endif%}
             <p><label for="food-type"><b>Food type:</b></label></td>
                 <select id="food-type" name="food-type" required>
                     <option value="" selected disabled hidden>select</option>

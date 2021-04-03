@@ -37,16 +37,9 @@ displaying the most recent 10 comments
 '''
 def recent_feedback(conn):
     curs=dbi.dict_cursor(conn)
-    curs.execute('select username,entered,rating,comment,name \
+    curs.execute('select username,entered,rating,comment,name,fid \
         from feedback inner join food using (fid) \
         order by entered DESC limit 10')
-    return curs.fetchall()
-
-# don't use this yet- not fully planned out 
-def top_rated(conn):
-    curs=dbi.dict_cursor(conn)
-    curs.execute('select name,(avg(rating))as avg from feedback inner join food using fid group by fid order by time DESC, rating limit 5')
-    # sort by month and select by month
     return curs.fetchall()
 
 '''
@@ -63,7 +56,27 @@ def food_rating(conn):
     return curs.fetchall()
 
 '''
-Some Questions for Scott: 
-1. Can I order by week/month of the weekly food item? 
-2. Can I get some more explaination of Ajax, flask stuff? 
+return a list of dictionary with the fid and username
+used for checking duplicates when submitting a feedback form
+@ param: fid, username
+@ return: a list of dictionary pubulished by username on fid
 '''
+def feedback_duplicate(conn,fid,username):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('''select name,fid from feedback\
+        where username=%s,fid=%s''',[username,fid])
+    return curs.fetchall()
+
+'''
+return all reviews published by this profile person 
+@ param: username
+@ return: a list of dictionary of reviews with username,entered time, 
+        rating, comment, food name that this user has published 
+'''
+def user_reviews(conn,username):
+    curs=dbi.dict_cursor(conn)
+    curs.execute('select username,entered,rating,comment,name \
+        from feedback inner join food using (fid) \
+            where username=%s \
+            order by entered DESC',[username])
+    return curs.fetchall()

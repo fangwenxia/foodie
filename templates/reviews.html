@@ -1,37 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+
    <!-- Displaying the most recent feedbacks-->
    <section>
    <h1>Trending Reviews</h1>
-   <span class="nav-link">
-       You can add your own critique for a dish by<a class="nav-link" href="{{url_for('mainmenu')}}">looking it up</a>
-    </span>
-    {% for entry in feedbacks %}
-    <div class="reviews">
-        <span><b><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}} </a></b></span>
-        <span>{{entry.entered}}</span><br>
-        <span>rated <b>{{entry.name}}</b> {{entry.rating}} points</span><br>
-        <span>and said "{{entry.comment}}"</span><br>
-    </div>
-    {% endfor %}
-
-<!-- Review with stars in a table -->
-<!-- {% for entry in feedbacks %} -->
-    <!-- <table class="table">
-        <tbody>
-    <tr> 
-        <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div></div></td>
-        <td>{{entry.comment}} <a href="{{url_for('feed')}}">@{{entry.username}}</a></td>
-    </tr>
-    {% endfor %}
-</tbody>
-</table>
-</div> -->
-
-    </section>
-    <!-- Displaying the top rated food items not showing up for some reason-->
-    <section class="top_rated">
+   <!-- Displaying the top rated food items -->
+    <div class="top-rated">
     <h2>Most Popular Dishes Voted By <b>You!</b></h2>
     <ol>
         {% for dish in ranking %}
@@ -41,5 +17,17 @@
         </li>
         {% endfor %}
     </ol>
-    </section>
+    </div>
+   <span class="nav-link">
+       You can add your own critique for a dish by<a class="nav-link" href="{{url_for('mainmenu')}}">looking it up</a>
+    </span>
+    {% for entry in feedbacks %}
+    <div class="reviews">
+        <!--Fill in the image here possibly-->
+        <span><b><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}} </a></b></span>
+        <span>{{entry.entered}}</span><br>
+        <span>rated <b><a href="{{url_for('food', fid = entry.fid)}}">{{entry.name}}</a></b> {{entry.rating}} points</span><br>
+        <span>and said "{{entry.comment}}"</span><br>
+    </div>
+    {% endfor %}
 {% endblock %}

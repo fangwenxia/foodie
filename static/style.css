@@ -261,17 +261,36 @@ a:active.menuItem  {
     margin-right: 10%; */
 }
 
-.reviews {
+.reviews{
     padding: 15px 32px;
+    font-family: Nunito;
+    margin-top: 1em;
+    margin-bottom: 2em;
     border-radius: .6em;
-    border-color: var(--green);
-    border-width: 2px;
+    border-width: .1em;
     border-style: solid;
+    border-color: coral;
 }
 
-.top_rated{
-    width:20%;
-    float:right;
+.reviews a{
+    color:#5CB88D;
+}
+
+.top-rated{
+    font-size:smaller;
+    margin-top: 1em;
+    margin-bottom: 2em;
+    border-radius: .6em;
+    border-width:.1em;
+    border-style:solid;
+    border-color:#5CB88D;
+    width:50%;
+    margin:auto;
+    padding:10px;
+}
+
+.top-rated b{
+    color:#5CB88D;
 }
 
 .foodPic{
