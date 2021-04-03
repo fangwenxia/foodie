@@ -123,6 +123,7 @@ def use_last_insert_id(conn):
     curs = conn.cursor()
     curs.execute('select last_insert_id()')
     return curs.fetchone()[0]
+    
 
 
     

@@ -597,8 +597,10 @@ def delete():
             return render_template('delete.html', title = 'Delete Food', allfoods=all_foods,comments=all_comments)
         
         if request.method == "POST":
+            print('hello')
             food_id = request.form.get('food-dlt')
             comment_entered = request.form.get('comment-dlt') 
+            print(food_id,comment_entered)
             
             # check if a user is an admin: 
             # error handling (if food isn't selected, or user isn't part of team foodie)
@@ -607,13 +609,15 @@ def delete():
             if food_id == 'none' and comment_entered == 'none': 
                 flash('Please make sure you have selected a food item or comment to delete.')
                 return redirect(url_for('delete'))
-            elif not query.is_admin(conn,username) and comment_entered != none:   
+            elif query.is_admin(conn,username) and comment_entered != none:   
                 flash('Sorry, you are not authorized to delete food items from the foodie database.')
                 return redirect(url_for('home'))
+            print('doing good!')
 
             # I think this is thread-safe, obtaining the food item's name isn't dependent on anything else
             if food_id != 'none': 
                 food_name = entry.get_food(conn,food_id)
+                print(food_name) 
             # deletes comments, labels and food table entries associated with a specific food item
                 entry.delete_comments(conn,food_id) 
                 entry.delete_labels(conn,food_id)
@@ -635,10 +639,11 @@ def adminFoodUpdate():
     print(type(username))
     conn = dbi.connect()
     truth_bool = query.is_admin(conn,username)
+    print('boolean returned',truth_bool,query.is_admin(conn,username))
     # if query.is_admin(conn, username): 
         # flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
         # return redirect(url_for('home'))
-    if query.is_admin(conn, username): 
+    if not query.is_admin(conn,username): 
         if request.method == "POST": 
             food_preferences = request.form.getlist('preferences')
             food_allergens = request.form.getlist('allergens')

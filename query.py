@@ -17,7 +17,7 @@ def username_exists(conn, username):
 def is_admin(conn, username):
     curs = dbi.dict_cursor(conn)
     curs.execute('''select * from admin where adminname = %s;''', [username])
-    print(len(curs.fetchall()) != 0)
+    print('is_admin result',len(curs.fetchall()) != 0)
     return len(curs.fetchall()) != 0
         
 
