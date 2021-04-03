@@ -39,7 +39,7 @@ def recent_feedback(conn):
     curs=dbi.dict_cursor(conn)
     curs.execute('select username,entered,rating,comment,name,fid \
         from feedback inner join food using (fid) \
-        order by entered DESC limit 10')
+        order by entered DESC limit 50')
     return curs.fetchall()
 
 '''
@@ -51,7 +51,7 @@ def food_rating(conn):
     curs.execute('select name,round(avg(rating),2) as avg \
         from food inner join (feedback) using (fid) \
             group by fid \
-                order by rating DESC\
+                order by avg DESC\
                     limit 10')
     return curs.fetchall()
 
