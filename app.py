@@ -276,13 +276,10 @@ def user_login():
                 return redirect(url_for('profile', username=session['username'], info=info))
             else:
                 flash('Incorrect login. Please try again.')
-                session['username'] = ""
-                session['logged_in'] = False
                 return redirect(url_for('user_login'))
         else:
             flash("Only administrators can use this form. Please login through Wellesley portal.")
-            session['username'] = ""
-            session['logged_in'] = False
+            print(session)
             return render_template('create.html', title="Login")
 
 # allows user to see their profile
@@ -437,8 +434,6 @@ def profile_error():
         else:
             return redirect(url_for('create'))
     else:
-        session['username'] = ""
-        session['logged_in'] = False
         flash('Please log in.')
         return redirect(url_for('create'))
 
@@ -637,17 +632,22 @@ def adminFoodUpdate():
     print('username',username)
     print(type(username))
     conn = dbi.connect()
-    if username is not query.is_admin(conn,username): 
+    truth_bool = query.is_admin(conn,username)
+    # if query.is_admin(conn, username): 
+        # flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
+        # return redirect(url_for('home'))
+    if query.is_admin(conn, username): 
+        if request.method == "POST": 
+            food_preferences = request.form.getlist('preferences')
+            food_allergens = request.form.getlist('allergens')
+            food_id = request.form.get('food-update')
+            print("food info: ",food_preferences,food_allergens,food_id)
+            entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
+            flash('You successfully updated a food item.')
+            return redirect(url_for('home'))
+    else: 
         flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
-        return redirect(url_for('home'))
-    if request.method == "POST": 
-        food_preferences = request.form.getlist('preferences')
-        food_allergens = request.form.getlist('allergens')
-        food_id = request.form.get('food-update')
-        print("food info: ",food_preferences,food_allergens,food_id)
-        entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
-        flash('You successfully updated a food item.')
-        return redirect(url_for('home'))
+        return redirect(url_for('home')) 
 
 
      
