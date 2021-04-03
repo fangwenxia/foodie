@@ -33,7 +33,17 @@
 <p>preferences: {{info['preferences']}} </p>
 </div>
 
+{% for entry in reviews %}
+<div class="reviews">
+    <span><b>@{{entry.username}} </b></span>
+    <span>{{entry.entered}}</span><br>
+    <span>rated <b>{{entry.name}}</b> {{entry.rating}} points</span><br>
+    <span>and said "{{entry.comment}}"</span><br>
+</div>
+{% endfor %}
+
 {% endblock %}
+
 
 {% block extra%}
 

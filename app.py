@@ -109,7 +109,8 @@ def menu():
             elif len(menu)==0:
                 flash('''The name you entered does not match any dish in the database
                     Would you like to add a new food entry? ''')
-                return redirect(url_for('addfood'))
+                print(search)
+                return redirect(url_for('addfood',food_name=search))
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
         return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
@@ -295,8 +296,9 @@ def profile(username):
         info =  query.get_user_info(conn, username)
         if request.method == "GET":
             diningHall = info['favoriteDH']
+            reviews=feed_queries.user_reviews(conn,username)
             if diningHall == None:
-                return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename=filename)
+                return render_template('profile.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename=filename,reviews=reviews)
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
@@ -506,6 +508,10 @@ def reviews(fid):
         rating=request.form['rating']
         comment=request.form['comment']
         time=datetime.now()
+        #checking duplicate feedback on one dish published by one person
+        if len(feed_queries.feedback_duplicate(conn,fid,username))!=0: 
+            flash("You have already commented on this food, Please try commenting on another one.")
+            return redirect(url_for('feed'))
         # stored form info into the database here
         feed_queries.feedback(conn,username,fid,rating,comment,time)
         return redirect(url_for('feed'))
@@ -519,6 +525,12 @@ def feed():
         item['avg']=str(item['avg'])
     title='Feed'
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
+<<<<<<< HEAD
+
+# route for adding a food item to the database
+@app.route('/addfood', methods=["GET", "POST"])
+def addfood(food_name=""):
+=======
 # Leah's code
 # route for adding a food item to the database (inserts the food item into the food & labels tables)
 # Note: because I made my insert statements thread-safe, they don't protect against duplicates–
@@ -526,11 +538,18 @@ def feed():
 # then it will still be added to the database because the 'lastServed' is different. 
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
+>>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
     # redirects user to login page if they are not logged in 
     try: 
         username = session['username']
         if request.method == 'GET':
+<<<<<<< HEAD
+            # add a way to dynamically obtain food preferences and allergens, in beta  
+            print(food_name)
+            return render_template('dataentry.html',title='Add Food',food_name=food_name)
+=======
             return render_template('dataentry.html',title='Add Food')
+>>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
         elif request.method == 'POST':
             conn = dbi.connect()
             food_name = request.form.get('food-name') 
