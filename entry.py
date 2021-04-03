@@ -102,14 +102,6 @@ def delete_comments(conn,fid):
         curs = dbi.dict_cursor(conn)
         curs.execute(sql,fid)
         conn.commit()
-#checks if the user is an admin 
-def is_admin(conn,username):
-    sql = '''select * from admin where adminname = %s'''
-    curs = dbi.dict_cursor(conn)
-    curs.execute(sql,username)
-    admin = curs.fetchone()
-    return admin is not None
-
 #check if this works 
 def updateFoodLabel(conn,allergens,preferences,fid): 
     if len(allergens) != 0: 

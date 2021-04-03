@@ -595,6 +595,7 @@ def delete():
             # I am iterating through the dictionary of comments, and manually replacing the DateTime object with one that 
             # is seperated by dashes instead of spaces, so once a comment is added to the webpage, it will 
             # be in the YYYY-MM-DD-HH-MM-SS format, and not seperated by spaces. 
+
             for i in all_comments: 
                 val = i['entered']
                 i['entered'] = val.strftime("%Y-%m-%d-%H-%M-%S")
@@ -611,22 +612,22 @@ def delete():
             if food_id == 'none' and comment_entered == 'none': 
                 flash('Please make sure you have selected a food item or comment to delete.')
                 return redirect(url_for('delete'))
-            elif not entry.is_admin(conn,username) and comment_entered != none:   
+            elif not query.is_admin(conn,username) and comment_entered != none:   
                 flash('Sorry, you are not authorized to delete food items from the foodie database.')
-                return redirect(url_for('/'))
+                return redirect(url_for('home'))
 
             # I think this is thread-safe, obtaining the food item's name isn't dependent on anything else
             if food_id != 'none': 
                 food_name = entry.get_food(conn,food_id)
             # deletes comments, labels and food table entries associated with a specific food item
                 entry.delete_comments(conn,food_id) 
-                #entry.delete_labels(conn,food_id)
+                entry.delete_labels(conn,food_id)
                 entry.delete_food(conn,food_id)
                 flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
             if comment_entered != "none": 
                 entry.delete_comment(conn,username,comment_entered)
                 flash('Your comment was successfully deleted from the foodie database')
-            return redirect(url_for('/'))
+            return redirect(url_for('home'))
     except:
         flash("Please login before accessing the delete food page")
         return redirect(url_for('user_login'))
@@ -635,11 +636,12 @@ def delete():
 @app.route('/adminFoodUpdate/', methods=["POST"]) 
 def adminFoodUpdate(): 
     username = session['username']
-    if username is not is_admin(conn,username): 
-        flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
-        return redirect(url_for('/'))
-
+    print('username',username)
+    print(type(username))
     conn = dbi.connect()
+    if username is not query.is_admin(conn,username): 
+        flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
+        return redirect(url_for('home'))
     if request.method == "POST": 
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
@@ -647,7 +649,7 @@ def adminFoodUpdate():
         print("food info: ",food_preferences,food_allergens,food_id)
         entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
         flash('You successfully updated a food item.')
-        return redirect(url_for('/'))
+        return redirect(url_for('home'))
 
 
      
