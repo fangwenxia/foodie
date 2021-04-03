@@ -509,7 +509,13 @@ def feed():
         item['avg']=str(item['avg'])
     title='Feed'
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
+
 # Leah's code
+
+# NOTE: the query.is_admin function returns the opposite result of what's expected (i.e. false when it should be true) in my code 
+# for some reason. I mitigated this by negating query.is_admin(...) in the addfood(), delete() and adminFoodUpdate() functions
+
+
 # route for adding a food item to the database (inserts the food item into the food & labels tables)
 # Note: because I made my insert statements thread-safe, they don't protect against duplicates–
 # while it should protect against exact duplicates, if a user enters in a dish that already exists in the same dining hall on a different date, 
@@ -629,9 +635,6 @@ def adminFoodUpdate():
     conn = dbi.connect()
     truth_bool = query.is_admin(conn,username)
     print('boolean returned',truth_bool,query.is_admin(conn,username))
-    # if query.is_admin(conn, username): 
-        # flash('Unfortunately, you are not an administrator and therefore not allowed to update the allergens & preferences associated w/ a food item.')
-        # return redirect(url_for('home'))
     if not query.is_admin(conn,username): 
         if request.method == "POST": 
             food_preferences = request.form.getlist('preferences')
