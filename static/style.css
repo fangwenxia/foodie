@@ -272,7 +272,9 @@ a:active.menuItem  {
     border-color: coral;
     width: 60%;
     margin-left: 20%;
-    background-color: var(--pale);
+    background-color: var(--white);
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
 }
 
 .reviews a{
@@ -292,6 +294,7 @@ a:active.menuItem  {
     padding:10px;
     -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
     box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    background-color: var(--white);
 }
 
 .top-rated b{
@@ -501,3 +504,9 @@ a:hover.addReview {
 a:active.addReview  {
     text-decoration: underline;
   }
+
+.ratingName{
+    font-family: Nunito;
+    font-weight: 400;
+    color: var(--orange);
+}

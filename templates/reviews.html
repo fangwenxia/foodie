@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
 
    <!-- Displaying the most recent feedbacks-->
    <section>
-   <h1>Trending Reviews</h1>
    <!-- Displaying the top rated food items -->
     <div class="top-rated">
     <h2>Most Popular Meals on foodie.</h2>
@@ -13,7 +16,7 @@
         {% for dish in ranking %}
         <li>
             <span><b>{{dish.name}}</b></span>
-            <span>Rating:{{dish.avg}}</span><!--change a key- python syntax-->
+            <span class="Stars" style="--rating: {{dish.avg}};" aria-label="Rating of this product is {{dish.avg}} out of 5."><div></div></span>
         </li>
         {% endfor %}
     </ol>
@@ -21,13 +24,26 @@
    <span class="d-flex flex-column align-items-center">
         <a class="button" href="{{url_for('mainmenu')}}">Find a food to critique</a>
     </span>
-    {% for entry in feedbacks %}
+    <h1>Trending Reviews</h1>
+
+    
+    {%for entry in feedbacks %}
     <div class="reviews">
-        <!--Fill in the image here possibly-->
-        <span><b><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}} </a></b></span>
-        <span>{{entry.entered}}</span><br>
-        <span>rated <b><a href="{{url_for('food', fid = entry.fid)}}">{{entry.name}}</a></b> {{entry.rating}} points</span><br>
-        <span>and said "{{entry.comment}}"</span><br>
-    </div>
-    {% endfor %}
+        <table class="table">
+            <tbody>
+        <tr> 
+        <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div class=ratingName>{{entry.name}}</div></td>
+    </tr>
+    <tr>
+        <td>{{entry.comment}}</td>
+    </tr>
+    <tr>
+        <td><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}}</a> ({{entry.entered}})</td>
+    </tr>
+        
+</tbody>
+
+</table>
+</div>
+    {%endfor%}
 {% endblock %}
