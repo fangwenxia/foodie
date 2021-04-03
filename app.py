@@ -279,8 +279,6 @@ def user_login():
                 return redirect(url_for('user_login'))
         else:
             flash("Only administrators can use this form. Please login through Wellesley portal.")
-            session['username'] = ""
-            session['logged_in'] = False
             return render_template('create.html', title="Login")
 
 # allows user to see their profile
@@ -302,7 +300,7 @@ def profile(username):
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename)
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename,reviews=reviews)
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
