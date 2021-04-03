@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 import cs304dbi as dbi
-import menuUpdates as menuUp #module to update foodie database from the menu page
+import udates as menuUp #module to update foodie database from the menu page
 import random   
 import sys
 import pymysql
@@ -524,8 +524,8 @@ def feed():
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
     # redirects user to login page if they are not logged in 
-    try: 
-        username = session['username']
+    # try: 
+        # username = session['username']
         if request.method == 'GET':
             # add a way to dynamically obtain food preferences and allergens, in beta  
             return render_template('dataentry.html',title='Add Food')
@@ -533,7 +533,7 @@ def addfood():
             conn = dbi.connect()
             food_name = request.form.get('food-name') 
             food_category = request.form.get('food-type')
-            food_dhall = request.form.get('food-hall')
+            food_hall = request.form.get('food-hall')
             food_preferences = request.form.getlist('preferences')
             food_allergens = request.form.getlist('allergens')
             food_ingredients = request.form.get('food-ingredients')
@@ -556,7 +556,7 @@ def addfood():
             
             # obtains date and inserts food into food table
             food_date = today()[0]
-            entry.insert_food(conn,food_name,food_date,food_category,food_dhall)
+            entry.insert_food(conn,food_name,food_date,food_category,food_hall)
             
             # obtains food id for food recently inserted into food table
             food_id = entry.get_food_id(conn,food_name)
@@ -566,9 +566,9 @@ def addfood():
             success_message = "{fname} was successfully inserted into the foodie database".format(fname=food_name)
             flash(success_message)
             return redirect(url_for("mainmenu"))
-    except:
-        flash("Please login before accessing the add food page")
-        return redirect(url_for('user_login'))
+    # except:
+    #     flash("Please login before accessing the add food page")
+    #     return redirect(url_for('user_login'))
 
 # route for deleting a food or comment from the database
 @app.route('/delete/', methods=["GET", "POST"]) 
@@ -623,8 +623,9 @@ def adminFoodUpdate():
     if request.method == "POST": 
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
-        food_id = request.form.get('update')
-        redirect(url_for('update',food_id))
+        food_id = request.form.get('food-update')
+        print(food_id)
+        # return redirect(url_for('food',fid=int(food_id)))
 
 
      

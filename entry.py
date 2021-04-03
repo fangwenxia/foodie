@@ -21,8 +21,6 @@ def get_food_id(conn,name):
 def insert_label(conn,allergens,preferences,ingredients,id): 
     curs2 = dbi.cursor(conn)
     sql2 = '''insert into labels(allergen,preference,ingredients,fid) values (%s,%s,%s,%s);'''
-    preferences = ['gluten sensitive' if i=='gluten-sensitive' else i for i in preferences]
-    allergens = ['tree nut' if i=='tree-nut' else i for i in allergens]
     prefs = ','.join(preferences)
     allgns = ','.join(allergens)
     labelvals = [allgns,prefs,ingredients,id]
@@ -103,12 +101,29 @@ def delete_comments(conn,fid):
         curs = dbi.dict_cursor(conn)
         curs.execute(sql,fid)
         conn.commit()
+#checks if the user is an admin 
 def is_admin(conn,username):
     sql = '''select * from admin where adminname = %s'''
     curs = dbi.dict_cursor(conn)
     curs.execute(sql,username)
     admin = curs.fetchone()
     return admin is not None
+def updateFoodLabel(conn,allergens,preferences,fid): 
+    if len allergens != 0: 
+        curs = dbi.dict_cursor(conn)
+        allgns = ','.join(allergens)
+        sql = ("update labels set allergens = %s where fid = %s;", [allgns, fid])
+        curs.execute(sql,username)
+        conn.commit()
+        print('allergens updated')
+    elif len preferences !=0: 
+        curs = dbi.dict_cursor(conn)
+        prefs = ','.join(preferences)
+        sql = ("update labels set preferences = %s where fid = %s;", [prefs, fid])
+        conn.commit()
+        print('preferences updated')
+    
+
     
 
 
