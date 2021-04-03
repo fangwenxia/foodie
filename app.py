@@ -302,7 +302,7 @@ def profile(username):
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename)
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename,reviews=reviews)
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
@@ -525,12 +525,6 @@ def feed():
         item['avg']=str(item['avg'])
     title='Feed'
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
-<<<<<<< HEAD
-
-# route for adding a food item to the database
-@app.route('/addfood', methods=["GET", "POST"])
-def addfood(food_name=""):
-=======
 # Leah's code
 # route for adding a food item to the database (inserts the food item into the food & labels tables)
 # Note: because I made my insert statements thread-safe, they don't protect against duplicates–
@@ -538,18 +532,11 @@ def addfood(food_name=""):
 # then it will still be added to the database because the 'lastServed' is different. 
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
->>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
     # redirects user to login page if they are not logged in 
     try: 
         username = session['username']
         if request.method == 'GET':
-<<<<<<< HEAD
-            # add a way to dynamically obtain food preferences and allergens, in beta  
-            print(food_name)
-            return render_template('dataentry.html',title='Add Food',food_name=food_name)
-=======
             return render_template('dataentry.html',title='Add Food')
->>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
         elif request.method == 'POST':
             conn = dbi.connect()
             food_name = request.form.get('food-name') 
