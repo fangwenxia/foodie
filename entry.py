@@ -108,18 +108,21 @@ def is_admin(conn,username):
     curs.execute(sql,username)
     admin = curs.fetchone()
     return admin is not None
+
+#check if this works 
 def updateFoodLabel(conn,allergens,preferences,fid): 
-    if len allergens != 0: 
+    if len(allergens) != 0: 
         curs = dbi.dict_cursor(conn)
         allgns = ','.join(allergens)
-        sql = ("update labels set allergens = %s where fid = %s;", [allgns, fid])
-        curs.execute(sql,username)
+        sql = ("update labels set allergen = %s where fid = %s;")
+        curs.execute(sql,[allgns, fid])
         conn.commit()
         print('allergens updated')
-    elif len preferences !=0: 
+    elif len(preferences) !=0: 
         curs = dbi.dict_cursor(conn)
         prefs = ','.join(preferences)
-        sql = ("update labels set preferences = %s where fid = %s;", [prefs, fid])
+        sql = ("update labels set preference = %s where fid = %s;")
+        curs.execute(sql,[prefs, fid])
         conn.commit()
         print('preferences updated')
     

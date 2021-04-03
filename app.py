@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 import cs304dbi as dbi
-import udates as menuUp #module to update foodie database from the menu page
+import menuUpdates as menuUp #module to update foodie database from the menu page
 import random   
 import sys
 import pymysql
@@ -620,11 +620,14 @@ def delete():
 @app.route('/adminFoodUpdate/', methods=["POST"]) 
 def adminFoodUpdate(): 
     #add stuff here and redirect??
+    conn = dbi.connect()
     if request.method == "POST": 
         food_preferences = request.form.getlist('preferences')
         food_allergens = request.form.getlist('allergens')
         food_id = request.form.get('food-update')
         print(food_id)
+        entry.updateFoodLabel(conn,food_allergens,food_preferences,food_id)
+        flash('You successfully updated a food item.')
         # return redirect(url_for('food',fid=int(food_id)))
 
 
