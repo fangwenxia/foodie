@@ -1,15 +1,18 @@
 {% extends "base.html" %}
-
-{% block content %}
-<style>
-    .addfood {
-        border: 2em solid white;
-    }
-
+{% block headstuff %}
+<style> 
     body {
         background-color: #5cb88d32;
+        
     }
-</style>
+
+    .addfood {
+        border: 20px solid white;
+
+    }
+</style>   
+{% endblock %}
+{% block content %}
 <div class="card addfood">
     <h1>Remove Comment or Food</h1>
     <p>Select a meal, comment, or both to delete from the database.
@@ -43,7 +46,7 @@
             <select name="food-update">
                 <option value="none">Select Food</option>
                 {% for food in allfoods %}
-                <option id='{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
+                <option id='update-{{food.fid}}' value="{{food.fid}}">{{food.name}}</option>
                 {% endfor %}
             </select>
         <p><b>Food Preferences:</b>
@@ -98,7 +101,6 @@
             <label for="wheat">wheat</label>
             <input type="submit" name="submit" class="button" value="update">
         </p>
-
-</div>
 </form>
+</div>
 {% endblock %}

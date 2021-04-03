@@ -541,13 +541,13 @@ def addfood():
                 flash("Please make sure that all boxes in the form are checked.")
                 return render_template('dataentry.html',title='Add Food')
             
-            # # not thread-safe 
+            # # not thread-safe, but duplicate-checking works
             # test_bool = entry.exists(conn,food_name,food_hall)
             # if test_bool == True: 
             #     flash("Food already exists in database.")
             #     return redirect(url_for("mainmenu"))
             
-            # inserts food and associated label into table in a hopefully thread-safe way 
+            # inserts food and associated label into table in a hopefully thread-safe way. duplicate checking doesn't work
             try: 
                 food_date = today()[0]
                 entry.insert_food(conn,food_name,food_date,food_category,food_hall)

@@ -1,15 +1,19 @@
 {% extends "base.html" %}
-
-{% block content %}
-<style>
-    .addfood {
-        border: 20px solid white;
-    }
-
+{% block headstuff %}
+<style> 
     body {
         background-color: #5cb88d32;
+        
     }
-</style>
+
+    .addfood {
+        border: 20px solid white;
+
+    }
+</style>   
+{% endblock %}
+
+{% block content %}
 <h1>Add Food to Database</h1>
 <!-- add something to action -->
 <div class="d-flex flex-column row addfood card">
@@ -25,7 +29,7 @@
                 <input type="text" name="food-name" id="food-name" required>
             </p>
             {%endif%}
-            <p><label for="food-type"><b>Food type:</b></label></td>
+            <p><label for="food-type"><b>Food type:</b></label>
                 <select id="food-type" name="food-type" required>
                     <option value="" selected disabled hidden>select</option>
                     <option value="breakfast">Breakfast</option>
@@ -100,130 +104,9 @@
             </p>
 
             <p> <input type='submit' class="button" value='Add New Meal'> </p>
+        </div>
     </form>
 </div>
-</div>
-
-
-<!-- <fieldset>
-        <legend>
-            <h2>Food Information:</h2>
-        </legend>
-        <table>
-            <tr>
-                <td><label for="food-name">Name:</label></td>
-                <td><input type="text" name="food-name" id="food-name" required></td>
-            </tr>
-
-            <tr>
-                <td><label for="food-type">Food type:</label></td>
-                <td><select id="food-type" name="food-type" required>
-                        <option value="" selected disabled hidden>select</option>
-                        <option value="breakfast">Breakfast</option>
-                        <option value="lunch">Lunch</option>
-                        <option value="dinner">Dinner</option>
-                        <option value="all day">All-day</option>
-                    </select></td>
-            </tr>
-            <tr>
-                <td><label for="food-hall">Dining hall:</label></td>
-                <td><select id="food-hall" name="food-hall" required>
-                        <option value="" selected disabled hidden>select</option>
-                        <option value="1">Bates</option>
-                        <option value="2">Lulu</option>
-                        <option value="3">Pom</option>
-                        <option value="4">Stone-D</option>
-                        <option value="5">Tower</option>
-                    </select></td>
-            </tr>
-            <tr>
-                <td><label for="food-ingredients">Food Ingredients:</label></td>
-                <td><input type="text" name="food-ingredients" id="food-ingredients" required></td>
-            </tr>
-
-            <tr>
-                <td>
-                    <p>Food Preferences:</p>
-                </td>
-                <td>
-                    <input type="checkbox" value="none" id="none" name="preferences">
-                    <label for="none">none</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="gluten-sensitive" id="gluten-sensitive" name="preferences">
-                    <label for="gluten-sensitive">gluten sensitive</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="vegan" id="vegan" name="preferences">
-                    <label for="vegan">vegan</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="vegetarian" id="vegetarian" name="preferences">
-                    <label for="vegetarian">vegetarian</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="kosher" id="kosher" name="preferences">
-                    <label for="kosher">
-                        kosher
-                    </label>
-                </td>
-                <td>
-                    <input type="checkbox" value="halal" id="halal" name="preferences">
-                    <label for="halal">halal</label>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <p>Allergens:</p>
-                </td>
-                <td>
-                    <input type="checkbox" value="none" name="allergens" id="allergens">
-                    <label for="allergens">none</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="eggs" id="eggs" name="allergens">
-                    <label for="eggs">eggs</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="fish" id="fish" name="allergens">
-                    <label for="fish">fish</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="milk" id="milk" name="allergens">
-                    <label for="milk">
-                        milk
-                    </label>
-                </td>
-                <td>
-                    <input type="checkbox" value="peanuts" id="peanuts" name="allergens">
-                    <label for="peanuts">peanuts</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="shellfish" id="shellfish" name="allergens">
-                    <label for="shellfish">shellfish</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="soy" id="soy" name="allergens">
-                    <label for="soy">soy</label>
-                </td>
-                <td>
-                    <input type="checkbox" value="tree-nut" id="tree-nut" name="allergens">
-                    <label for="tree-nut">
-                        tree nut
-                    </label>
-                </td>
-                <td>
-                    <input type="checkbox" value="wheat" id="wheat" name="allergens">
-                    <label for="wheat">wheat</label>
-                </td>
-            </tr>
-        </table> -->
-<!-- </fieldset> -->
-
-
-<!-- </form> -->
-
-
 {% endblock %}
 
 {% block footer %}
