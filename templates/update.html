@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block head_stuff %}   
-    <title>Update Profile</title>
-{% endblock %}
-
-{% block content %}
+{% block headstuff %}
 <style>
-  body {
-  background-color:#5cb88d32;
+    body {
+    background-color:#5cb88d32;
 }
 </style>
+{%endblock%}
+
+{% block content %}
+
 <h1>Update Your Profile!</h1>
 <div class="cardLeft">
 <!-- beta version: condense code by using for loop -->
@@ -41,7 +41,7 @@
 <tr>
     <td><label for="diningHall">Favorite Dining Hall</label></td>
     <td><select id="diningHall" name="diningHall" required>
-            {% for hall in ['', 1, 2, 3, 4, 5] %}
+            {% for hall in ["", 1, 2, 3, 4, 5] %}
                     {% if hall == info['favoriteDH'] %}
                     <option value= {{hall}} selected> {{names[hall]}}</option>
                     {% else %}
