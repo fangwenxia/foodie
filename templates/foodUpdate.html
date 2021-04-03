@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-
+{% block headstuff %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{%endblock%}
 {% block content %}
 <!-- name = name of food 
     labels = list of labels food contains
@@ -8,11 +14,6 @@
     preference 
 
 -->
-<style>
-    body {
-    background-color:#5cb88d32;
-}
-</style>
 <div class="card">
 <h1>{{food.name}}</h1> 
 <div class="d-flex flex-md-column align-items-center"></div>

@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-
+{% block headstuff %}
+<style>
+    body {
+    background-color:#5cb88d32;
+}
+</style>
+{%endblock%}
 {% block content %}
 <!-- name = name of food 
     labels = list of labels food contains
@@ -7,12 +13,8 @@
     rating = rating
     preference 
 -->
-<style>
-    body {
-    background-color:#5cb88d32;
-}
-</style>
-<div class = "card">
+
+<div class = "card d-flex flex-column align-items-center">
 {% if filename %}
 <p><img class ="foodPic rounded mx-auto d-block" src="{{url_for('pic',fid=fid)}}" alt="{{food.name}}"></p>
 {% endif %}
@@ -22,7 +24,6 @@
 
 <h1>{{food.name}}</h1> 
 <!--  -->
-<div class="d-flex flex-column align-items-center">
 <a href="{{url_for('reviews', fid = fid)}}">
 <div class="Stars" style="--rating: {{rating}};" aria-label="Rating of this product is {{rating}} out of 5."><div></div></div></a>
 <form method = "POST" action = "{{url_for('food', fid = fid)}}">
@@ -33,6 +34,7 @@
 <p>Ingredients: {{food.ingredients}}</p>
 <p>Preference: {{food.preference}}</p>
 <p>Contains the following allergens: {{food.allergen}}</p>
+
 <!-- <p>Description: {{description}}</p>
 <p>When {{name}} is usually served: {{type}}</p>
 <p>Preference: {{preference}}</p>
@@ -54,7 +56,6 @@
     <!-- <td><a href="{{url_for('feed')}}"> {{comment['comment']}} @ {{comment['username']}}</a></td> -->
 </tr>
         
-    
 {%endfor%}
 </tbody>
 </table>
@@ -74,8 +75,9 @@
     <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
   </svg> </a>
 </div>
+
 {% endblock %}
-</div>
+
 
 {% block footer %}
 {% endblock %}
