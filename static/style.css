@@ -418,7 +418,20 @@ div.card {
     margin-top: 4em;
     margin-left: 10%;
     margin-right: 10%;
+    padding: 1em;
   }
+
+  div.cardLeft {
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
+    padding: 1em;
+  }
+
 .hours {
     width: max-content;
     align-content: center;

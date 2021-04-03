@@ -51,7 +51,7 @@ $(function(){
     </select>
     &emsp; &emsp;
         <strong>Dietary Restrictions: </strong>
-        <input type="checkbox" id="vegan" name="preference" value="vegan">
+        <!-- <input type="checkbox" id="vegan" name="preference" value="vegan">
         <label for="vegan"> Vegan</label>
         <input type="checkbox" id="vegetarian" name="preference" value="vegetarian">
         <label for="vegetarian"> Vegetarian </label>
@@ -60,7 +60,18 @@ $(function(){
         <input type="checkbox" id="halal" name="preference" value="halal">
         <label for="halal"> Halal </label>
         <input type="checkbox" id="gs" name="preference" value="gluten sensitive">
-        <label for="gs"> Gluten-sensitive </label>
+        <label for="gs"> Gluten-sensitive </label> -->
+
+        {% for pref in ['none', 'gluten sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'] %}
+        {% if pref in preferences %}
+        <input type="checkbox" value={{pref}} name="preferences" checked>
+        <label> {{pref}} </label>
+        {% else %}
+        <input type="checkbox" value={{pref}} name="preferences">
+        <label> {{pref}} </label>
+        {% endif %}
+{% endfor %}
+
         <input class = "button" type = "submit" name = "filter" value = "filter"> 
     </form>
 </div>

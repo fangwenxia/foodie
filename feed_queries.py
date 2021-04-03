@@ -63,8 +63,8 @@ used for checking duplicates when submitting a feedback form
 '''
 def feedback_duplicate(conn,fid,username):
     curs=dbi.dict_cursor(conn)
-    curs.execute('''select name,fid from feedback\
-        where username=%s,fid=%s''',[username,fid])
+    curs.execute('''select username,fid from feedback\
+        where username=%s and fid=%s''',[username,fid])
     return curs.fetchall()
 
 '''

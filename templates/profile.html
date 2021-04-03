@@ -32,7 +32,6 @@
 <p>allergies: {{info['allergies']}}</p>
 <p>preferences: {{info['preferences']}} </p>
 </div>
-
 {% for entry in reviews %}
 <div class="reviews">
     <span><b>@{{entry.username}} </b></span>
@@ -41,6 +40,7 @@
     <span>and said "{{entry.comment}}"</span><br>
 </div>
 {% endfor %}
+
 
 {% endblock %}
 

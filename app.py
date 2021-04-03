@@ -113,7 +113,8 @@ def menu():
                 return redirect(url_for('addfood',food_name=search))
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh)
+        print(preference)
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh, preferences = preference)
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -302,7 +303,7 @@ def profile(username):
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename)
+                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename, reviews=reviews)
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
@@ -464,23 +465,22 @@ def user(user):
     curs = dbi.cursor(conn)
     curs.execute('''select filename from proPics where username = %s''',[user])
     filename = curs.fetchone()
+    reviews=feed_queries.user_reviews(conn,user)
     try: 
-        print('hmmm')
         username = session['username']
-        print(username)
         info = query.get_user_info(conn, user)
         name = info['name']
         year = info['classYear']        
         diningHall = info['favoriteDH']
         if diningHall == None:
-            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename)
+            return render_template('user.html', username=username, info=info, dh_name=diningHall, title="Your Profile", filename= filename, reviews=reviews)
         else:
             dh_name = query.DH_name(conn, diningHall)
             DH = dh_name['name']
             favoriteFood = info['favoriteFood']
             allergens  = info['allergies']
             preferences =  info['preferences']
-            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename)
+            return render_template('user.html', username=user, info=info, dh_name=DH, title="Update Profile", filename= filename, reviews=reviews)
     except:
         flash("Please log in to view other profiles.")
         return redirect(url_for('create'))
@@ -525,12 +525,6 @@ def feed():
         item['avg']=str(item['avg'])
     title='Feed'
     return render_template('reviews.html',feedbacks=feedbacks,ranking=top_rated, title=title)
-<<<<<<< HEAD
-
-# route for adding a food item to the database
-@app.route('/addfood', methods=["GET", "POST"])
-def addfood(food_name=""):
-=======
 # Leah's code
 # route for adding a food item to the database (inserts the food item into the food & labels tables)
 # Note: because I made my insert statements thread-safe, they don't protect against duplicates–
@@ -538,18 +532,11 @@ def addfood(food_name=""):
 # then it will still be added to the database because the 'lastServed' is different. 
 @app.route('/addfood/', methods=["GET", "POST"])
 def addfood():
->>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
     # redirects user to login page if they are not logged in 
     try: 
         username = session['username']
         if request.method == 'GET':
-<<<<<<< HEAD
-            # add a way to dynamically obtain food preferences and allergens, in beta  
-            print(food_name)
-            return render_template('dataentry.html',title='Add Food',food_name=food_name)
-=======
             return render_template('dataentry.html',title='Add Food')
->>>>>>> 0eacd5221e23a6cff670ab0c01644e82bc32843d
         elif request.method == 'POST':
             conn = dbi.connect()
             food_name = request.form.get('food-name') 
@@ -633,7 +620,7 @@ def delete():
                 food_name = entry.get_food(conn,food_id)
             # deletes comments, labels and food table entries associated with a specific food item
                 entry.delete_comments(conn,food_id) 
-                #entry.delete_labels(conn,food_id)
+                entry.delete_labels(conn,food_id)
                 entry.delete_food(conn,food_id)
                 flash('{fname} was successfully deleted from the foodie database.'.format(fname=food_name))
             if comment_entered != "none": 
