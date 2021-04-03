@@ -270,6 +270,11 @@ a:active.menuItem  {
     border-width: .1em;
     border-style: solid;
     border-color: coral;
+    width: 60%;
+    margin-left: 20%;
+    background-color: var(--white);
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
 }
 
 .reviews a{
@@ -287,6 +292,9 @@ a:active.menuItem  {
     width:50%;
     margin:auto;
     padding:10px;
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    background-color: var(--white);
 }
 
 .top-rated b{
@@ -418,7 +426,20 @@ div.card {
     margin-top: 4em;
     margin-left: 10%;
     margin-right: 10%;
+    padding: 1em;
   }
+
+  div.cardLeft {
+    /* box-shadow: 0 4px 8px 0 var(--lightgreen), 0 6px 20px 0 var(--lightgreen); */
+    -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
+    margin-bottom: 2em;
+    margin-top: 4em;
+    margin-left: 10%;
+    margin-right: 10%;
+    padding: 1em;
+  }
+
 .hours {
     width: max-content;
     align-content: center;
@@ -483,3 +504,9 @@ a:hover.addReview {
 a:active.addReview  {
     text-decoration: underline;
   }
+
+.ratingName{
+    font-family: Nunito;
+    font-weight: 400;
+    color: var(--orange);
+}

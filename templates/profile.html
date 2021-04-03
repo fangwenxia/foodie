@@ -33,23 +33,36 @@
 <p>preferences: {{info['preferences']}} </p>
 </div>
 
+<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
+    <p> <input class='button' type='submit' value='update profile'> </p>
+</form>
 {% for entry in reviews %}
 <div class="reviews">
-    <span><b>@{{entry.username}} </b></span>
-    <span>{{entry.entered}}</span><br>
-    <span>rated <b>{{entry.name}}</b> {{entry.rating}} points</span><br>
-    <span>and said "{{entry.comment}}"</span><br>
+    <table class="table">
+        <tbody>
+    <tr> 
+    <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div class=ratingName>{{entry.name}}</div></td>
+</tr>
+<tr>
+    <td>{{entry.comment}}</td>
+</tr>
+<tr>
+    <td><a href="{{url_for('user', user = entry.username)}}">@{{entry.username}}</a> ({{entry.entered}})</td>
+</tr>
+    
+</tbody>
+
+</table>
 </div>
-{% endfor %}
+{%endfor%}
+
 
 {% endblock %}
 
 
 {% block extra%}
 
-<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
-    <p> <input class='button' type='submit' value='update profile'> </p>
-</form>
+
 </div>
 
 <div class="propic">
