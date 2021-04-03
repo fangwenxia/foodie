@@ -110,11 +110,12 @@ def menu():
                 flash('''The name you entered does not match any dish in the database
                     Would you like to add a new food entry? ''')
                 print(search)
-                return redirect(url_for('addfood',food_name=search))
+                return render_template("dataentry.html", food_name=search)
+                # return redirect(url_for('addfood',food_name=search))
         else: #if not given a dining hall request or a mealtype request
             menu = menuUp.lookupMenuList(conn, today()[0])
-        print(preference)
-        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh, preferences = preference)
+        names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
+        return render_template('menu.html',date=today()[1], location = dhName, type = mealtype, menu = menu, title ="Menu", waitTime = waitTime, dh = dh, preferences = preference, names =names)
 
 #for beta: how do I pass in the fid for processing too? 
 @app.route('/autocomplete',methods=['GET'])
@@ -303,11 +304,7 @@ def profile(username):
             else:
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
-<<<<<<< HEAD
-                return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename, reviews=reviews)
-=======
                 return render_template('profile.html', username=username, info=info, dh_name=DH, title="Your Profile", filename=filename,reviews=reviews)
->>>>>>> d3fcf3d6b310b4d4680f7f63bd494a7982919519
         else:
             if request.form['submit'] == 'upload':
                 f = request.files['pic']
@@ -351,15 +348,12 @@ def update(username):
                 print('hmmm')
                 return render_template('update.html', username=username, info=info, dh_name=diningHall, title="Your Profile")
             else:
-                print('oooooh')
                 dh_name = query.DH_name(conn, diningHall)
                 DH = dh_name['name']
                 favoriteFood = info['favoriteFood']
                 allergens  = info['allergies']
                 preferences =  info['preferences']
-                print('weeeee')
                 names = ['', 'Bates', 'Lulu', 'Pom', 'Stone-D', 'Tower']
-
                 return render_template('update.html', username=username, info=info, dh_name=DH, title="Update Profile", names=names)
         elif request.form["submit"] == "update":
             print('HERE')

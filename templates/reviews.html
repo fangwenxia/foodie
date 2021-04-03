@@ -8,7 +8,7 @@
    <h1>Trending Reviews</h1>
    <!-- Displaying the top rated food items -->
     <div class="top-rated">
-    <h2>Most Popular Dishes Voted By <b>You!</b></h2>
+    <h2>Most Popular Meals on foodie.</h2>
     <ol>
         {% for dish in ranking %}
         <li>
@@ -18,8 +18,8 @@
         {% endfor %}
     </ol>
     </div>
-   <span class="nav-link">
-       You can add your own critique for a dish by<a class="nav-link" href="{{url_for('mainmenu')}}">looking it up</a>
+   <span class="d-flex flex-column align-items-center">
+        <a class="button" href="{{url_for('mainmenu')}}">Find a food to critique</a>
     </span>
     {% for entry in feedbacks %}
     <div class="reviews">
