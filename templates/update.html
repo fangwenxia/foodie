@@ -24,7 +24,7 @@
   <tr>
     <td><label for="year">Class Year</label></td>
     <td><select id="year" name="year" required>
-            {% for year in [' ', '2021', '2022', '2023', '2024', 'Davis Scholar'] %}
+            {% for year in ['', '2021', '2022', '2023', '2024', 'Davis Scholar'] %}
                 {% if year == info['classYear']%}
                 <option selected> {{year}}</option>
                 {% else %}
@@ -37,7 +37,7 @@
 <tr>
     <td><label for="diningHall">Favorite Dining Hall</label></td>
     <td><select id="diningHall" name="diningHall" required>
-            {% for hall in [' ', 1, 2, 3, 4, 5] %}
+            {% for hall in ['', 1, 2, 3, 4, 5] %}
                     {% if hall == info['favoriteDH'] %}
                     <option value= {{hall}} selected> {{names[hall]}}</option>
                     {% else %}
@@ -55,7 +55,7 @@
     <tr>
         <td><label>Food Allergens</label></td>
         <td>
-                {% for al in ['none', 'eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree nut', 'wheat'] %}
+                {% for al in ['none', 'eggs', 'fish', 'milk', 'peanuts', 'shellfish', 'soy', 'tree-nut', 'wheat'] %}
                         {% if al in info['allergies'] %}
                         <input type="checkbox"  value={{al}} name="allergens" checked>
                         <label class="pro_checks"> {{al}} </label>
@@ -70,7 +70,7 @@
     <tr>
         <td><label>Food Preferences</label></td>
         <td class="pro_checks">
-                {% for pref in ['none', 'gluten sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'] %}
+                {% for pref in ['none', 'gluten-sensitive', 'vegan', 'vegetarian', 'kosher', 'halal'] %}
                         {% if pref in info['preferences'] %}
                         <input type="checkbox" value={{pref}} name="preferences" checked>
                         <label> {{pref}} </label>

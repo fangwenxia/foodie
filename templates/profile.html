@@ -33,6 +33,9 @@
 <p>preferences: {{info['preferences']}} </p>
 </div>
 
+<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
+    <p> <input class='button' type='submit' value='update profile'> </p>
+</form>
 {% for entry in reviews %}
 <div class="reviews">
     <span><b>@{{entry.username}} </b></span>
@@ -47,9 +50,7 @@
 
 {% block extra%}
 
-<form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
-    <p> <input class='button' type='submit' value='update profile'> </p>
-</form>
+
 </div>
 
 <div class="propic">
