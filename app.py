@@ -274,11 +274,10 @@ def user_login():
                 return redirect(url_for('profile', username=session['username'], info=info))
             else:
                 flash('Incorrect login. Please try again.')
-                session['username'] = ""
-                session['logged_in'] = False
                 return redirect(url_for('user_login'))
         else:
             flash("Only administrators can use this form. Please login through Wellesley portal.")
+            print(session)
             return render_template('create.html', title="Login")
 
 # allows user to see their profile
@@ -436,8 +435,6 @@ def profile_error():
         else:
             return redirect(url_for('create'))
     else:
-        session['username'] = ""
-        session['logged_in'] = False
         flash('Please log in.')
         return redirect(url_for('create'))
 
