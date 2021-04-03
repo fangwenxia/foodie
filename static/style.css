@@ -427,6 +427,7 @@ div.card {
     margin-left: 10%;
     margin-right: 10%;
     padding: 1em;
+    background-color: var(--white);
   }
 
   div.cardLeft {
@@ -438,6 +439,7 @@ div.card {
     margin-left: 10%;
     margin-right: 10%;
     padding: 1em;
+    background-color: var(--white);
   }
 
 .hours {
