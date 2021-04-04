@@ -1181,7 +1181,11 @@ def use_last_insert_id(conn):
 
 {% endblock %}
 
-{% block extra%}
+{% block extra %}
+
+{% endblock %}
+
+{% block extra2%}
 
 {% endblock%}
 
@@ -2098,9 +2102,14 @@ $(function(){
 <p>preferences: {{info['preferences']}} </p>
 </div>
 
+
+{% block extra%}
 <form id="update_profile" method="GET" action="{{url_for('update', username=username)}}"> 
     <p> <input class='button' type='submit' value='update profile'> </p>
 </form>
+{% endblock %}
+
+
 {% for entry in reviews %}
 <div class="reviews">
     <table class="table">
@@ -2125,7 +2134,8 @@ $(function(){
 {% endblock %}
 
 
-{% block extra%}
+
+{% block extra2%}
 
 
 </div>
@@ -2291,7 +2301,13 @@ $(function(){
 {% endblock %}
 {% extends "profile.html" %}
 
+
+
 {% block extra%}
+
+{% endblock%}
+
+{% block extra2%}
 
 {% endblock%}{% extends "base.html" %}
 
