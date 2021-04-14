@@ -517,7 +517,7 @@ def feed():
 
 
 # route for adding a food item to the database (inserts the food item into the food & labels tables)
-# Note: because I made my insert statements thread-safe, they don't protect against duplicates–
+# Note: because I made my insert statements thread-safe, they don't protect against duplicates
 # while it should protect against exact duplicates, if a user enters in a dish that already exists in the same dining hall on a different date, 
 # then it will still be added to the database because the 'lastServed' is different. 
 @app.route('/addfood/', methods=["GET", "POST"])
