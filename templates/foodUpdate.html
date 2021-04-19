@@ -23,7 +23,7 @@
 <section id="form">
     <form id="update" method ="POST" action="{{url_for('updateFood', fid = food.fid)}}">
         <label>
-        <textarea name="ingredients" rows=5 cols=50>{{food.ingredients}}</textarea></label>
+        <textarea name="ingredients" class="form-control">{{food.ingredients}}</textarea></label>
         <p><input name = "submit" type="submit" value="update" class = "button"></p>
     </form>
 </section>

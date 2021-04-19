@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container-fluid">
 <div class="d-flex flex-column align-items-center">
-<h1>foodie<span style="color:#fd8953">.</span></h1> 
-<h2><i>your guide to the best eats at wellesley college</i></h2>
+<h1>foodie<span style="color:#fd8953">.</span></h1>
+<h2 class="text-center">your guide to the best eats at wellesley college</h2>
 </div>
 <!-- dh = request.args.get('dh-filter', "")
         mealtype = request.args.get("type-filter", "") -->
+<div class="row d-flex justify-content-center">
 <div class="d-flex flex-column align-items-center homePage">
+  <div class="col">
   <form method = "GET" action = "{{url_for('menu')}}">
     What's for
     <select name = "type-filter" class = "form-control">
@@ -29,6 +32,7 @@
     ?
 <input class = "homeButton" type = "submit" name = "filter" value = "view menu"> 
 </form>
+</div>
 </div>
 
 {% if session['username'] %}
@@ -64,7 +68,7 @@
     Late Night: 8:00 PM - 11:00 PM <br/>
 </p>
 
-<h2>Stone-D and Pom are closed until further notice</h2>
+<h2 class="text-center">Stone-D and Pom are closed until further notice</h2>
 </div>
-
+</div>
 {% endblock %}
