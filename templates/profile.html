@@ -40,8 +40,9 @@
 
 
 {% for entry in reviews %}
+<div class="container-fluid ">
 <div class="reviews table-responsive-sm">
-    <table class="table ">
+    <table class="table">
         <tbody>
     <tr> 
     <td class="Stars" style="--rating: {{entry.rating}};" aria-label="Rating of this product is {{entry.rating}} out of 5."><div class=ratingName>{{entry.name}}</div></td>
@@ -56,6 +57,7 @@
 </tbody>
 
 </table>
+</div>
 </div>
 {%endfor%}
 

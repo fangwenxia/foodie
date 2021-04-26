@@ -3,8 +3,8 @@ import cs304dbi as dbi
 # helper function to add new user into student
 def add_username(conn, username, passwd1, hashed_str): 
     curs = dbi.dict_cursor(conn)
-    curs.execute('''INSERT INTO student(username, password, hashed)
-                VALUES (%s, %s, %s);''', [username, passwd1, hashed_str])
+    curs.execute('''INSERT INTO student(username, password, hashed, name, classYear, favoriteDH, favoriteFood, allergies, preferences)
+                VALUES (%s, %s, %s, 'Enter name', '2021', 1 , 'Enter Favorite Food', 'none', 'none');''', [username, passwd1, hashed_str])
     conn.commit()
 
 
@@ -20,7 +20,6 @@ def is_admin(conn, username):
     print('is_admin result',len(curs.fetchall()) != 0)
     return len(curs.fetchall()) != 0
         
-
 # helper function to access all users info from student table
 def get_user_info(conn, username):
     curs = dbi.dict_cursor(conn)
@@ -28,6 +27,7 @@ def get_user_info(conn, username):
                     from student
                     where username = %s;''', [username])
     return curs.fetchone()
+
 
 # helper function to get diningHall name
 def DH_name(conn, id):

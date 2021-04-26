@@ -269,6 +269,11 @@ a:active.menuItem  {
     -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
     box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);
 }
+.reviewsMargin {
+    max-width: 500pt;
+    margin:auto;
+    margin-bottom: 1em;
+}
 
 .reviews a{
     color:#5CB88D;
@@ -282,7 +287,7 @@ a:active.menuItem  {
     border-width:.1em;
     border-style:solid;
     border-color:#5CB88D;
-    width:50%;
+    max-width: max-content;
     margin:auto;
     padding:10px;
     -webkit-box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16), 0px 3px 6px rgba(0, 0, 0, 0.23);

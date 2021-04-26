@@ -41,7 +41,8 @@
     <p class="login_button"><input class='button' type='submit' value='logout {{session["username"]}}'> </p>
 </form>
 {% else %}
-<form method="GET" action="{{url_for('cas.login')}}">
+<form method="GET" action="{{url_for('create')}}">
+  <!-- changed cas.login to create -->
   <p class="login_button"><input class='button' type='submit' value='login/create account'> </p>
 </form>
 
